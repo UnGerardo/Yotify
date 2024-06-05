@@ -2,17 +2,25 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs';
 
 const server = createServer((req, res) => {
-  res.setHeader('Content-Type', 'text/html');
+  let path;
 
-  let path = './html/';
-  switch(req.url) {
-    case '/':
-      res.statusCode = 200;
-      path += 'index.html';
-      break;
-    default:
-      res.statusCode = 404;
-      path += '404.html';
+  if (req.url.includes('js')) {
+    res.setHeader('Content-Type', 'text/javascript');
+    path = './js/script.js';
+  } else {
+
+    res.setHeader('Content-Type', 'text/html');
+    path = './html/';
+
+    switch(req.url) {
+      case '/':
+        res.statusCode = 200;
+        path += 'index.html';
+        break;
+      default:
+        res.statusCode = 404;
+        path += '404.html';
+    }
   }
 
   readFile(path, (err, data) => {
