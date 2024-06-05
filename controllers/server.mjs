@@ -23,6 +23,10 @@ const server = createServer((req, res) => {
         res.statusCode = 200;
         path += 'index.html';
         break;
+      case '/spotSearch':
+        res.statusCode = 200;
+        path += 'spotSearch.html';
+        break;
       default:
         res.statusCode = 404;
         path += '404.html';
