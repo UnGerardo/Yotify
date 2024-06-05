@@ -6,9 +6,15 @@ const server = createServer((req, res) => {
 
   if (req.url.includes('js')) {
     res.setHeader('Content-Type', 'text/javascript');
-    path = './js/script.js';
-  } else {
-
+    console.log(req.url)
+    path = req.url;
+  }
+  else if (req.url.includes('css')) {
+    res.setHeader('Content-Type', 'text/css');
+    console.log(req.url)
+    path = req.url;
+  }
+  else {
     res.setHeader('Content-Type', 'text/html');
     path = './html/';
 
