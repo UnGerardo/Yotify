@@ -1,6 +1,8 @@
 
-const reqBtn = document.getElementById('req');
+const searchBtn = document.getElementById('searchBtn');
 
-reqBtn.addEventListener('click', async () => {
-  console.log('Pressed req');
+searchBtn.addEventListener('click', async () => {
+  const response = await fetch('/spotToken');
+  const data = await response.json();
+  console.log(data);
 });
