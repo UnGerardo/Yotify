@@ -16,4 +16,20 @@ searchBtn.addEventListener('click', async () => {
     spotifyTokenType = data['token_type'];
     spotifyTokenExpiration = Date.now() + 3000000;
   }
+
+  const searchQuery = searchQueryInput.value;
+
+  const spotifyApiParams = new URLSearchParams();
+  spotifyApiParams.append('q', searchQuery);
+  spotifyApiParams.append('type', 'track');
+  spotifyApiParams.append('market', 'US');
+  spotifyApiParams.append('limit', 20);
+  spotifyApiParams.append('offset', 0);
+
+  const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifyApiParams}`, {
+    method: 'GET',
+    headers: {'Authorization': `${spotifyTokenType} ${spotifyAccessToken}`}
+  });
+  const spotifyResponseJson = await spotifyResponse.json();
+  console.log(spotifyResponseJson);
 });
