@@ -32,7 +32,18 @@ searchBtn.addEventListener('click', async () => {
     headers: {'Authorization': `${spotifyTokenType} ${spotifyAccessToken}`}
   });
   const spotifyResponseJson = await spotifyResponse.json();
-  console.log(spotifyResponseJson);
+  // console.log(spotifyResponseJson);
+
+  spotifyResponseJson['tracks']['items'].forEach(track => {
+    const imageUrl = track['album']['images'][1]['url'];
+    const albumName = track['album']['name'];
+    // can have multiple artists
+    const artistName = track['artists'][0]['name'];
+    const trackName = track['name'];
+    // const trackUrl = track['external_urls']['spotify'];
+
+    renderSearchResult(imageUrl, albumName, artistName, trackName);
+  });
 });
 
 function renderSearchResult(imageUrl, albumName, artistName, trackName) {
