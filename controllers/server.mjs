@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs';
-import fetch from 'node-fetch';
 
 const server = createServer(async (req, res) => {
   let path;
@@ -38,18 +37,16 @@ const server = createServer(async (req, res) => {
         params.append('client_id', process.env.CLIENT_ID);
         params.append('client_secret', process.env.CLIENT_SECRET);
 
-        const response = await fetch('https://accounts.spotify.com/api/token', {
+        const spotifyApiResponse = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
           body: params,
           headers: {'Content-Type': 'application/x-www-form-urlencoded'}
         });
 
-        const data = await response.json();
+        const spotifyApiJson = await spotifyApiResponse.json();
 
-        console.log(data);
-        res.end(JSON.stringify({
-          req: 'Complete',
-        }));
+        console.log(spotifyApiJson);
+        res.end(JSON.stringify(spotifyApiJson));
         return;
         break;
       default:
