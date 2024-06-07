@@ -28,13 +28,14 @@ searchBtn.addEventListener('click', async () => {
     // can have multiple artists
     const artistName = track['artists'][0]['name'];
     const trackName = track['name'];
+    const duration = track['duration_ms'];
     // const trackUrl = track['external_urls']['spotify'];
 
-    renderSearchResult(imageUrl, albumName, artistName, trackName);
+    renderSearchResult(imageUrl, albumName, artistName, trackName, duration);
   });
 });
 
-function renderSearchResult(imageUrl, albumName, artistName, trackName) {
+function renderSearchResult(imageUrl, albumName, artistName, trackName, duration) {
   const imageElement = document.createElement('img');
   imageElement.classList.add('albumImage');
   imageElement.src = imageUrl;
@@ -44,6 +45,8 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName) {
   artistParagraph.innerText = `Artist: ${artistName}`;
   const trackParagraph = document.createElement('p');
   trackParagraph.innerText = `Track: ${trackName}`;
+  const durationParagraph = document.createElement('p');
+  durationParagraph.innerText = `Duration: ${msToReadableTime(duration)}`;
 
   const resultSect = document.createElement('section');
   resultSect.classList.add('result');
@@ -51,6 +54,28 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName) {
   resultSect.appendChild(albumParagraph);
   resultSect.appendChild(artistParagraph);
   resultSect.appendChild(trackParagraph);
+  resultSect.appendChild(durationParagraph);
 
   searchResultsSect.appendChild(resultSect);
+}
+
+function msToReadableTime(msTime) {
+  const totalSeconds = Math.floor(msTime / 1000);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const totalHours = Math.floor(totalSeconds / 3600);
+
+  let minutes = totalMinutes - (totalHours * 60);
+  let seconds = totalSeconds - (totalHours * 3600) - (totalMinutes * 60);
+
+  if (totalHours > 0 && minutes < 10) {
+    minutes = `0${minutes}`;
+  }
+  if (seconds < 10) {
+    seconds = `0${seconds}`;
+  }
+
+  if (totalHours > 0) {
+    return `${totalHours}:${minutes}:${seconds}`;
+  }
+  return `${minutes}:${seconds}`;
 }
