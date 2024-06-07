@@ -43,18 +43,21 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST') {
     switch (req.url.split('?')[0]) {
       case '/searchTrack':
+        console.log(`Token 1: ${spotifyAccessToken}`);
         if (spotifyAccessToken === '' || Date.now() > spotifyTokenExpiration) {
           await getSpotifyAccessToken();
         }
 
-        let reqBody = '';
+        let reqBodyStr = '';
         req.on('data', (chunk) => {
-          reqBody += chunk.toString();
+          reqBodyStr += chunk.toString();
         });
 
         req.on('end', async () => {
+          const reqBodyJson = JSON.parse(reqBodyStr);
+          console.log(reqBodyJson['searchQuery']);
           const spotifySearchParams = new URLSearchParams();
-          spotifySearchParams.append('q', reqBody['searchQuery']);
+          spotifySearchParams.append('q', reqBodyJson['searchQuery']);
           spotifySearchParams.append('type', 'track');
           spotifySearchParams.append('market', 'US');
           spotifySearchParams.append('limit', 20);
@@ -70,6 +73,7 @@ const server = createServer(async (req, res) => {
           res.statusCode = 200;
           res.end(JSON.stringify(spotifyResponseJson['tracks']));
         });
+        console.log(`Token 2: ${spotifyAccessToken}`);
         return;
       default:
         res.setHeader('Content-Type', 'text/html');
