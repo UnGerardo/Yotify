@@ -1,0 +1,36 @@
+
+body {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+#searchResults {
+  width: 90%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  border: 1px black solid;
+  border-radius: 10px;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 5px;
+  margin: 10px;
+  border: 1px black solid;
+  border-radius: 10px;
+}
+
+.albumImage {
+  height: 150px;
+  width: 150px;
+}
