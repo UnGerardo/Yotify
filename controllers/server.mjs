@@ -55,7 +55,7 @@ const server = createServer(async (req, res) => {
 
         req.on('end', async () => {
           const reqBodyJson = JSON.parse(reqBodyStr);
-          console.log(reqBodyJson['searchQuery']);
+
           const spotifySearchParams = new URLSearchParams();
           spotifySearchParams.append('q', reqBodyJson['searchQuery']);
           spotifySearchParams.append('type', 'track');

@@ -29,13 +29,13 @@ searchBtn.addEventListener('click', async () => {
     const artistName = track['artists'][0]['name'];
     const trackName = track['name'];
     const duration = track['duration_ms'];
-    // const trackUrl = track['external_urls']['spotify'];
+    const trackUrl = track['external_urls']['spotify'];
 
-    renderSearchResult(imageUrl, albumName, artistName, trackName, duration);
+    renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl);
   });
 });
 
-function renderSearchResult(imageUrl, albumName, artistName, trackName, duration) {
+function renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl) {
   const imageElement = document.createElement('img');
   imageElement.classList.add('albumImage');
   imageElement.src = imageUrl;
@@ -47,6 +47,11 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
   trackParagraph.innerText = `Track: ${trackName}`;
   const durationParagraph = document.createElement('p');
   durationParagraph.innerText = `Duration: ${msToReadableTime(duration)}`;
+  const downloadBtn = document.createElement('button');
+  downloadBtn.innerText = 'Download';
+  downloadBtn.addEventListener('click', () => {
+    console.log(trackUrl);
+  });
 
   const resultSect = document.createElement('section');
   resultSect.classList.add('result');
@@ -55,6 +60,7 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
   resultSect.appendChild(artistParagraph);
   resultSect.appendChild(trackParagraph);
   resultSect.appendChild(durationParagraph);
+  resultSect.appendChild(downloadBtn);
 
   searchResultsSect.appendChild(resultSect);
 }
