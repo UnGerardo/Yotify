@@ -18,6 +18,10 @@ searchBtn.addEventListener('click', async () => {
   });
   const searchResponseJson = await searchResponse.json();
 
+  while (searchResultsSect.hasChildNodes()) {
+    searchResultsSect.removeChild(searchResultsSect.firstChild);
+  }
+
   searchResponseJson['items'].forEach(track => {
     const imageUrl = track['album']['images'][1]['url'];
     const albumName = track['album']['name'];
@@ -32,6 +36,7 @@ searchBtn.addEventListener('click', async () => {
 
 function renderSearchResult(imageUrl, albumName, artistName, trackName) {
   const imageElement = document.createElement('img');
+  imageElement.classList.add('albumImage');
   imageElement.src = imageUrl;
   const albumParagraph = document.createElement('p');
   albumParagraph.innerText = `Album: ${albumName}`;
