@@ -33,6 +33,10 @@ const server = createServer(async (req, res) => {
           res.statusCode = 200;
           urlPath += 'spotSearch.html';
           break;
+        case '/getPlaylists':
+          res.statusCode = 200;
+          urlPath += 'getPlaylists.html';
+          break;
         default:
           res.statusCode = 404;
           urlPath += '404.html';
