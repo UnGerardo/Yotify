@@ -76,12 +76,7 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
 
   const resultSect = document.createElement('section');
   resultSect.classList.add('result');
-  resultSect.appendChild(imageElement);
-  resultSect.appendChild(albumParagraph);
-  resultSect.appendChild(artistParagraph);
-  resultSect.appendChild(trackParagraph);
-  resultSect.appendChild(durationParagraph);
-  resultSect.appendChild(downloadBtn);
+  resultSect.append(imageElement, albumParagraph, artistParagraph, trackParagraph, durationParagraph, downloadBtn);
 
   searchResultsSect.appendChild(resultSect);
 }
@@ -94,15 +89,8 @@ function msToReadableTime(msTime) {
   let minutes = totalMinutes - (totalHours * 60);
   let seconds = totalSeconds - (totalHours * 3600) - (totalMinutes * 60);
 
-  if (totalHours > 0 && minutes < 10) {
-    minutes = `0${minutes}`;
-  }
-  if (seconds < 10) {
-    seconds = `0${seconds}`;
-  }
+  minutes = totalHours > 0 && minutes < 10 ? `0${minutes}` : minutes;
+  seconds = seconds < 10 ? `0${seconds}` : seconds;
 
-  if (totalHours > 0) {
-    return `${totalHours}:${minutes}:${seconds}`;
-  }
-  return `${minutes}:${seconds}`;
+  return totalHours > 0 ? `${totalHours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
 }

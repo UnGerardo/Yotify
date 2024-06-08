@@ -2,15 +2,12 @@ import 'dotenv/config';
 import { createServer } from 'node:http';
 import { createReadStream, readFile, stat } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import path from 'node:path';
 
 let spotifyAccessToken = '';
 let spotifyTokenType = '';
 let spotifyTokenExpiration = 0;
 
 const server = createServer(async (req, res) => {
-  console.log(req.url);
-  console.log(req.method);
   let urlPath;
 
   if (req.method === 'GET') {
@@ -58,12 +55,8 @@ const server = createServer(async (req, res) => {
         req.on('end', async () => {
           const reqBodyJson = JSON.parse(reqBodyStr);
 
-          const spotifySearchParams = new URLSearchParams();
-          spotifySearchParams.append('q', reqBodyJson['searchQuery']);
-          spotifySearchParams.append('type', 'track');
-          spotifySearchParams.append('market', 'US');
-          spotifySearchParams.append('limit', 20);
-          spotifySearchParams.append('offset', 0);
+          const paramsStr = `q=${reqBodyJson['searchQuery']}&type=track&market=US&limit=20&offset=0`;
+          const spotifySearchParams = new URLSearchParams(paramsStr);
 
           const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifySearchParams}`, {
             method: 'GET',
@@ -82,10 +75,7 @@ const server = createServer(async (req, res) => {
         });
 
         req.on('end', () => {
-          const reqBodyJson = JSON.parse(reqBodyStr);
-          const trackUrl = reqBodyJson['trackUrl'];
-          const artistName = reqBodyJson['artistName'];
-          const trackName = reqBodyJson['trackName'];
+          const { trackUrl, artistName, trackName } = JSON.parse(reqBodyStr);
 
           const zotifyInstance = spawnSync('zotify', [`--root-path=${process.env.MUSIC_ROOT_PATH}`, trackUrl]);
 
@@ -123,7 +113,6 @@ const server = createServer(async (req, res) => {
     }
   }
 
-  console.log(urlPath)
   readFile(urlPath, (err, data) => {
     if (err) {
       console.log(err);
@@ -135,10 +124,8 @@ const server = createServer(async (req, res) => {
 });
 
 async function getSpotifyAccessToken() {
-  const spotifyCredParams = new URLSearchParams();
-  spotifyCredParams.append('grant_type', 'client_credentials');
-  spotifyCredParams.append('client_id', process.env.CLIENT_ID);
-  spotifyCredParams.append('client_secret', process.env.CLIENT_SECRET);
+  const paramsStr = `grant_type=client_credentials&client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}`;
+  const spotifyCredParams = new URLSearchParams(paramsStr);
 
   const spotifyApiResponse = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -148,8 +135,7 @@ async function getSpotifyAccessToken() {
 
   const spotifyApiJson = await spotifyApiResponse.json();
 
-  spotifyAccessToken = spotifyApiJson['access_token'];
-  spotifyTokenType = spotifyApiJson['token_type'];
+  ({ access_token: spotifyAccessToken, token_type: spotifyTokenType } = spotifyApiJson);
   spotifyTokenExpiration = Date.now() + 3500000;
 }
 
