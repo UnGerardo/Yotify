@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs';
+import { createReadStream, readFile, stat } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 
 let spotifyAccessToken = '';
 let spotifyTokenType = '';
@@ -9,46 +11,46 @@ let spotifyTokenExpiration = 0;
 const server = createServer(async (req, res) => {
   console.log(req.url);
   console.log(req.method);
-  let path;
+  let urlPath;
 
   if (req.method === 'GET') {
     if (req.url.includes('js')) {
       res.setHeader('Content-Type', 'text/javascript');
-      path = `./js${req.url}`;
+      urlPath = `./js${req.url}`;
     }
     else if (req.url.includes('css')) {
       res.setHeader('Content-Type', 'text/css');
-      path = `./css${req.url}`;
+      urlPath = `./css${req.url}`;
     }
     else {
       res.setHeader('Content-Type', 'text/html');
-      path = './html/';
+      urlPath = './html/';
 
       switch(req.url) {
         // html
         case '/':
           res.statusCode = 200;
-          path += 'index.html';
+          urlPath += 'index.html';
           break;
         case '/spotSearch':
           res.statusCode = 200;
-          path += 'spotSearch.html';
+          urlPath += 'spotSearch.html';
           break;
         default:
           res.statusCode = 404;
-          path += '404.html';
+          urlPath += '404.html';
       }
     }
   }
   if (req.method === 'POST') {
+    let reqBodyStr = '';
+
     switch (req.url.split('?')[0]) {
       case '/searchTrack':
-        console.log(`Token 1: ${spotifyAccessToken}`);
         if (spotifyAccessToken === '' || Date.now() > spotifyTokenExpiration) {
           await getSpotifyAccessToken();
         }
 
-        let reqBodyStr = '';
         req.on('data', (chunk) => {
           reqBodyStr += chunk.toString();
         });
@@ -69,21 +71,60 @@ const server = createServer(async (req, res) => {
           });
           const spotifyResponseJson = await spotifyResponse.json();
 
-          res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify(spotifyResponseJson['tracks']));
         });
-        console.log(`Token 2: ${spotifyAccessToken}`);
+        return;
+      case '/downloadTrack':
+        req.on('data', (chunk) => {
+          reqBodyStr += chunk.toString();
+        });
+
+        req.on('end', () => {
+          const reqBodyJson = JSON.parse(reqBodyStr);
+          const trackUrl = reqBodyJson['trackUrl'];
+          const artistName = reqBodyJson['artistName'];
+          const trackName = reqBodyJson['trackName'];
+
+          const zotifyInstance = spawnSync('zotify', [`--root-path=${process.env.MUSIC_ROOT_PATH}`, trackUrl]);
+
+          if (zotifyInstance.error) {
+            console.log(`Error: ${zotifyInstance.error.message}`);
+          } else {
+            console.log(`STDOUT: \n${zotifyInstance.stdout}`);
+            console.log(`STDERR: \n${zotifyInstance.stderr}`);
+            console.log(`STATUS: ${zotifyInstance.status}`);
+          }
+
+          const trackFilePath = `${process.env.MUSIC_ROOT_PATH}${artistName}/${artistName} - ${trackName}.ogg`;
+          stat(trackFilePath, (err, stats) => {
+            if (err) {
+              res.writeHead(404, { 'Content-Type': 'text/plain' });
+              res.end('File not found');
+              return;
+            }
+
+            res.writeHead(200, {
+              'Content-Type': 'application/ogg',
+              'Content-Length': stats.size,
+              'Content-Disposition': `attachment; filename='${artistName} - ${trackName}.ogg'`
+            });
+
+            const readStream = createReadStream(trackFilePath);
+            readStream.pipe(res);
+          });
+        });
         return;
       default:
         res.setHeader('Content-Type', 'text/html');
         res.statusCode = 404;
-        path = './html/404.html';
+        urlPath = './html/404.html';
     }
   }
 
-  console.log(path)
-  readFile(path, (err, data) => {
+  console.log(urlPath)
+  readFile(urlPath, (err, data) => {
     if (err) {
       console.log(err);
       res.end();

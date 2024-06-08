@@ -49,8 +49,29 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
   durationParagraph.innerText = `Duration: ${msToReadableTime(duration)}`;
   const downloadBtn = document.createElement('button');
   downloadBtn.innerText = 'Download';
-  downloadBtn.addEventListener('click', () => {
-    console.log(trackUrl);
+  downloadBtn.addEventListener('click', async () => {
+    const downloadResponse = await fetch('/downloadTrack', {
+      method: 'POST',
+      body: JSON.stringify({
+        artistName,
+        trackName,
+        trackUrl
+      })
+    });
+
+    const responseHeaders = downloadResponse.headers;
+    const responseBlob = await downloadResponse.blob()
+    const url = window.URL.createObjectURL(responseBlob);
+
+    const linkElement = document.createElement('a');
+    linkElement.style.display = 'none';
+    linkElement.href = url;
+    linkElement.download = responseHeaders.get('content-disposition').split("'")[1];
+    document.body.appendChild(linkElement);
+
+    linkElement.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(linkElement);
   });
 
   const resultSect = document.createElement('section');
