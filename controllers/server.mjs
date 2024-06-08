@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createServer } from 'node:http';
 import { createReadStream, readFile, stat } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { randomInt } from 'node:crypto';
 
 let spotifyAccessToken = '';
 let spotifyTokenType = '';
@@ -59,8 +60,14 @@ const server = createServer(async (req, res) => {
         req.on('end', async () => {
           const reqBodyJson = JSON.parse(reqBodyStr);
 
-          const paramsStr = `q=${reqBodyJson['searchQuery']}&type=track&market=US&limit=20&offset=0`;
-          const spotifySearchParams = new URLSearchParams(paramsStr);
+          const params = {
+            q: reqBodyJson['searchQuery'],
+            type: 'track',
+            market: 'US',
+            limit: 20,
+            offset: 0
+          }
+          const spotifySearchParams = new URLSearchParams(params);
 
           const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifySearchParams}`, {
             method: 'GET',
@@ -128,8 +135,12 @@ const server = createServer(async (req, res) => {
 });
 
 async function getSpotifyAccessToken() {
-  const paramsStr = `grant_type=client_credentials&client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}`;
-  const spotifyCredParams = new URLSearchParams(paramsStr);
+  const params = {
+    grant_type: 'client_credentials',
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET
+  };
+  const spotifyCredParams = new URLSearchParams(params);
 
   const spotifyApiResponse = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
