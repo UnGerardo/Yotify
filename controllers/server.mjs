@@ -38,6 +38,23 @@ const server = createServer(async (req, res) => {
           res.statusCode = 200;
           urlPath += 'getPlaylists.html';
           break;
+        // endpoints
+        case '/spotifyAuth':
+          const state = randomInt(1000000000);
+          const scope = 'user-library-read playlist-read-private';
+
+          const params = {
+            response_type: 'code',
+            client_id: process.env.CLIENT_ID,
+            scope: scope,
+            redirect_uri: process.env.REDIRECT_URI,
+            state: state
+          };
+          const spotifyAuthParams = new URLSearchParams(params);
+
+          res.writeHead(302, { Location: `https://accounts.spotify.com/authorize?${spotifyAuthParams}` });
+          res.end();
+          return;
         default:
           res.statusCode = 404;
           urlPath += '404.html';
