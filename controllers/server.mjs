@@ -56,7 +56,8 @@ const server = createServer(async (req, res) => {
             client_id: process.env.CLIENT_ID,
             scope: scope,
             redirect_uri: process.env.REDIRECT_URI,
-            state: stateStr
+            state: stateStr,
+            show_dialog: true
           });
 
           res.writeHead(302, { Location: `https://accounts.spotify.com/authorize?${spotifyAuthParams}` });
