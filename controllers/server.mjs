@@ -2,14 +2,18 @@ import 'dotenv/config';
 import { createServer } from 'node:http';
 import { createReadStream, readFile, stat } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
 let spotifyAccessToken = '';
 let spotifyTokenType = '';
 let spotifyTokenExpiration = 0;
 
+const authStateMap = new Map();
+let userId = 0;
+
 const server = createServer(async (req, res) => {
   let urlPath;
+  console.log(req.url)
 
   if (req.method === 'GET') {
     if (req.url.includes('js')) {
@@ -24,7 +28,7 @@ const server = createServer(async (req, res) => {
       res.setHeader('Content-Type', 'text/html');
       urlPath = './html/';
 
-      switch(req.url) {
+      switch(req.url.split('?')[0]) {
         // html
         case '/':
           res.statusCode = 200;
@@ -40,20 +44,69 @@ const server = createServer(async (req, res) => {
           break;
         // endpoints
         case '/spotifyAuth':
-          const state = randomInt(1000000000);
+          const randomStr = randomBytes(16).toString('hex');
+          let stateStr = `${userId}:${randomStr}`;
+          authStateMap.set(userId, randomStr);
+          userId++;
+
           const scope = 'user-library-read playlist-read-private';
 
-          const params = {
+          const spotifyAuthParams = new URLSearchParams({
             response_type: 'code',
             client_id: process.env.CLIENT_ID,
             scope: scope,
             redirect_uri: process.env.REDIRECT_URI,
-            state: state
-          };
-          const spotifyAuthParams = new URLSearchParams(params);
+            state: stateStr
+          });
 
           res.writeHead(302, { Location: `https://accounts.spotify.com/authorize?${spotifyAuthParams}` });
           res.end();
+          return;
+        case '/spotifyAuthToken':
+          const reqUrlSearchParams = new URLSearchParams(req.url.split('?')[1]);
+          const code = reqUrlSearchParams.get('code');
+          const error = reqUrlSearchParams.get('error');
+
+          // needed .toString() because URLSearchParams converted ':' to '%3A', so to undo that
+          const state = reqUrlSearchParams.get('state').toString();
+          const [ stateUser, returnedStateStr ] = state.split(':');
+          const stateStrToCheck = authStateMap.get(parseInt(stateUser));
+          authStateMap.delete(stateUser);
+
+          if (returnedStateStr !== stateStrToCheck) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end(`Error: authState did not match state from /spotifyAuth`);
+            return;
+          }
+
+          if (error) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end(`Error: ${error}`);
+            return;
+          }
+
+          const spotifyTokenParams = new URLSearchParams({
+            code: code.toString(),
+            redirect_uri: process.env.REDIRECT_URI,
+            grant_type: 'authorization_code'
+          });
+
+          const spotifyTokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+            method: 'POST',
+            body: spotifyTokenParams,
+            headers: {
+              'content-type': 'application/x-www-form-urlencoded',
+              'Authorization': 'Basic ' + (new Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'))
+            }
+          });
+
+          const spotifyTokenJson = await spotifyTokenResponse.json();
+          const { access_token, token_type } = spotifyTokenJson;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            access_token,
+            token_type
+          }));
           return;
         default:
           res.statusCode = 404;
@@ -62,7 +115,7 @@ const server = createServer(async (req, res) => {
     }
   }
   if (req.method === 'POST') {
-    let reqBodyStr = '';
+    let reqQueryStr = '';
 
     switch (req.url.split('?')[0]) {
       case '/searchTrack':
@@ -71,20 +124,19 @@ const server = createServer(async (req, res) => {
         }
 
         req.on('data', (chunk) => {
-          reqBodyStr += chunk.toString();
+          reqQueryStr += chunk.toString();
         });
 
         req.on('end', async () => {
-          const reqBodyJson = JSON.parse(reqBodyStr);
+          const reqBodyJson = JSON.parse(reqQueryStr);
 
-          const params = {
+          const spotifySearchParams = new URLSearchParams({
             q: reqBodyJson['searchQuery'],
             type: 'track',
             market: 'US',
             limit: 20,
             offset: 0
-          }
-          const spotifySearchParams = new URLSearchParams(params);
+          });
 
           const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifySearchParams}`, {
             method: 'GET',
@@ -99,11 +151,11 @@ const server = createServer(async (req, res) => {
         return;
       case '/downloadTrack':
         req.on('data', (chunk) => {
-          reqBodyStr += chunk.toString();
+          reqQueryStr += chunk.toString();
         });
 
         req.on('end', () => {
-          const { trackUrl, artistName, trackName } = JSON.parse(reqBodyStr);
+          const { trackUrl, artistName, trackName } = JSON.parse(reqQueryStr);
 
           const zotifyInstance = spawnSync('zotify', [`--root-path=${process.env.MUSIC_ROOT_PATH}`, trackUrl]);
 
@@ -141,6 +193,7 @@ const server = createServer(async (req, res) => {
     }
   }
 
+  console.log(`PATH: ${urlPath}`);
   readFile(urlPath, (err, data) => {
     if (err) {
       console.log(err);
@@ -152,12 +205,11 @@ const server = createServer(async (req, res) => {
 });
 
 async function getSpotifyAccessToken() {
-  const params = {
+  const spotifyCredParams = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: process.env.CLIENT_ID,
     client_secret: process.env.CLIENT_SECRET
-  };
-  const spotifyCredParams = new URLSearchParams(params);
+  });
 
   const spotifyApiResponse = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
