@@ -3,6 +3,12 @@ import { createServer } from 'node:http';
 import { createReadStream, readFile, stat, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+let currentDir = dirname(fileURLToPath(import.meta.url)).split('/');
+currentDir.pop();
+const __dirname = currentDir.join('/');
 
 let spotifyAccessToken = '';
 let spotifyTokenType = '';
@@ -158,7 +164,7 @@ const server = createServer(async (req, res) => {
         req.on('end', () => {
           const { trackUrl, artistName, trackName } = JSON.parse(reqQueryStr);
 
-          const zotifyInstance = spawnSync('zotify', [`--root-path=${process.env.MUSIC_ROOT_PATH}`, trackUrl]);
+          const zotifyInstance = spawnSync('zotify', [`--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`, trackUrl]);
 
           if (zotifyInstance.error) {
             console.log(`Error: ${zotifyInstance.error.message}`);
@@ -168,7 +174,7 @@ const server = createServer(async (req, res) => {
             console.log(`STATUS: ${zotifyInstance.status}`);
           }
 
-          const trackFilePath = `${process.env.MUSIC_ROOT_PATH}${artistName}/${artistName} - ${trackName}.ogg`;
+          const trackFilePath = `${__dirname}/${process.env.MUSIC_ROOT_PATH}${artistName}/${artistName} - ${trackName}.ogg`;
           stat(trackFilePath, (err, stats) => {
             if (err) {
               res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -213,7 +219,7 @@ const server = createServer(async (req, res) => {
 
           savedTracksJson['items'].forEach(item => {
             writeFileSync(
-              `${process.env.TRACK_DATA_PATH}/${display_name}.txt`,
+              `${__dirname}/${process.env.TRACK_DATA_PATH}/${display_name}.txt`,
               `${item['track']['artists'][0]['name']},${item['track']['name']},${item['track']['external_urls']['spotify']}\n`,
               { flag: 'a' },
               err => console.log(err)
