@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { createServer } from 'node:http';
-import { createReadStream, readFile, stat } from 'node:fs';
+import { createReadStream, readFile, stat, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 
@@ -13,7 +13,6 @@ let userId = 0;
 
 const server = createServer(async (req, res) => {
   let urlPath;
-  console.log(req.url)
 
   if (req.method === 'GET') {
     if (req.url.includes('js')) {
@@ -27,6 +26,7 @@ const server = createServer(async (req, res) => {
     else {
       res.setHeader('Content-Type', 'text/html');
       urlPath = './html/';
+      let reqUrlSearchParams;
 
       switch(req.url.split('?')[0]) {
         // html
@@ -64,7 +64,7 @@ const server = createServer(async (req, res) => {
           res.end();
           return;
         case '/spotifyAuthToken':
-          const reqUrlSearchParams = new URLSearchParams(req.url.split('?')[1]);
+          reqUrlSearchParams = new URLSearchParams(req.url.split('?')[1]);
           const code = reqUrlSearchParams.get('code');
           const error = reqUrlSearchParams.get('error');
 
@@ -185,6 +185,43 @@ const server = createServer(async (req, res) => {
             const readStream = createReadStream(trackFilePath);
             readStream.pipe(res);
           });
+        });
+        return;
+      case '/getSavedTracks':
+        req.on('data', (chunk) => {
+          reqQueryStr += chunk.toString();
+        });
+
+        req.on('end', async () => {
+          const { access_token, token_type } = JSON.parse(reqQueryStr);
+
+          const spotifyProfileResponse = await fetch('https://api.spotify.com/v1/me', {
+            headers: { 'Authorization': `${token_type} ${access_token}`}
+          });
+          const spotifyProfileJson = await spotifyProfileResponse.json();
+          const { display_name } = spotifyProfileJson;
+
+          const savedTracksParams = new URLSearchParams({
+            limit: 50,
+            offset: 0,
+            market: 'US'
+          })
+          const savedTracksResponse = await fetch(`https://api.spotify.com/v1/me/tracks?${savedTracksParams}`, {
+            headers: { 'Authorization': `${token_type} ${access_token}`}
+          });
+          const savedTracksJson = await savedTracksResponse.json();
+
+          savedTracksJson['items'].forEach(item => {
+            writeFileSync(
+              `${process.env.TRACK_DATA_PATH}/${display_name}.txt`,
+              `${item['track']['artists'][0]['name']},${item['track']['name']},${item['track']['external_urls']['spotify']}\n`,
+              { flag: 'a' },
+              err => console.log(err)
+            );
+          });
+
+          res.writeHead(200, { 'Content-Type': 'text/plain'});
+          res.end('Tracks retrieved');
         });
         return;
       default:
