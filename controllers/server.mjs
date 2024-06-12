@@ -5,8 +5,12 @@ import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { platform } from 'node:os';
 
-let currentDir = dirname(fileURLToPath(import.meta.url)).split('/');
+let currentDir = dirname(fileURLToPath(import.meta.url));
+currentDir = platform() === 'win32' ?
+  dirname(fileURLToPath(import.meta.url)).split('\\') :
+  dirname(fileURLToPath(import.meta.url)).split('/');
 currentDir.pop();
 const __dirname = currentDir.join('/');
 
