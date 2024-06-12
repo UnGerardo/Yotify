@@ -168,7 +168,19 @@ const server = createServer(async (req, res) => {
         req.on('end', () => {
           const { trackUrl, artistName, trackName } = JSON.parse(reqQueryStr);
 
-          const zotifyInstance = spawnSync('zotify', [`--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`, trackUrl]);
+          const zotifyInstance = spawnSync('zotify',
+            [
+              trackUrl,
+              `--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`,
+              `--username=${process.env.SPOTIFY_USERNAME}`,
+              `--password=${process.env.SPOTIFY_PASSWORD}`,
+            ],
+            {
+              env: {
+                PYTHONIOENCODING: 'utf-8'
+              }
+            }
+          );
 
           if (zotifyInstance.error) {
             console.log(`Error: ${zotifyInstance.error.message}`);
