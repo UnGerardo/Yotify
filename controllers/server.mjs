@@ -175,11 +175,9 @@ const server = createServer(async (req, res) => {
               `--username=${process.env.SPOTIFY_USERNAME}`,
               `--password=${process.env.SPOTIFY_PASSWORD}`,
             ],
-            {
-              env: {
-                PYTHONIOENCODING: 'utf-8'
-              }
-            }
+            platform() === 'win32' ? {
+              env: { PYTHONIOENCODING: 'utf-8'}
+            } : {}
           );
 
           if (zotifyInstance.error) {
