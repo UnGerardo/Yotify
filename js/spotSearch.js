@@ -66,7 +66,8 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
     const linkElement = document.createElement('a');
     linkElement.style.display = 'none';
     linkElement.href = url;
-    linkElement.download = responseHeaders.get('content-disposition').split("'")[1];
+    const encodedFileName = responseHeaders.get('content-disposition').split("=")[1];
+    linkElement.download = decodeURIComponent(encodedFileName);
     document.body.appendChild(linkElement);
 
     linkElement.click();

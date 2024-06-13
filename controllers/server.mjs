@@ -174,6 +174,7 @@ const server = createServer(async (req, res) => {
               `--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`,
               `--username=${process.env.SPOTIFY_USERNAME}`,
               `--password=${process.env.SPOTIFY_PASSWORD}`,
+              `--output=${process.env.ZOTIFY_OUTPUT}`
             ],
             platform() === 'win32' ? {
               env: { PYTHONIOENCODING: 'utf-8'}
@@ -199,7 +200,7 @@ const server = createServer(async (req, res) => {
             res.writeHead(200, {
               'Content-Type': 'application/ogg',
               'Content-Length': stats.size,
-              'Content-Disposition': `attachment; filename='${artistName} - ${trackName}.ogg'`
+              'Content-Disposition': `attachment; filename='${encodeURIComponent(`${artistName} - ${trackName}.ogg`)}'`
             });
 
             const readStream = createReadStream(trackFilePath);
