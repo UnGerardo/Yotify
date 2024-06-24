@@ -174,7 +174,9 @@ const server = createServer(async (req, res) => {
               `--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`,
               `--username=${process.env.SPOTIFY_USERNAME}`,
               `--password=${process.env.SPOTIFY_PASSWORD}`,
-              `--output=${process.env.ZOTIFY_OUTPUT}`
+              `--output=${process.env.ZOTIFY_OUTPUT}`,
+              `--download-format=mp3`,
+              `--save-credentials=False`
             ],
             platform() === 'win32' ? {
               env: { PYTHONIOENCODING: 'utf-8'}
@@ -189,7 +191,7 @@ const server = createServer(async (req, res) => {
             console.log(`STATUS: ${zotifyInstance.status}`);
           }
 
-          const trackFilePath = `${__dirname}/${process.env.MUSIC_ROOT_PATH}${artistName}/${artistName} - ${trackName}.ogg`;
+          const trackFilePath = `${__dirname}/${process.env.MUSIC_ROOT_PATH}${artistName}/${artistName} - ${trackName}.mp3`;
           stat(trackFilePath, (err, stats) => {
             if (err) {
               res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -198,9 +200,9 @@ const server = createServer(async (req, res) => {
             }
 
             res.writeHead(200, {
-              'Content-Type': 'application/ogg',
+              'Content-Type': 'application/mp3',
               'Content-Length': stats.size,
-              'Content-Disposition': `attachment; filename='${encodeURIComponent(`${artistName} - ${trackName}.ogg`)}'`
+              'Content-Disposition': `attachment; filename='${encodeURIComponent(`${artistName} - ${trackName}.mp3`)}'`
             });
 
             const readStream = createReadStream(trackFilePath);
