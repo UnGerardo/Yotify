@@ -1,6 +1,9 @@
 
 const express = require('express');
+const { spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
+const { createReadStream, stat } = require('node:fs');
+const { platform } = require('node:os');
 const path = require('node:path');
 
 const app = express();
@@ -58,12 +61,12 @@ app.get('/spotifyAuthToken', async (req, res) => {
   authStateMap.delete(stateUserId);
 
   if (returnedStateStr !== stateStrToCheck) {
-    res.status(404).sendFile('Error: authState did not match state from /spotifyAuth');
+    res.status(404).send('Error: authState did not match state from /spotifyAuth');
     return;
   }
 
   if (error) {
-    res.status(404).sendFile(`Error: ${error}`);
+    res.status(404).send(`Error: ${error}`);
     return;
   }
 
@@ -112,6 +115,52 @@ app.post('/searchTrack', async (req, res) => {
   const spotifyResponseJson = await spotifyResponse.json();
 
   res.json(spotifyResponseJson['tracks']);
+});
+
+app.use('/downloadTrack', (req, res) => {
+  const trackUrl = req.query['trackUrl'];
+  const artistName = req.query['artistName'];
+  const trackName = req.query['trackName'];
+
+  const zotifyInstance = spawnSync('zotify',
+    [
+      trackUrl,
+      `--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`,
+      `--username=${process.env.SPOTIFY_USERNAME}`,
+      `--password=${process.env.SPOTIFY_PASSWORD}`,
+      `--output=${process.env.ZOTIFY_OUTPUT}`,
+      `--download-format=mp3`,
+      `--save-credentials=False`
+    ],
+    platform() === 'win32' ? {
+      env: { PYTHONIOENCODING: 'utf-8' }
+    } : {}
+  );
+
+  if (zotifyInstance.error) {
+    console.log(`Error: ${zotifyInstance.error.message}`);
+  } else {
+    console.log(`STDOUT: \n${zotifyInstance.stdout}`);
+    console.log(`STDERR: \n${zotifyInstance.stderr}`);
+    console.log(`STATUS: ${zotifyInstance.status}`);
+  }
+
+  const trackFilePath = `${__dirname}/${process.env.MUSIC_ROOT_PATH}/${artistName}/${artistName} - ${trackName}.mp3`;
+  stat(trackFilePath, (err, stats) => {
+    if (err) {
+      res.status(404).send('File not found');
+      return;
+    }
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': stats.size,
+      'Content-Disposition': `attachment; filename='${encodeURIComponent(`${artistName} - ${trackName}.mp3`)}'`
+    });
+
+    const readStream = createReadStream(trackFilePath);
+    readStream.pipe(res);
+  });
 });
 
 // middleware that handles 404 errors
