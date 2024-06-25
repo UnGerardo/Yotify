@@ -2,7 +2,7 @@
 const express = require('express');
 const { spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
-const { createReadStream, stat } = require('node:fs');
+const { createReadStream, stat, writeFileSync } = require('node:fs');
 const { platform } = require('node:os');
 const path = require('node:path');
 
@@ -117,7 +117,7 @@ app.post('/searchTrack', async (req, res) => {
   res.json(spotifyResponseJson['tracks']);
 });
 
-app.use('/downloadTrack', (req, res) => {
+app.post('/downloadTrack', (req, res) => {
   const trackUrl = req.query['trackUrl'];
   const artistName = req.query['artistName'];
   const trackName = req.query['trackName'];
@@ -161,6 +161,38 @@ app.use('/downloadTrack', (req, res) => {
     const readStream = createReadStream(trackFilePath);
     readStream.pipe(res);
   });
+});
+
+app.post('/getSavedTracks', async (req, res) => {
+  const access_token = req.query['access_token'];
+  const token_type = req.query['token_type'];
+
+  const spotifyProfileResponse = await fetch('https://api.spotify.com/v1/me', {
+    headers: { 'Authorization': `${token_type} ${access_token}`}
+  });
+  const spotifyProfileJson = await spotifyProfileResponse.json();
+  const { display_name } = spotifyProfileJson;
+
+  const savedTracksParams = new URLSearchParams({
+    limit: 50,
+    offset: 0,
+    market: 'US'
+  })
+  const savedTracksResponse = await fetch(`https://api.spotify.com/v1/me/tracks?${savedTracksParams}`, {
+    headers: { 'Authorization': `${token_type} ${access_token}`}
+  });
+  const savedTracksJson = await savedTracksResponse.json();
+
+  savedTracksJson['items'].forEach(item => {
+    writeFileSync(
+      `${__dirname}/${process.env.TRACK_DATA_PATH}/${display_name}.txt`,
+      `${item['track']['artists'][0]['name']},${item['track']['name']},${item['track']['external_urls']['spotify']}\n`,
+      { flag: 'a' },
+      err => console.log(err)
+    );
+  });
+
+  res.send('Tracks retrieved');
 });
 
 // middleware that handles 404 errors
