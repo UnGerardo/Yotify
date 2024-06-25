@@ -91,6 +91,29 @@ app.get('/spotifyAuthToken', async (req, res) => {
   });
 });
 
+app.post('/searchTrack', async (req, res) => {
+  if (SPOTIFY_ACCESS_TOKEN === '' || Date.now() > SPOTIFY_TOKEN_EXPIRATION) {
+    await getSpotifyAccessToken();
+  }
+
+  const searchQuery = req.query['searchQuery'];
+  const spotifySearchParams = new URLSearchParams({
+    q: searchQuery,
+    type: 'track',
+    market: 'US',
+    limit: 20,
+    offset: 0
+  });
+
+  const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifySearchParams}`, {
+    method: 'GET',
+    headers: {'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+  });
+  const spotifyResponseJson = await spotifyResponse.json();
+
+  res.json(spotifyResponseJson['tracks']);
+});
+
 // middleware that handles 404 errors
 app.use(function(req, res, next) {
   res.status(404).sendFile(path.join(__dirname, '/html/404.html'));
