@@ -6,6 +6,10 @@ const path = require('node:path');
 const app = express();
 const port = 3000;
 
+let SPOTIFY_ACCESS_TOKEN = '';
+let SPOTIFY_TOKEN_TYPE = '';
+let SPOTIFY_TOKEN_EXPIRATION = 0;
+
 const USER_ID_STATE_MAP = new Map();
 let userId = 0;
 
@@ -95,3 +99,22 @@ app.use(function(req, res, next) {
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
+
+async function getSpotifyAccessToken() {
+  const spotifyCredParams = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET
+  });
+
+  const spotifyApiResponse = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    body: spotifyCredParams,
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+  });
+
+  const spotifyApiJson = await spotifyApiResponse.json();
+
+  ({ access_token: SPOTIFY_ACCESS_TOKEN, token_type: SPOTIFY_TOKEN_TYPE } = spotifyApiJson);
+  SPOTIFY_TOKEN_EXPIRATION = Date.now() + 3500000;
+}
