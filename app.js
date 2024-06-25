@@ -43,6 +43,50 @@ app.get('/spotifyAuth', (req, res) => {
   res.redirect(302, `https://accounts.spotify.com/authorize?${spotifyAuthParams}`);
 });
 
+app.get('/spotifyAuthToken', async (req, res) => {
+  const code = req.query['code'];
+  const error = req.query['error'];
+
+  // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
+  const state = req.query['state'].toString();
+  const [ stateUserId, returnedStateStr ] = state.split(':');
+  const stateStrToCheck = authStateMap.get(parseInt(stateUserId));
+  authStateMap.delete(stateUserId);
+
+  if (returnedStateStr !== stateStrToCheck) {
+    res.status(404).sendFile('Error: authState did not match state from /spotifyAuth');
+    return;
+  }
+
+  if (error) {
+    res.status(404).sendFile(`Error: ${error}`);
+    return;
+  }
+
+  const spotifyTokenParams = new URLSearchParams({
+    code: code.toString(),
+    redirect_uri: process.env.REDIRECT_URI,
+    grant_type: 'authorization_code'
+  });
+
+  const spotifyTokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    body: spotifyTokenParams,
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + (new Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'))
+    }
+  });
+
+  const spotifyTokenJson = await spotifyTokenResponse.json();
+  const { access_token, token_type } = spotifyTokenJson;
+
+  res.json({
+    access_token,
+    token_type
+  });
+});
+
 // middleware that handles 404 errors
 app.use(function(req, res, next) {
   res.status(404).sendFile(path.join(__dirname, '/html/404.html'));
