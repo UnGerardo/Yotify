@@ -97,12 +97,12 @@ app.get('/spotifyAuthToken', async (req, res) => {
   });
 });
 
-app.post('/searchTrack', async (req, res) => {
+app.get('/searchTrack', async (req, res) => {
   if (SPOTIFY_ACCESS_TOKEN === '' || Date.now() > SPOTIFY_TOKEN_EXPIRATION) {
     await getSpotifyAccessToken();
   }
 
-  const searchQuery = req.body['search_query'];
+  const searchQuery = req.query['search_query'].toString();
   const spotifySearchParams = new URLSearchParams({
     q: searchQuery,
     type: 'track',

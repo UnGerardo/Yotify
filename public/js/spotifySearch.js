@@ -9,16 +9,9 @@ const searchResultsSect = document.getElementById('searchResults');
 
 searchBtn.addEventListener('click', async () => {
   const searchQuery = searchQueryInput.value;
+  const searchParams = new URLSearchParams({ search_query: searchQuery });
 
-  const searchResponse = await fetch(`/searchTrack`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      search_query: searchQuery
-    })
-  });
+  const searchResponse = await fetch(`/searchTrack?${searchParams}`);
   const searchResponseJson = await searchResponse.json();
 
   while (searchResultsSect.hasChildNodes()) {
