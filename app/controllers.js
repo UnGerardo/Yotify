@@ -1,34 +1,24 @@
 require('dotenv').config();
 
-const express = require('express');
-const { spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
-const { createReadStream, stat, writeFileSync, existsSync, mkdirSync } = require('node:fs');
-const { platform } = require('node:os');
+const { createReadStream, writeFileSync, mkdirSync, existsSync } = require('node:fs');
+const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
 const path = require('node:path');
 
 const globalState = require('./globalState.js');
 
-const app = express();
-const port = 3000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+exports.homePage = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/index.html'));
+}
+exports.spotifySearch = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/spotifySearch.html'));
+}
+exports.getUserTracks = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/getUserTracks.html'));
+}
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '/html/index.html'));
-});
-
-app.get('/spotifySearch', (req, res) => {
-  res.sendFile(path.join(__dirname, '/html/spotifySearch.html'));
-});
-
-app.get('/getUserTracks', (req, res) => {
-  res.sendFile(path.join(__dirname, '/html/getUserTracks.html'));
-});
-
-app.get('/spotifyAuth', (req, res) => {
+exports.spotifyAuth = (req, res) => {
   const randomStr = randomBytes(16).toString('hex');
   let stateStr = `${globalState.userId}:${randomStr}`;
   globalState.setUserIdStateMap(globalState.userId, randomStr);
@@ -46,9 +36,8 @@ app.get('/spotifyAuth', (req, res) => {
   });
 
   res.redirect(302, `https://accounts.spotify.com/authorize?${spotifyAuthParams}`);
-});
-
-app.get('/spotifyAuthToken', async (req, res) => {
+}
+exports.spotifyAuthToken = async (req, res) => {
   const code = req.query['code'];
   const error = req.query['error'];
 
@@ -90,9 +79,8 @@ app.get('/spotifyAuthToken', async (req, res) => {
     access_token,
     token_type
   });
-});
-
-app.get('/searchTrack', async (req, res) => {
+}
+exports.searchTrack = async (req, res) => {
   if (globalState.spotifyToken === '' || Date.now() > globalState.spotifyTokenExpiry) {
     await getSpotifyAccessToken();
   }
@@ -113,9 +101,9 @@ app.get('/searchTrack', async (req, res) => {
   const spotifyResponseJson = await spotifyResponse.json();
 
   res.json(spotifyResponseJson['tracks']);
-});
+}
 
-app.post('/downloadTrack', (req, res) => {
+exports.downloadTrack = (req, res) => {
   const trackUrl = req.body['track_url'];
   const artistName = req.body['artist_name'];
   const trackName = req.body['track_name'];
@@ -160,9 +148,8 @@ app.post('/downloadTrack', (req, res) => {
     const readStream = createReadStream(trackFilePath);
     readStream.pipe(res);
   });
-});
-
-app.post('/getSavedTracks', async (req, res) => {
+}
+exports.getSavedTracks = async (req, res) => {
   const access_token = req.body['access_token'];
   const token_type = req.body['token_type'];
 
@@ -196,32 +183,4 @@ app.post('/getSavedTracks', async (req, res) => {
   });
 
   res.send('Tracks retrieved');
-});
-
-// middleware that handles 404 errors
-app.use(function(req, res, next) {
-  res.status(404).sendFile(path.join(__dirname, '/html/404.html'));
-});
-
-app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
-});
-
-async function getSpotifyAccessToken() {
-  const spotifyCredParams = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: process.env.CLIENT_ID,
-    client_secret: process.env.CLIENT_SECRET
-  });
-
-  const spotifyApiResponse = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    body: spotifyCredParams,
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-  });
-
-  const spotifyApiJson = await spotifyApiResponse.json();
-
-  ({ access_token: globalState.spotifyToken, token_type: globalState.spotifyTokenType } = spotifyApiJson);
-  globalState.spotifyTokenExpiry = Date.now() + 3500000;
 }
