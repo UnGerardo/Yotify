@@ -1,3 +1,4 @@
+require('dotenv').config();
 
 const express = require('express');
 const { spawnSync } = require('node:child_process');
@@ -16,6 +17,8 @@ let SPOTIFY_TOKEN_EXPIRATION = 0;
 const USER_ID_STATE_MAP = new Map();
 let userId = 0;
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
@@ -99,7 +102,7 @@ app.post('/searchTrack', async (req, res) => {
     await getSpotifyAccessToken();
   }
 
-  const searchQuery = req.query['searchQuery'];
+  const searchQuery = req.body['search_query'];
   const spotifySearchParams = new URLSearchParams({
     q: searchQuery,
     type: 'track',
@@ -118,9 +121,9 @@ app.post('/searchTrack', async (req, res) => {
 });
 
 app.post('/downloadTrack', (req, res) => {
-  const trackUrl = req.query['trackUrl'];
-  const artistName = req.query['artistName'];
-  const trackName = req.query['trackName'];
+  const trackUrl = req.body['track_url'];
+  const artistName = req.body['artist_name'];
+  const trackName = req.body['track_name'];
 
   const zotifyInstance = spawnSync('zotify',
     [
@@ -129,6 +132,7 @@ app.post('/downloadTrack', (req, res) => {
       `--username=${process.env.SPOTIFY_USERNAME}`,
       `--password=${process.env.SPOTIFY_PASSWORD}`,
       `--output=${process.env.ZOTIFY_OUTPUT}`,
+      `--download-quality=high`,
       `--download-format=mp3`,
       `--save-credentials=False`
     ],
@@ -164,8 +168,8 @@ app.post('/downloadTrack', (req, res) => {
 });
 
 app.post('/getSavedTracks', async (req, res) => {
-  const access_token = req.query['access_token'];
-  const token_type = req.query['token_type'];
+  const access_token = req.body['access_token'];
+  const token_type = req.body['token_type'];
 
   const spotifyProfileResponse = await fetch('https://api.spotify.com/v1/me', {
     headers: { 'Authorization': `${token_type} ${access_token}`}
