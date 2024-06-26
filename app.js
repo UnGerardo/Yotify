@@ -25,12 +25,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '/html/index.html'));
 });
 
-app.get('/spotSearch', (req, res) => {
-  res.sendFile(path.join(__dirname, '/html/spotSearch.html'));
+app.get('/spotifySearch', (req, res) => {
+  res.sendFile(path.join(__dirname, '/html/spotifySearch.html'));
 });
 
-app.get('/getPlaylists', (req, res) => {
-  res.sendFile(path.join(__dirname, '/html/getPlaylists.html'));
+app.get('/getUserTracks', (req, res) => {
+  res.sendFile(path.join(__dirname, '/html/getUserTracks.html'));
 });
 
 app.get('/spotifyAuth', (req, res) => {
