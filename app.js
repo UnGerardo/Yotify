@@ -159,7 +159,7 @@ app.post('/downloadTrack', (req, res) => {
     res.set({
       'Content-Type': 'audio/mpeg',
       'Content-Length': stats.size,
-      'Content-Disposition': `attachment; filename='${encodeURIComponent(`${artistName} - ${trackName}.mp3`)}'`
+      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artistName} - ${trackName}.mp3`)}`
     });
 
     const readStream = createReadStream(trackFilePath);
