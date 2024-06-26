@@ -12,8 +12,11 @@ searchBtn.addEventListener('click', async () => {
 
   const searchResponse = await fetch(`/searchTrack`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
-      searchQuery
+      search_query: searchQuery
     })
   });
   const searchResponseJson = await searchResponse.json();
@@ -52,10 +55,13 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
   downloadBtn.addEventListener('click', async () => {
     const downloadResponse = await fetch('/downloadTrack', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        artistName,
-        trackName,
-        trackUrl
+        artist_name: artistName,
+        track_name: trackName,
+        track_url: trackUrl
       })
     });
 

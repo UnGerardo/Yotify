@@ -16,6 +16,9 @@ const getSavedTracksBtn = document.getElementById('getSavedTracks');
   getSavedTracksBtn.addEventListener('click', async () => {
     const getSavedTracksReponse = await fetch(`/getSavedTracks`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         access_token: spotifyAccessToken,
         token_type: spotifyTokenType
