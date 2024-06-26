@@ -7,15 +7,10 @@ const { createReadStream, stat, writeFileSync, existsSync, mkdirSync } = require
 const { platform } = require('node:os');
 const path = require('node:path');
 
+const globalState = require('./globalState.js');
+
 const app = express();
 const port = 3000;
-
-let SPOTIFY_ACCESS_TOKEN = '';
-let SPOTIFY_TOKEN_TYPE = '';
-let SPOTIFY_TOKEN_EXPIRATION = 0;
-
-const USER_ID_STATE_MAP = new Map();
-let userId = 0;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,9 +30,9 @@ app.get('/getUserTracks', (req, res) => {
 
 app.get('/spotifyAuth', (req, res) => {
   const randomStr = randomBytes(16).toString('hex');
-  let stateStr = `${userId}:${randomStr}`;
-  USER_ID_STATE_MAP.set(userId, randomStr);
-  userId++;
+  let stateStr = `${globalState.userId}:${randomStr}`;
+  globalState.setUserIdStateMap(globalState.userId, randomStr);
+  globalState.incrementUserId();
 
   const scope = 'user-library-read playlist-read-private';
 
@@ -60,8 +55,8 @@ app.get('/spotifyAuthToken', async (req, res) => {
   // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
   const state = req.query['state'].toString();
   const [ stateUserId, returnedStateStr ] = state.split(':');
-  const stateStrToCheck = USER_ID_STATE_MAP.get(parseInt(stateUserId));
-  USER_ID_STATE_MAP.delete(stateUserId);
+  const stateStrToCheck = globalState.getUserIdStateMap(stateUserId);
+  globalState.deleteUserIdStateMap(stateUserId);
 
   if (returnedStateStr !== stateStrToCheck) {
     res.status(404).send('Error: authState did not match state from /spotifyAuth');
@@ -98,7 +93,7 @@ app.get('/spotifyAuthToken', async (req, res) => {
 });
 
 app.get('/searchTrack', async (req, res) => {
-  if (SPOTIFY_ACCESS_TOKEN === '' || Date.now() > SPOTIFY_TOKEN_EXPIRATION) {
+  if (globalState.spotifyToken === '' || Date.now() > globalState.spotifyTokenExpiry) {
     await getSpotifyAccessToken();
   }
 
@@ -113,7 +108,7 @@ app.get('/searchTrack', async (req, res) => {
 
   const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifySearchParams}`, {
     method: 'GET',
-    headers: {'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+    headers: {'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}`}
   });
   const spotifyResponseJson = await spotifyResponse.json();
 
@@ -227,6 +222,6 @@ async function getSpotifyAccessToken() {
 
   const spotifyApiJson = await spotifyApiResponse.json();
 
-  ({ access_token: SPOTIFY_ACCESS_TOKEN, token_type: SPOTIFY_TOKEN_TYPE } = spotifyApiJson);
-  SPOTIFY_TOKEN_EXPIRATION = Date.now() + 3500000;
+  ({ access_token: globalState.spotifyToken, token_type: globalState.spotifyTokenType } = spotifyApiJson);
+  globalState.spotifyTokenExpiry = Date.now() + 3500000;
 }
