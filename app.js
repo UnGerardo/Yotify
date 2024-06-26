@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const { spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
-const { createReadStream, stat, writeFileSync } = require('node:fs');
+const { createReadStream, stat, writeFileSync, existsSync, mkdirSync } = require('node:fs');
 const { platform } = require('node:os');
 const path = require('node:path');
 
@@ -60,8 +60,8 @@ app.get('/spotifyAuthToken', async (req, res) => {
   // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
   const state = req.query['state'].toString();
   const [ stateUserId, returnedStateStr ] = state.split(':');
-  const stateStrToCheck = authStateMap.get(parseInt(stateUserId));
-  authStateMap.delete(stateUserId);
+  const stateStrToCheck = USER_ID_STATE_MAP.get(parseInt(stateUserId));
+  USER_ID_STATE_MAP.delete(stateUserId);
 
   if (returnedStateStr !== stateStrToCheck) {
     res.status(404).send('Error: authState did not match state from /spotifyAuth');
@@ -186,6 +186,10 @@ app.post('/getSavedTracks', async (req, res) => {
     headers: { 'Authorization': `${token_type} ${access_token}`}
   });
   const savedTracksJson = await savedTracksResponse.json();
+
+  if (!existsSync(path.join(__dirname, `${process.env.TRACK_DATA_PATH}`))) {
+    mkdirSync(path.join(__dirname, `${process.env.TRACK_DATA_PATH}`), { recursive: true });
+  }
 
   savedTracksJson['items'].forEach(item => {
     writeFileSync(
