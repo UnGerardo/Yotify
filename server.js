@@ -16,7 +16,7 @@ app.use('/', routes);
 
 // middleware that handles 404 errors
 app.use(function(req, res, next) {
-  res.status(404).sendFile(path.join(__dirname, '/html/404.html'));
+  res.status(404).sendFile(path.join(__dirname, '/views/404.html'));
 });
 
 app.listen(port, () => {
