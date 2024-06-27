@@ -1,10 +1,16 @@
 
 body {
   background-color: #333;
+  color: whitesmoke;
   display: flex;
   flex-flow: column;
   justify-content: center;
   align-items: center;
+}
+
+h1 {
+  font-size: 44px;
+  margin: 10px;
 }
 
 a {
