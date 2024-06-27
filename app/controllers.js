@@ -2,8 +2,9 @@ require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
 const { createReadStream, writeFileSync, mkdirSync, existsSync } = require('node:fs');
-const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
+const { spawnSync } = require('node:child_process');
 const path = require('node:path');
+const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
 
 const globalState = require('./globalState.js');
 
