@@ -3,20 +3,22 @@ let spotifyTokenType = '';
 let spotifyTokenExpiration = 0;
 
 // naming scheme to differentiatie DOM elements and global vars? from normal vars
-const searchBtn = document.getElementById('searchBtn');
-const searchQueryInput = document.getElementById('searchInput');
-const searchResultsSect = document.getElementById('searchResults');
+const $searchBtn = document.getElementById('search-btn');
+const $searchQueryInput = document.getElementById('search-input');
+const $searchResults = document.getElementById('search-results');
 
-searchBtn.addEventListener('click', async () => {
-  const searchQuery = searchQueryInput.value;
+$searchBtn.addEventListener('click', async () => {
+  const searchQuery = $searchQueryInput.value;
   const searchParams = new URLSearchParams({ search_query: searchQuery });
 
   const searchResponse = await fetch(`/searchTrack?${searchParams}`);
   const searchResponseJson = await searchResponse.json();
 
-  while (searchResultsSect.hasChildNodes()) {
-    searchResultsSect.removeChild(searchResultsSect.firstChild);
+  while ($searchResults.hasChildNodes()) {
+    $searchResults.removeChild($searchResults.firstChild);
   }
+
+  $searchResults.style.display = 'flex';
 
   searchResponseJson['items'].forEach(track => {
     const imageUrl = track['album']['images'][1]['url'];
@@ -27,23 +29,27 @@ searchBtn.addEventListener('click', async () => {
     const duration = track['duration_ms'];
     const trackUrl = track['external_urls']['spotify'];
 
-    renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl);
+    $renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl);
   });
 });
 
-function renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl) {
+function $renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl) {
+  const $flexAlignCenter = document.createElement('section');
+  $flexAlignCenter.classList.add('flex-align-center');
   const imageElement = document.createElement('img');
-  imageElement.classList.add('albumImage');
+  imageElement.classList.add('album-image');
   imageElement.src = imageUrl;
-  const albumParagraph = document.createElement('p');
-  albumParagraph.innerText = `Album: ${albumName}`;
+  const $trackArtistGroup = document.createElement('section');
   const artistParagraph = document.createElement('p');
   artistParagraph.innerText = `Artist: ${artistName}`;
   const trackParagraph = document.createElement('p');
   trackParagraph.innerText = `Track: ${trackName}`;
+  const albumParagraph = document.createElement('p');
+  albumParagraph.innerText = `Album: ${albumName}`;
   const durationParagraph = document.createElement('p');
   durationParagraph.innerText = `Duration: ${msToReadableTime(duration)}`;
   const downloadBtn = document.createElement('button');
+  downloadBtn.classList.add('download-btn');
   downloadBtn.innerText = 'Download';
   downloadBtn.addEventListener('click', async () => {
     const downloadResponse = await fetch('/downloadTrack', {
@@ -74,11 +80,14 @@ function renderSearchResult(imageUrl, albumName, artistName, trackName, duration
     document.body.removeChild(linkElement);
   });
 
+  $trackArtistGroup.append(trackParagraph, artistParagraph);
+  $flexAlignCenter.append(imageElement, $trackArtistGroup);
+
   const resultSect = document.createElement('section');
   resultSect.classList.add('result');
-  resultSect.append(imageElement, albumParagraph, artistParagraph, trackParagraph, durationParagraph, downloadBtn);
+  resultSect.append($flexAlignCenter, albumParagraph, durationParagraph, downloadBtn);
 
-  searchResultsSect.appendChild(resultSect);
+  $searchResults.appendChild(resultSect);
 }
 
 function msToReadableTime(msTime) {
