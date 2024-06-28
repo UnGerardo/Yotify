@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, stat } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { platform } = require('node:os');
 const path = require('node:path');
