@@ -1,8 +1,4 @@
-let spotifyAccessToken = '';
-let spotifyTokenType = '';
-let spotifyTokenExpiration = 0;
 
-// naming scheme to differentiatie DOM elements and global vars? from normal vars
 const $searchBtn = document.getElementById('search-btn');
 const $searchQueryInput = document.getElementById('search-input');
 const $searchResults = document.getElementById('search-results');
@@ -11,17 +7,15 @@ $searchBtn.addEventListener('click', async () => {
   const searchQuery = $searchQueryInput.value;
   const searchParams = new URLSearchParams({ search_query: searchQuery });
 
-  const searchResponse = await fetch(`/searchTrack?${searchParams}`);
-  const searchResponseJson = await searchResponse.json();
+  const _searchResponse = await fetch(`/searchTrack?${searchParams}`).then(res => res.json());
 
+  $searchResults.style.display = 'grid';
   while ($searchResults.hasChildNodes()) {
     $searchResults.removeChild($searchResults.firstChild);
   }
 
-  $searchResults.style.display = 'flex';
-
-  searchResponseJson['items'].forEach(track => {
-    const imageUrl = track['album']['images'][1]['url'];
+  _searchResponse['items'].forEach(track => {
+    const albumImgUrl = track['album']['images'][1]['url'];
     const albumName = track['album']['name'];
     // can have multiple artists
     const artistName = track['artists'][0]['name'];
@@ -29,30 +23,35 @@ $searchBtn.addEventListener('click', async () => {
     const duration = track['duration_ms'];
     const trackUrl = track['external_urls']['spotify'];
 
-    $renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl);
+    $renderSearchResult(albumImgUrl, albumName, artistName, trackName, duration, trackUrl);
   });
 });
 
-function $renderSearchResult(imageUrl, albumName, artistName, trackName, duration, trackUrl) {
-  const $flexAlignCenter = document.createElement('section');
-  $flexAlignCenter.classList.add('flex-align-center');
-  const imageElement = document.createElement('img');
-  imageElement.classList.add('album-image');
-  imageElement.src = imageUrl;
-  const $trackArtistGroup = document.createElement('section');
-  const artistParagraph = document.createElement('p');
-  artistParagraph.innerText = `Artist: ${artistName}`;
-  const trackParagraph = document.createElement('p');
-  trackParagraph.innerText = `Track: ${trackName}`;
-  const albumParagraph = document.createElement('p');
-  albumParagraph.innerText = `Album: ${albumName}`;
-  const durationParagraph = document.createElement('p');
-  durationParagraph.innerText = `Duration: ${msToReadableTime(duration)}`;
-  const downloadBtn = document.createElement('button');
-  downloadBtn.classList.add('download-btn');
-  downloadBtn.innerText = 'Download';
-  downloadBtn.addEventListener('click', async () => {
-    const downloadResponse = await fetch('/downloadTrack', {
+function $renderSearchResult(albumImgUrl, albumName, artistName, trackName, duration, trackUrl) {
+  const $albumImg = document.createElement('img');
+  $albumImg.classList.add('album-image');
+  $albumImg.src = albumImgUrl;
+  const $trackArtistSect = document.createElement('section');
+  $trackArtistSect.classList.add('ellip-overflow');
+  const $artistP = document.createElement('p');
+  $artistP.classList.add('artist-name', 'ellip-overflow');
+  $artistP.innerText = artistName;
+  const $trackP = document.createElement('p');
+  $trackP.classList.add('ellip-overflow', 'm-b-5');
+  $trackP.innerText = trackName;
+  const $albumP = document.createElement('p');
+  $albumP.classList.add('ellip-overflow', 'album-name');
+  $albumP.innerText = albumName;
+  const $durationP = document.createElement('p');
+  $durationP.classList.add('duration', 'ellip-overflow');
+  $durationP.innerText = `Duration: ${msToReadableTime(duration)}`;
+  const $downloadBtn = document.createElement('button');
+  $downloadBtn.classList.add('download-btn');
+  const $downloadImg = document.createElement('img');
+  $downloadImg.classList.add('download-image');
+  $downloadImg.src = '/images/Download_Icon.png';
+  $downloadBtn.addEventListener('click', async () => {
+    const _downloadResponse = await fetch('/downloadTrack', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -64,30 +63,30 @@ function $renderSearchResult(imageUrl, albumName, artistName, trackName, duratio
       })
     });
 
-    const responseHeaders = downloadResponse.headers;
-    const responseBlob = await downloadResponse.blob()
-    const url = window.URL.createObjectURL(responseBlob);
+    const _responseHeaders = _downloadResponse.headers;
+    const _responseBlob = await _downloadResponse.blob();
+    const url = window.URL.createObjectURL(_responseBlob);
 
-    const linkElement = document.createElement('a');
-    linkElement.style.display = 'none';
-    linkElement.href = url;
-    const encodedFileName = responseHeaders.get('content-disposition').split("=")[1];
-    linkElement.download = decodeURIComponent(encodedFileName);
-    document.body.appendChild(linkElement);
+    const $link = document.createElement('a');
+    $link.style.display = 'none';
+    $link.href = url;
+    const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
+    $link.download = decodeURIComponent(encodedFileName);
+    document.body.appendChild($link);
 
-    linkElement.click();
+    $link.click();
     window.URL.revokeObjectURL(url);
-    document.body.removeChild(linkElement);
+    document.body.removeChild($link);
   });
 
-  $trackArtistGroup.append(trackParagraph, artistParagraph);
-  $flexAlignCenter.append(imageElement, $trackArtistGroup);
+  $downloadBtn.append($downloadImg);
+  $trackArtistSect.append($trackP, $artistP);
 
-  const resultSect = document.createElement('section');
-  resultSect.classList.add('result');
-  resultSect.append($flexAlignCenter, albumParagraph, durationParagraph, downloadBtn);
+  const $resultSect = document.createElement('section');
+  $resultSect.classList.add('result');
+  $resultSect.append($albumImg, $trackArtistSect, $albumP, $durationP, $downloadBtn);
 
-  $searchResults.appendChild(resultSect);
+  $searchResults.appendChild($resultSect);
 }
 
 function msToReadableTime(msTime) {

@@ -14,6 +14,7 @@ body {
 h1 {
   font-size: 44px;
   margin: 10px;
+  text-align: center;
 }
 
 #search-section {
@@ -32,7 +33,6 @@ h1 {
   margin-right: 15px;
   transition: 100ms;
 }
-
 #search-input:focus {
   transform: scale(1.04);
   box-shadow: 3px 3px 3px 1px black;
@@ -48,41 +48,37 @@ h1 {
   padding: 5px;
   transition: 100ms;
 }
-
-#search-btn:hover {
-  transform: scale(1.04);
-}
-
-#search-btn:active {
-  transform: scale(.96);
-}
+#search-btn:hover { transform: scale(1.04); }
+#search-btn:active { transform: scale(.96); }
 
 #search-results {
   border: 1px whitesmoke solid;
   box-shadow: 2px 2px 5px black;
   display: none;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
+  grid-template-columns: 1fr;
+  padding-bottom: 10px;
   margin-bottom: 10px;
-  width: 90%;
+  width: 90vw;
 }
 
 .result {
-  display: flex;
+  display: grid;
+  grid-template-columns: 80px 2fr 2fr 1fr 30px;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding: 5px;
-  margin: 10px;
+  margin: 10px 10px 0;
   border-bottom: 1px whitesmoke solid;
-  width: 100%;
+}
+
+.artist-name {
+  font-size: 15px;
+  color: #BBB;
 }
 
 .album-image {
   border-radius: 5px;
-  height: 75px;
-  width: 75px;
-  margin-right: 10px;
+  width: 100%;
 }
 
 .download-btn {
@@ -90,21 +86,43 @@ h1 {
   border: 1px #222 solid;
   border-radius: 5px;
   box-shadow: 2px 2px 4px 2px #222;
-  color: black;
-  font-size: small;
-  padding: 5px;
-  transition: 100ms;
-}
-
-.download-btn:hover {
-  transform: scale(1.04);
-}
-
-.download-btn:active {
-  transform: scale(.96);
-}
-
-.flex-align-center {
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: 100ms;
+}
+.download-btn:hover { transform: scale(1.04); }
+.download-btn:active { transform: scale(.96); }
+
+.download-image {
+  height: 100%;
+  width: 100%;
+}
+
+.ellip-overflow {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.m-b-5 { margin-bottom: 5px; }
+
+@media (max-width: 900px) {
+  .result {
+    grid-template-columns: 60px 2fr 2fr 30px;
+  }
+
+  .duration {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .result {
+    grid-template-columns: 50px 2fr 30px;
+  }
+
+  .album-name {
+    display: none;
+  }
 }
