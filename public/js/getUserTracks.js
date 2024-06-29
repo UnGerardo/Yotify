@@ -1,6 +1,6 @@
 
-let spotifyAccessToken = '';
-let spotifyTokenType = '';
+let SPOTIFY_ACCESS_TOKEN = '';
+let SPOTIFY_TOKEN_TYPE = '';
 
 const getSavedTracksBtn = document.getElementById('getSavedTracks');
 
@@ -11,7 +11,7 @@ const getSavedTracksBtn = document.getElementById('getSavedTracks');
   const spotifyTokenResponse = await fetch(`/spotifyAuthToken?${urlParams}`);
   const spotifyTokenJson = await spotifyTokenResponse.json();
 
-  ({ access_token: spotifyAccessToken, token_type: spotifyTokenType } = spotifyTokenJson);
+  ({ access_token: SPOTIFY_ACCESS_TOKEN, token_type: SPOTIFY_TOKEN_TYPE } = spotifyTokenJson);
 
   getSavedTracksBtn.addEventListener('click', async () => {
     const getSavedTracksReponse = await fetch(`/getSavedTracks`, {
@@ -20,9 +20,9 @@ const getSavedTracksBtn = document.getElementById('getSavedTracks');
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        access_token: spotifyAccessToken,
-        token_type: spotifyTokenType
+        access_token: SPOTIFY_ACCESS_TOKEN,
+        token_type: SPOTIFY_TOKEN_TYPE
       })
     });
   });
-})();
+});

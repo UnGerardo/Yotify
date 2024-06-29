@@ -1,0 +1,40 @@
+
+body {
+  background-color: #333;
+  color: whitesmoke;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+h1 {
+  font-size: 44px;
+  margin: 10px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 38px;
+  margin: 10px;
+  text-align: center;
+}
+
+#playlists {
+  border: 1px whitesmoke solid;
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 10px;
+  min-width: 300px;
+  width: 40vw;
+}
+
+.playlist {
+  border-bottom: 1px whitesmoke solid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px;
+  margin: 5px 0;
+}
