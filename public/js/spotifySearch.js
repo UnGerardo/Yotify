@@ -18,16 +18,16 @@ $searchBtn.addEventListener('click', async () => {
     const albumImgUrl = track['album']['images'][1]['url'];
     const albumName = track['album']['name'];
     // can have multiple artists
-    const artistName = track['artists'][0]['name'];
+    const artistNames = track['artists'].map((artist) => artist['name']).join(', ');
     const trackName = track['name'];
     const duration = track['duration_ms'];
     const trackUrl = track['external_urls']['spotify'];
 
-    $renderSearchResult(albumImgUrl, albumName, artistName, trackName, duration, trackUrl);
+    $renderSearchResult(albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
   });
 });
 
-function $renderSearchResult(albumImgUrl, albumName, artistName, trackName, duration, trackUrl) {
+function $renderSearchResult(albumImgUrl, albumName, artistNames, trackName, duration, trackUrl) {
   const $albumImg = document.createElement('img');
   $albumImg.classList.add('album-image');
   $albumImg.src = albumImgUrl;
@@ -35,7 +35,7 @@ function $renderSearchResult(albumImgUrl, albumName, artistName, trackName, dura
   $trackArtistSect.classList.add('ellip-overflow');
   const $artistP = document.createElement('p');
   $artistP.classList.add('artist-name', 'ellip-overflow');
-  $artistP.innerText = artistName;
+  $artistP.innerText = artistNames;
   const $trackP = document.createElement('p');
   $trackP.classList.add('ellip-overflow', 'm-b-5');
   $trackP.innerText = trackName;
