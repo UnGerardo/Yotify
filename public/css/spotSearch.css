@@ -54,7 +54,7 @@ h1 {
 #search-results {
   border: 1px whitesmoke solid;
   box-shadow: 2px 2px 5px black;
-  display: none;
+  display: grid;
   grid-template-columns: 1fr;
   padding-bottom: 10px;
   margin-bottom: 10px;
@@ -106,6 +106,8 @@ h1 {
 }
 
 .m-b-5 { margin-bottom: 5px; }
+
+.p-lrb-10 { padding: 0 10px 10px; }
 
 @media (max-width: 900px) {
   .result {

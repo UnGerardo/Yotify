@@ -9,9 +9,11 @@ $searchBtn.addEventListener('click', async () => {
 
   const _searchResponse = await fetch(`/searchTrack?${searchParams}`).then(res => res.json());
 
-  $searchResults.style.display = 'grid';
   while ($searchResults.hasChildNodes()) {
-    $searchResults.removeChild($searchResults.firstChild);
+    if ($searchResults.firstElementChild === $searchResults.lastElementChild) {
+      break;
+    }
+    $searchResults.removeChild($searchResults.lastElementChild);
   }
 
   _searchResponse['items'].forEach(track => {
