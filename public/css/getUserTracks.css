@@ -36,5 +36,43 @@ h2 {
   align-items: center;
   justify-content: space-between;
   padding: 5px;
-  margin: 5px 0;
+  margin: 5px 5px 0;
+}
+
+#tracks {
+  border: 1px whitesmoke solid;
+  padding: 10px;
+  width: 90vw;
+}
+
+.track {
+  display: grid;
+  grid-template-columns: 80px 2fr 2fr 1fr 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px;
+  margin: 10px 10px 0;
+  border-bottom: 1px whitesmoke solid;
+}
+
+.p-lrb-10 { padding: 0 10px 10px; }
+
+@media (max-width: 900px) {
+  .track {
+    grid-template-columns: 60px 2fr 2fr 30px;
+  }
+
+  .duration {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .track {
+    grid-template-columns: 50px 2fr 30px;
+  }
+
+  .album-name {
+    display: none;
+  }
 }

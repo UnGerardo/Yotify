@@ -11,19 +11,40 @@
   <h1>Playlists</h1>
   <section id="playlists">
     <section class="playlist">
+      <p>Playlist Name</p>
+      <p>Number of Tracks</p>
+      <p>Show</p>
+    </section>
+    <!-- Example
+    <section class="playlist">
       <p>Track Name</p>
       <p>1000 Tracks</p>
       <button>Show Playlist</button>
-    </section>
+    </section> -->
   </section>
   <h2>Playlist Tracks:</h2>
-  <section id="playlist-tracks">
-    <p>Track</p>
+  <section id="tracks">
+    <section class="track p-lrb-10">
+      <p>Album Image</p>
+      <p>Track & Artists</p>
+      <p class="album-name">Album</p>
+      <p class="duration">Duration</p>
+      <p>Save</p>
+    </section>
+    <!-- Example:
+    <section class="track">
+      <img class='album-image' src="/images/Spotify_Icon.svg" >
+      <section class="ellip-overflow">
+        <p class="ellip-overflow m-b-5">Track Name</p>
+        <p class="artist ellip-overflow">Artist Name</p>
+      </section>
+      <p class="album-name ellip-overflow">Album name</p>
+      <p class="duration ellip-overflow">Duration</p>
+      <button class="download-btn">
+        <img class="download-image" src='/images/Download_Icon.png'>
+      </button>
+    </section> -->
   </section>
-  <button id="getSavedTracks">Get Saved Tracks</button>
-  <button>Get Playlists</button>
-  <input type="text">
-  <button>Download Playlist</button>
   <script src="/js/getUserTracks.js"></script>
 </body>
 </html>
