@@ -17,8 +17,7 @@ $searchBtn.addEventListener('click', async () => {
   _searchResponse['items'].forEach(track => {
     const albumImgUrl = track['album']['images'][1]['url'];
     const albumName = track['album']['name'];
-    // can have multiple artists
-    const artistNames = track['artists'].map((artist) => artist['name']).join(', ');
+    const artistNames = track['artists'].map((artist) => artist['name']);
     const trackName = track['name'];
     const duration = track['duration_ms'];
     const trackUrl = track['external_urls']['spotify'];
@@ -35,7 +34,7 @@ function $renderSearchResult(albumImgUrl, albumName, artistNames, trackName, dur
   $trackArtistSect.classList.add('ellip-overflow');
   const $artistP = document.createElement('p');
   $artistP.classList.add('artist-name', 'ellip-overflow');
-  $artistP.innerText = artistNames;
+  $artistP.innerText = artistNames.join(', ');
   const $trackP = document.createElement('p');
   $trackP.classList.add('ellip-overflow', 'm-b-5');
   $trackP.innerText = trackName;
@@ -57,7 +56,7 @@ function $renderSearchResult(albumImgUrl, albumName, artistNames, trackName, dur
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        artist_name: artistName,
+        artist_name: artistNames[0],
         track_name: trackName,
         track_url: trackUrl
       })
