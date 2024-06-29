@@ -42,14 +42,13 @@ exports.spotifyAuth = (req, res) => {
 exports.spotifyAuthToken = async (req, res) => {
   const code = req.query['code'];
   const error = req.query['error'];
-
   // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
   const state = req.query['state'].toString();
-  const [ stateUserId, returnedStateStr ] = state.split(':');
-  const stateStrToCheck = globalState.getUserIdStateMap(stateUserId);
+  const [ stateUserId, returnedState ] = state.split(':');
+  const savedState = globalState.getUserIdStateMap(stateUserId);
   globalState.deleteUserIdStateMap(stateUserId);
 
-  if (returnedStateStr !== stateStrToCheck) {
+  if (returnedState !== savedState) {
     res.status(404).send('Error: authState did not match state from /spotifyAuth');
     return;
   }
@@ -65,21 +64,26 @@ exports.spotifyAuthToken = async (req, res) => {
     grant_type: 'authorization_code'
   });
 
-  const spotifyTokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+  const _spotifyTokenRes = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     body: spotifyTokenParams,
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
       'Authorization': 'Basic ' + (new Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'))
     }
-  });
+  }).then(res => res.json());
 
-  const spotifyTokenJson = await spotifyTokenResponse.json();
-  const { access_token, token_type } = spotifyTokenJson;
+  const { access_token, token_type } = _spotifyTokenRes;
+
+  const _spotifyProfileRes = await fetch('https://api.spotify.com/v1/me', {
+    headers: { 'Authorization': `${token_type} ${access_token}`}
+  }).then(res => res.json());
+  const { display_name } = _spotifyProfileRes;
 
   res.json({
     access_token,
-    token_type
+    token_type,
+    display_name
   });
 }
 exports.searchTrack = async (req, res) => {
@@ -154,12 +158,7 @@ exports.downloadTrack = (req, res) => {
 exports.getSavedTracks = async (req, res) => {
   const access_token = req.body['access_token'];
   const token_type = req.body['token_type'];
-
-  const spotifyProfileResponse = await fetch('https://api.spotify.com/v1/me', {
-    headers: { 'Authorization': `${token_type} ${access_token}`}
-  });
-  const spotifyProfileJson = await spotifyProfileResponse.json();
-  const { display_name } = spotifyProfileJson;
+  const display_name = req.body['display_name'];
 
   const savedTracksParams = new URLSearchParams({
     limit: 50,
