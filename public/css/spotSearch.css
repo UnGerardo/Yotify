@@ -1,23 +1,14 @@
 
 body {
-  background-color: #333;
-  color: whitesmoke;
   display: flex;
   flex-direction: column;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   height: 100%;
   width: 100%;
 }
 
-h1 {
-  font-size: 44px;
-  margin: 10px;
-  text-align: center;
-}
-
-#search-section {
+#search {
   display: flex;
   align-items: center;
   margin: 10px;
@@ -50,81 +41,3 @@ h1 {
 }
 #search-btn:hover { transform: scale(1.04); }
 #search-btn:active { transform: scale(.96); }
-
-#search-results {
-  border: 1px whitesmoke solid;
-  box-shadow: 2px 2px 5px black;
-  display: grid;
-  grid-template-columns: 1fr;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  width: 90vw;
-}
-
-.result {
-  display: grid;
-  grid-template-columns: 80px 2fr 2fr 1fr 30px;
-  align-items: center;
-  gap: 10px;
-  padding: 5px;
-  margin: 10px 10px 0;
-  border-bottom: 1px whitesmoke solid;
-}
-
-.artist-name {
-  font-size: 15px;
-  color: #BBB;
-}
-
-.album-image {
-  border-radius: 5px;
-  width: 100%;
-}
-
-.download-btn {
-  background-color: whitesmoke;
-  border: 1px #222 solid;
-  border-radius: 5px;
-  box-shadow: 2px 2px 4px 2px #222;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: 100ms;
-}
-.download-btn:hover { transform: scale(1.04); }
-.download-btn:active { transform: scale(.96); }
-
-.download-image {
-  height: 100%;
-  width: 100%;
-}
-
-.ellip-overflow {
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-.m-b-5 { margin-bottom: 5px; }
-
-.p-lrb-10 { padding: 0 10px 10px; }
-
-@media (max-width: 900px) {
-  .result {
-    grid-template-columns: 60px 2fr 2fr 30px;
-  }
-
-  .duration {
-    display: none;
-  }
-}
-
-@media (max-width: 650px) {
-  .result {
-    grid-template-columns: 50px 2fr 30px;
-  }
-
-  .album-name {
-    display: none;
-  }
-}

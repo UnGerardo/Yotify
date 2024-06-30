@@ -1,0 +1,21 @@
+
+body {
+  background-color: #333;
+  color: whitesmoke;
+}
+
+h1 {
+  font-size: 44px;
+  margin: 10px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 38px;
+  margin: 10px;
+  text-align: center;
+}
+
+.m-b-5 { margin-bottom: 5px; }
+
+.p-lrb-10 { padding: 0 10px 10px; }
