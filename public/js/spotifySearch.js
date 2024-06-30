@@ -9,10 +9,7 @@ $searchBtn.addEventListener('click', async () => {
 
   const _searchResponse = await fetch(`/searchTrack?${searchParams}`).then(res => res.json());
 
-  while ($tracks.hasChildNodes()) {
-    if ($tracks.firstElementChild === $tracks.lastElementChild) {
-      break;
-    }
+  while ($tracks.firstElementChild !== $tracks.lastElementChild) {
     $tracks.removeChild($tracks.lastElementChild);
   }
 

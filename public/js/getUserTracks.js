@@ -60,10 +60,7 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
   const $showBtn = document.createElement('button');
   $showBtn.innerText = 'Show';
   $showBtn.addEventListener('click', async () => {
-    while ($tracks.hasChildNodes()) {
-      if ($tracks.firstElementChild === $tracks.lastElementChild) {
-        break;
-      }
+    while ($tracks.firstElementChild !== $tracks.lastElementChild) {
       $tracks.removeChild($tracks.lastElementChild);
     }
 
