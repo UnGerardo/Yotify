@@ -4,6 +4,7 @@ let SPOTIFY_TOKEN_TYPE = '';
 let SPOTIFY_DISPLAY_NAME = '';
 
 const $playlists = document.getElementById('playlists');
+const $tracks = document.getElementById('tracks');
 
 (async () => {
   const url = window.location.href;
@@ -46,11 +47,12 @@ const $playlists = document.getElementById('playlists');
   });
 })();
 
-function $renderPlaylist(id, imgUrl, name, trackCount) {
+function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
   const $playlist = document.createElement('section');
   $playlist.classList.add('playlist');
   const $img = document.createElement('img');
   $img.src = imgUrl;
+  $img.classList.add('cover-image');
   const $nameP = document.createElement('p');
   $nameP.innerText = name;
   const $trackCountP = document.createElement('p');
@@ -58,9 +60,55 @@ function $renderPlaylist(id, imgUrl, name, trackCount) {
   const $showBtn = document.createElement('button');
   $showBtn.innerText = 'Show';
   $showBtn.addEventListener('click', async () => {
-    if (id === 'liked_songs') {
+    while ($tracks.hasChildNodes()) {
+      if ($tracks.firstElementChild === $tracks.lastElementChild) {
+        break;
+      }
+      $tracks.removeChild($tracks.lastElementChild);
+    }
+
+    if (playlistId === 'liked_songs') {
+      const _savedTracksParams = new URLSearchParams({
+        limit: 50,
+        offset: 0,
+        market: 'US'
+      });
+      const _savedTracksRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`, {
+        headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+      }).then(res => res.json());
+
+      _savedTracksRes['items'].forEach(track => {
+        const albumImgUrl = track['track']['album']['images'][1]['url'];
+        const albumName = track['track']['album']['name'];
+        const artistNames = track['track']['artists'].map((artist) => artist['name']);
+        const trackName = track['track']['name'];
+        const duration = track['track']['duration_ms'];
+        const trackUrl = track['track']['external_urls']['spotify'];
+
+        $renderTrack($tracks, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
+      });
+
       return;
     }
+
+    const _playlistParams = new URLSearchParams({
+      market: 'US',
+      fields: 'tracks(next,items(track(album(images,name),artists(name),name,duration_ms,external_urls))',
+    });
+    const _playlistRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}?${_playlistParams}`, {
+      headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+    }).then(res => res.json());
+
+    _playlistRes['tracks']['items'].forEach(track => {
+      const albumImgUrl = track['track']['album']['images'][1]['url'];
+      const albumName = track['track']['album']['name'];
+      const artistNames = track['track']['artists'].map((artist) => artist['name']);
+      const trackName = track['track']['name'];
+      const duration = track['track']['duration_ms'];
+      const trackUrl = track['track']['external_urls']['spotify'];
+
+      $renderTrack($tracks, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
+    });
   });
 
   $playlist.append($img, $nameP, $trackCountP, $showBtn);
