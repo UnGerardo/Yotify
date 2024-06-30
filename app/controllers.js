@@ -49,12 +49,15 @@ exports.spotifyAuthToken = async (req, res) => {
   globalState.deleteUserIdStateMap(stateUserId);
 
   if (returnedState !== savedState) {
-    res.status(404).send('Error: authState did not match state from /spotifyAuth');
+    res.status(400).json({
+      error: 'AUTH_STATE',
+      error_msg: 'Error: authState did not match state from /spotifyAuth'
+    });
     return;
   }
 
   if (error) {
-    res.status(404).send(`Error: ${error}`);
+    res.status(400).json({ error });
     return;
   }
 
