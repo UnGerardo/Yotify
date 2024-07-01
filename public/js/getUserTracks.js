@@ -32,7 +32,7 @@ const $tracks = document.getElementById('tracks');
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   }).then(res => res.json());
 
-  $renderPlaylist('liked_songs', 'Liked_Songs.png', 'Liked Songs', _savedTracksRes['total']);
+  $renderPlaylist('liked_songs', '/images/Liked_Songs.png', 'Liked Songs', _savedTracksRes['total']);
 
   const _playlistsParams = new URLSearchParams({
     limit: 50,
