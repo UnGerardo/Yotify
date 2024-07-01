@@ -117,31 +117,26 @@ exports.downloadTrack = (req, res) => {
   const artistName = req.body['artist_name'];
   const trackName = req.body['track_name'];
 
-  const zotifyInstance = spawnSync('zotify',
-    [
-      trackUrl,
-      `--root-path=${__dirname}/${process.env.MUSIC_ROOT_PATH}`,
-      `--username=${process.env.SPOTIFY_USERNAME}`,
-      `--password=${process.env.SPOTIFY_PASSWORD}`,
-      `--output=${process.env.ZOTIFY_OUTPUT}`,
-      `--download-quality=high`,
-      `--download-format=mp3`,
-      `--save-credentials=False`
-    ],
+  const spotdlInstance = spawnSync('spotdl', [
+    `--output=./Music/${process.env.TRACK_OUTPUT}`,
+    `--format=${process.env.SONG_FORMAT}`,
+    `--print-errors`,
+    `${trackUrl}`,
+  ],
     platform() === 'win32' ? {
       env: { PYTHONIOENCODING: 'utf-8' }
     } : {}
   );
 
-  if (zotifyInstance.error) {
-    console.log(`Error: ${zotifyInstance.error.message}`);
+  if (spotdlInstance.error) {
+    console.log(`Error: ${spotdlInstance.error.message}`);
   } else {
-    console.log(`STDOUT: \n${zotifyInstance.stdout}`);
-    console.log(`STDERR: \n${zotifyInstance.stderr}`);
-    console.log(`STATUS: ${zotifyInstance.status}`);
+    console.log(`STDOUT: \n${spotdlInstance.stdout}`);
+    console.log(`STDERR: \n${spotdlInstance.stderr}`);
+    console.log(`STATUS: ${spotdlInstance.status}`);
   }
 
-  const trackFilePath = `${__dirname}/${process.env.MUSIC_ROOT_PATH}/${artistName}/${artistName} - ${trackName}.mp3`;
+  const trackFilePath = `${__dirname}/../Music/${artistName}/${artistName} - ${trackName}.mp3`;
   stat(trackFilePath, (err, stats) => {
     if (err) {
       res.status(404).send('File not found');
