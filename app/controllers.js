@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, stat } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { platform } = require('node:os');
 const path = require('node:path');
@@ -9,6 +9,8 @@ const path = require('node:path');
 const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
 const globalState = require('./globalState.js');
 
+const TRACK_OUTPUT = process.env.TRACK_OUTPUT || '{artist}/{artists} - {title}.{output-ext}';
+const TRACK_FORMAT = process.env.TRACK_FORMAT || 'mp3';
 
 exports.homePage = (req, res) => {
   res.sendFile(path.join(__dirname, '../views/index.html'));
@@ -117,41 +119,51 @@ exports.downloadTrack = (req, res) => {
   const artistNames = req.body['artist_name'];
   const trackName = req.body['track_name'];
 
-  const spotdlInstance = spawnSync('spotdl', [
-    `--output=./Music/${process.env.TRACK_OUTPUT}`,
-    `--format=${process.env.SONG_FORMAT}`,
-    `--print-errors`,
-    `${trackUrl}`,
-  ],
-    platform() === 'win32' ? {
-      env: { PYTHONIOENCODING: 'utf-8' }
-    } : {}
-  );
-
-  if (spotdlInstance.error) {
-    console.log(`Error: ${spotdlInstance.error.message}`);
-  } else {
-    console.log(`STDOUT: \n${spotdlInstance.stdout}`);
-    console.log(`STDERR: \n${spotdlInstance.stderr}`);
-    console.log(`STATUS: ${spotdlInstance.status}`);
-  }
-
+  let fileInfo;
   const trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
-  stat(trackFilePath, (err, stats) => {
-    if (err) {
-      res.status(404).send('File not found');
+  try {
+    fileInfo = statSync(trackFilePath);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      const spotdlInstance = spawnSync('spotdl', [
+        `--output=./Music/${TRACK_OUTPUT}`,
+        `--format=${TRACK_FORMAT}`,
+        `--print-errors`,
+        `${trackUrl}`,
+      ],
+        platform() === 'win32' ? {
+          env: { PYTHONIOENCODING: 'utf-8' }
+        } : {}
+      );
+
+      if (spotdlInstance.error) {
+        console.log(`Error: ${spotdlInstance.error.message}`);
+      } else {
+        console.log(`STDOUT: \n${spotdlInstance.stdout}`);
+        console.log(`STDERR: \n${spotdlInstance.stderr}`);
+        console.log(`STATUS: ${spotdlInstance.status}`);
+      }
+    } else {
+      res.status(404).send(`Error: ${err}`);
       return;
     }
+  }
 
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': stats.size,
-      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artistNames} - ${trackName}.mp3`)}`
-    });
+  try {
+    fileInfo = statSync(trackFilePath);
+  } catch (err) {
+    res.status(404).send(`Error: ${err}`);
+    return;
+  }
 
-    const readStream = createReadStream(trackFilePath);
-    readStream.pipe(res);
+  res.set({
+    'Content-Type': 'audio/mpeg',
+    'Content-Length': fileInfo.size,
+    'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artistNames} - ${trackName}.mp3`)}`
   });
+
+  const readStream = createReadStream(trackFilePath);
+  readStream.pipe(res);
 }
 exports.getSavedTracks = async (req, res) => {
   const access_token = req.body['access_token'];
