@@ -29,7 +29,7 @@ function $renderTrack($trackContainer, albumImgUrl, albumName, artistNames, trac
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        artist_name: artistNames[0],
+        artist_name: artistNames.join(', '),
         track_name: trackName,
         track_url: trackUrl
       })

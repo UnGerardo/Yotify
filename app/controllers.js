@@ -114,7 +114,7 @@ exports.searchTrack = async (req, res) => {
 
 exports.downloadTrack = (req, res) => {
   const trackUrl = req.body['track_url'];
-  const artistName = req.body['artist_name'];
+  const artistNames = req.body['artist_name'];
   const trackName = req.body['track_name'];
 
   const spotdlInstance = spawnSync('spotdl', [
@@ -136,7 +136,7 @@ exports.downloadTrack = (req, res) => {
     console.log(`STATUS: ${spotdlInstance.status}`);
   }
 
-  const trackFilePath = `${__dirname}/../Music/${artistName}/${artistName} - ${trackName}.mp3`;
+  const trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
   stat(trackFilePath, (err, stats) => {
     if (err) {
       res.status(404).send('File not found');
@@ -146,7 +146,7 @@ exports.downloadTrack = (req, res) => {
     res.set({
       'Content-Type': 'audio/mpeg',
       'Content-Length': stats.size,
-      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artistName} - ${trackName}.mp3`)}`
+      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artistNames} - ${trackName}.mp3`)}`
     });
 
     const readStream = createReadStream(trackFilePath);
