@@ -13,10 +13,7 @@ router.get('/searchTrack', controllers.searchTrack);
 
 router.post('/downloadTrack', controllers.downloadTrack);
 router.post('/getSavedTracks', controllers.getSavedTracks);
-router.post('/downloadPlaylist', (req, res) => {
-
-});
-
+router.post('/downloadPlaylist', controllers.downloadPlaylist);
 
 // app.post('/downloadTrack', (req, res) => {
 //   try {

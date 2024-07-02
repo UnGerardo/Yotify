@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { platform } = require('node:os');
 const path = require('node:path');
@@ -194,4 +194,88 @@ exports.getSavedTracks = async (req, res) => {
   });
 
   res.send('Tracks retrieved');
+}
+exports.downloadPlaylist = async (req, res) => {
+  const access_token = req.body['access_token'];
+  const token_type = req.body['token_type'];
+  const display_name = req.body['display_name'];
+  const playlist_id = req.body['playlist_id'];
+  const playlist_name = req.body['playlist_name'];
+
+  if (!existsSync(path.join(__dirname, `/../${process.env.PLAYLIST_DATA_PATH}`))) {
+    mkdirSync(path.join(__dirname, `/../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
+  }
+
+  const playlistFilePath = `${__dirname}/../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
+  truncate(playlistFilePath, 0, (err) => {
+    if (err) {
+      if (err.code !== 'ENOENT') {
+        console.log(`Error truncating file: ${err}`);
+      }
+    }
+  });
+
+  let _nextUrl = null;
+
+  let _defaultUrl = null;
+  if (playlist_id === 'liked_songs') {
+    const _likedSongsParams = new URLSearchParams({
+      limit: 50,
+      offset: 0,
+      market: 'US'
+    });
+    _defaultUrl = `https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`;
+  } else {
+    const _playlistParams = new URLSearchParams({
+      market: 'US',
+      fields: 'tracks(next,items(track(artists(name),name,external_urls))',
+    });
+    _defaultUrl = `https://api.spotify.com/v1/playlists/${playlist_id}?${_playlistParams}`;
+  }
+
+  do {
+    const _url = _nextUrl || _defaultUrl;
+
+    const _playlistRes = await fetch(_url, {
+      headers: { 'Authorization': `${token_type} ${access_token}`}
+    }).then(res => res.json());
+
+    if (isEmptyObj(_playlistRes)) {
+      break;
+    }
+
+    let items = null;
+    if (playlist_id === 'liked_songs') {
+      items = _playlistRes['items'];
+      _nextUrl = _playlistRes['next'];
+    } else {
+      items = _playlistRes['tracks']['items'];
+      _nextUrl = _playlistRes['tracks']['next'];
+    }
+
+    items.forEach(item => {
+      const artists = item['track']['artists'].map(artistObj => artistObj['name']).join('-');
+      const track_name = item['track']['name'];
+      const track_url = item['track']['external_urls']['spotify'];
+
+      writeFileSync(
+        playlistFilePath,
+        `${artists},${track_name},${track_url}\n`,
+        { flag: 'a' },
+        err => console.log(err)
+      );
+    });
+  } while (_nextUrl);
+
+  res.send('Added tracks to file.')
+}
+
+function isEmptyObj(obj) {
+  for (const prop in obj) {
+    if (Object.hasOwn(obj, prop)) {
+      return false;
+    }
+  }
+
+  return true;
 }
