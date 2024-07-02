@@ -107,7 +107,24 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
       $renderTrack($tracks, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
     });
   });
+  const $saveBtn = document.createElement('button');
+  $saveBtn.innerText = 'Save';
+  $saveBtn.addEventListener('click', async () => {
+    const _downloadResponse = await fetch('/downloadPlaylist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        access_token: SPOTIFY_ACCESS_TOKEN,
+        token_type: SPOTIFY_TOKEN_TYPE,
+        display_name: SPOTIFY_DISPLAY_NAME,
+        playlist_id: playlistId,
+        playlist_name: name
+      })
+    });
+  });
 
-  $playlist.append($img, $nameP, $trackCountP, $showBtn);
+  $playlist.append($img, $nameP, $trackCountP, $showBtn, $saveBtn);
   $playlists.appendChild($playlist);
 }
