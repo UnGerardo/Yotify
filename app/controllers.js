@@ -1,13 +1,14 @@
 require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFileSync, readFile } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { platform } = require('node:os');
 const path = require('node:path');
 
 const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
 const globalState = require('./globalState.js');
+const spawnAsync = require('./spawnAsync.js');
 
 const TRACK_OUTPUT = process.env.TRACK_OUTPUT || '{artist}/{artists} - {title}.{output-ext}';
 const TRACK_FORMAT = process.env.TRACK_FORMAT || 'mp3';
@@ -114,7 +115,7 @@ exports.searchTrack = async (req, res) => {
   res.json(spotifyResponseJson['tracks']);
 }
 
-exports.downloadTrack = (req, res) => {
+exports.downloadTrack = async (req, res) => {
   const trackUrl = req.body['track_url'];
   const artistNames = req.body['artist_name'];
   const trackName = req.body['track_name'];
@@ -125,35 +126,31 @@ exports.downloadTrack = (req, res) => {
     fileInfo = statSync(trackFilePath);
   } catch (err) {
     if (err.code === 'ENOENT') {
-      const spotdlInstance = spawnSync('spotdl', [
-        `--output=./Music/${TRACK_OUTPUT}`,
-        `--format=${TRACK_FORMAT}`,
-        `--print-errors`,
-        `${trackUrl}`,
-      ],
-        platform() === 'win32' ? {
-          env: { PYTHONIOENCODING: 'utf-8' }
-        } : {}
-      );
+      try {
+        await spawnAsync('spotdl', [
+          `--output=./Music/${TRACK_OUTPUT}`,
+          `--format=${TRACK_FORMAT}`,
+          `--print-errors`,
+          `${trackUrl}`,
+        ],
+          platform() === 'win32' ? {
+            env: { PYTHONIOENCODING: 'utf-8' }
+          } : {}
+        );
+      } catch (err) {
+        console.log(`/downloadTrack error: ${err}`);
+      }
 
-      if (spotdlInstance.error) {
-        console.log(`Error: ${spotdlInstance.error.message}`);
-      } else {
-        console.log(`STDOUT: \n${spotdlInstance.stdout}`);
-        console.log(`STDERR: \n${spotdlInstance.stderr}`);
-        console.log(`STATUS: ${spotdlInstance.status}`);
+      try {
+        fileInfo = statSync(trackFilePath);
+      } catch (err) {
+        res.status(404).send(`Error: ${err}`);
+        return;
       }
     } else {
       res.status(404).send(`Error: ${err}`);
       return;
     }
-  }
-
-  try {
-    fileInfo = statSync(trackFilePath);
-  } catch (err) {
-    res.status(404).send(`Error: ${err}`);
-    return;
   }
 
   res.set({
@@ -267,7 +264,9 @@ exports.downloadPlaylist = async (req, res) => {
     });
   } while (_nextUrl);
 
-  res.send('Added tracks to file.')
+  res.json({
+    message: 'Tracks written and download started.'
+  });
 }
 
 function isEmptyObj(obj) {
