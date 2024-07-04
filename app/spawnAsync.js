@@ -1,7 +1,7 @@
 
 const { spawn } = require('node:child_process');
 
-async function spawnAsync(program, args, options) {
+module.exports.spawnAsync = async (program, args, options) => {
   return new Promise((resolve, reject) => {
     const spotdlInst = spawn(program, args, options);
 
@@ -9,7 +9,7 @@ async function spawnAsync(program, args, options) {
       console.log(`STDOUT: ${data}`);
     });
     spotdlInst.stderr.on('data', (data) => {
-      console.log(`STDOUT: ${data}`);
+      console.log(`STDERR: ${data}`);
     });
     spotdlInst.on('close', (code) => {
       if (code === 0) {
@@ -19,5 +19,3 @@ async function spawnAsync(program, args, options) {
     });
   });
 }
-
-module.exports = spawnAsync;

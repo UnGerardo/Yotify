@@ -1,17 +1,20 @@
 require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFileSync, readFile, stat } = require('node:fs');
-const { spawnSync } = require('node:child_process');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, stat } = require('node:fs');
 const { platform } = require('node:os');
 const path = require('node:path');
 
+const WorkerPool = require('./WorkerPool.js');
 const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
 const globalState = require('./globalState.js');
-const spawnAsync = require('./spawnAsync.js');
+const { spawnAsync } = require('./spawnAsync.js');
 
 const TRACK_OUTPUT = process.env.TRACK_OUTPUT || '{artist}/{artists} - {title}.{output-ext}';
 const TRACK_FORMAT = process.env.TRACK_FORMAT || 'mp3';
+const DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS || 1;
+
+const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
 exports.homePage = (req, res) => {
   res.sendFile(path.join(__dirname, '../views/index.html'));
@@ -288,20 +291,17 @@ exports.downloadPlaylist = async (req, res) => {
       stat(trackFilePath, async (err, stats) => {
         if (err) {
           if (err.code === 'ENOENT') {
-            try {
-              await spawnAsync('spotdl', [
-                  `--output=./Music/${TRACK_OUTPUT}`,
-                  `--format=${TRACK_FORMAT}`,
-                  `--print-errors`,
-                  `${trackUrl}`,
-                ],
-                platform() === 'win32' ? {
-                  env: { PYTHONIOENCODING: 'utf-8' }
-                } : {}
-              );
-            } catch (err) {
-              console.log(`/downloadPlaylist error: ${err}`);
-            }
+            const args = ['spotdl', [
+                `--output=./Music/${TRACK_OUTPUT}`,
+                `--format=${TRACK_FORMAT}`,
+                `--print-errors`,
+                `${trackUrl}`,
+              ],
+              platform() === 'win32' ? {
+                env: { PYTHONIOENCODING: 'utf-8' }
+              } : {}
+            ];
+            WORKER_POOL.addTask(args, playlist_name);
           } else {
             console.log(`Stat error: ${err}`);
           }
