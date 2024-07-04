@@ -230,9 +230,12 @@ exports.downloadPlaylist = async (req, res) => {
   } else {
     const _playlistParams = new URLSearchParams({
       market: 'US',
-      fields: 'tracks(next,items(track(artists(name),name,external_urls))',
+      fields: 'next,items(track(artists(name),name,external_urls)',
     });
-    _defaultUrl = `https://api.spotify.com/v1/playlists/${playlist_id}?${_playlistParams}`;
+    // https://api.spotify.com/v1/playlists/${playlist_id}/tracks <- 'tracks' is added at the end to only get tracks info
+    // also 'next' has it while the API docs don't for the first req, lead to error where data wouldn't be retrieved cause different
+    // format for 'fields' was needed
+    _defaultUrl = `https://api.spotify.com/v1/playlists/${playlist_id}/tracks?${_playlistParams}`;
   }
 
   do {
@@ -251,8 +254,8 @@ exports.downloadPlaylist = async (req, res) => {
       items = _playlistRes['items'];
       _nextUrl = _playlistRes['next'];
     } else {
-      items = _playlistRes['tracks']['items'];
-      _nextUrl = _playlistRes['tracks']['next'];
+      items = _playlistRes['items'];
+      _nextUrl = _playlistRes['next'];
     }
 
     items.forEach(item => {
