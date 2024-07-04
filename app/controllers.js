@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFileSync, readFile } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFileSync, readFile, stat } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { platform } = require('node:os');
 const path = require('node:path');
@@ -121,7 +121,7 @@ exports.downloadTrack = async (req, res) => {
   const trackName = req.body['track_name'];
 
   let fileInfo;
-  const trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
+  let trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
   try {
     fileInfo = statSync(trackFilePath);
   } catch (err) {
@@ -143,9 +143,14 @@ exports.downloadTrack = async (req, res) => {
 
       try {
         fileInfo = statSync(trackFilePath);
-      } catch (err) {
-        res.status(404).send(`Error: ${err}`);
-        return;
+      } catch (er) {
+        try {
+          trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames.split(', ')[0]} - ${trackName}.mp3`;
+          fileInfo = statSync(trackFilePath);
+        } catch (e) {
+          res.status(404).send(`Err: ${err}`);
+          return;
+        }
       }
     } else {
       res.status(404).send(`Error: ${err}`);
