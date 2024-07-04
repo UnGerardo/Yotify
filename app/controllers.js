@@ -272,6 +272,45 @@ exports.downloadPlaylist = async (req, res) => {
     });
   } while (_nextUrl);
 
+  readFile(playlistFilePath, 'utf-8', async (err, data) => {
+    if (err) {
+      console.log(`Error reading playlist file: ${err}`);
+      return;
+    }
+
+    const lines = data.split('\n');
+
+    for (let i = 0; i < lines.length - 1; i++) {
+      const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
+      const artists = artistsStr.split('-');
+
+      const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+      stat(trackFilePath, async (err, stats) => {
+        if (err) {
+          if (err.code === 'ENOENT') {
+            try {
+              await spawnAsync('spotdl', [
+                  `--output=./Music/${TRACK_OUTPUT}`,
+                  `--format=${TRACK_FORMAT}`,
+                  `--print-errors`,
+                  `${trackUrl}`,
+                ],
+                platform() === 'win32' ? {
+                  env: { PYTHONIOENCODING: 'utf-8' }
+                } : {}
+              );
+            } catch (err) {
+              console.log(`/downloadPlaylist error: ${err}`);
+            }
+          } else {
+            console.log(`Stat error: ${err}`);
+          }
+          // check if correct song was downloaded, if not write STDOUT/STDERR and track info to file
+        }
+      });
+    }
+  });
+
   res.json({
     message: 'Tracks written and download started.'
   });
