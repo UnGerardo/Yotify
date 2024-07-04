@@ -170,36 +170,6 @@ exports.downloadTrack = async (req, res) => {
   const readStream = createReadStream(trackFilePath);
   readStream.pipe(res);
 }
-exports.getSavedTracks = async (req, res) => {
-  const access_token = req.body['access_token'];
-  const token_type = req.body['token_type'];
-  const display_name = req.body['display_name'];
-
-  const savedTracksParams = new URLSearchParams({
-    limit: 50,
-    offset: 0,
-    market: 'US'
-  })
-  const savedTracksResponse = await fetch(`https://api.spotify.com/v1/me/tracks?${savedTracksParams}`, {
-    headers: { 'Authorization': `${token_type} ${access_token}`}
-  });
-  const savedTracksJson = await savedTracksResponse.json();
-
-  if (!existsSync(path.join(__dirname, `${process.env.TRACK_DATA_PATH}`))) {
-    mkdirSync(path.join(__dirname, `${process.env.TRACK_DATA_PATH}`), { recursive: true });
-  }
-
-  savedTracksJson['items'].forEach(item => {
-    writeFileSync(
-      `${__dirname}/${process.env.TRACK_DATA_PATH}/${display_name}.txt`,
-      `${item['track']['artists'][0]['name']},${item['track']['name']},${item['track']['external_urls']['spotify']}\n`,
-      { flag: 'a' },
-      err => console.log(err)
-    );
-  });
-
-  res.send('Tracks retrieved');
-}
 exports.downloadPlaylist = async (req, res) => {
   const access_token = req.body['access_token'];
   const token_type = req.body['token_type'];
