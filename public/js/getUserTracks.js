@@ -123,6 +123,25 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
         playlist_name: name
       })
     });
+    const _responseHeaders = _downloadResponse.headers;
+
+    if (_responseHeaders.get('content-type') !== 'application/zip') {
+      console.log('Tracks written and downloading');
+    } else {
+      const _responseBlob = await _downloadResponse.blob();
+      const url = window.URL.createObjectURL(_responseBlob);
+
+      const $link = document.createElement('a');
+      $link.style.display = 'none';
+      $link.href = url;
+      const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
+      $link.download = decodeURIComponent(encodedFileName);
+      document.body.appendChild($link);
+
+      $link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild($link);
+    }
   });
 
   $playlist.append($img, $nameP, $trackCountP, $showBtn, $saveBtn);

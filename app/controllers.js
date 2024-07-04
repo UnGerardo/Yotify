@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const archiver = require('archiver');
 const { randomBytes } = require('node:crypto');
 const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, stat } = require('node:fs');
 const { platform } = require('node:os');
@@ -245,6 +246,8 @@ exports.downloadPlaylist = async (req, res) => {
     });
   } while (_nextUrl);
 
+  let missingSongs = false;
+
   readFile(playlistFilePath, 'utf-8', async (err, data) => {
     if (err) {
       console.log(`Error reading playlist file: ${err}`);
@@ -261,6 +264,8 @@ exports.downloadPlaylist = async (req, res) => {
       stat(trackFilePath, async (err, stats) => {
         if (err) {
           if (err.code === 'ENOENT') {
+            missingSongs = true;
+
             const args = ['spotdl', [
                 `--output=./Music/${TRACK_OUTPUT}`,
                 `--format=${TRACK_FORMAT}`,
@@ -281,9 +286,44 @@ exports.downloadPlaylist = async (req, res) => {
     }
   });
 
-  res.json({
-    message: 'Tracks written and download started.'
-  });
+  if (missingSongs) {
+    res.send('Tracks written and download started.');
+  } else {
+    readFile(playlistFilePath, 'utf-8', async (err, data) => {
+      if (err) {
+        console.log(`Error reading playlist file: ${err}`);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Internal Server Error');
+        return;
+      }
+
+      try {
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        const lines = data.split('\n');
+
+        res.writeHead(200, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename=songs.zip',
+        });
+
+        archive.pipe(res);
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
+          const artists = artistsStr.split('-');
+
+          const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+          archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
+        }
+
+        archive.finalize();
+      } catch (err) {
+        console.error('Error archiving files:', err);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Internal Server Error');
+      }
+    });
+  }
 }
 
 function isEmptyObj(obj) {
