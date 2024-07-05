@@ -14,13 +14,6 @@ $searchBtn.addEventListener('click', async () => {
   }
 
   _searchResponse['items'].forEach(track => {
-    const albumImgUrl = track['album']['images'][1]['url'];
-    const albumName = track['album']['name'];
-    const artistNames = track['artists'].map((artist) => artist['name']);
-    const trackName = track['name'];
-    const duration = track['duration_ms'];
-    const trackUrl = track['external_urls']['spotify'];
-
-    $renderTrack($tracks, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
+    $renderTrack($tracks, track);
   });
 });

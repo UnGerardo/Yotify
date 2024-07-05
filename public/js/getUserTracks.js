@@ -74,15 +74,8 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
         headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
       }).then(res => res.json());
 
-      _savedTracksRes['items'].forEach(track => {
-        const albumImgUrl = track['track']['album']['images'][1]['url'];
-        const albumName = track['track']['album']['name'];
-        const artistNames = track['track']['artists'].map((artist) => artist['name']);
-        const trackName = track['track']['name'];
-        const duration = track['track']['duration_ms'];
-        const trackUrl = track['track']['external_urls']['spotify'];
-
-        $renderTrack($tracks, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
+      _savedTracksRes['items'].forEach(item => {
+        $renderTrack($tracks, item['track']);
       });
 
       return;
@@ -90,21 +83,14 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
 
     const _playlistParams = new URLSearchParams({
       market: 'US',
-      fields: 'tracks(next,items(track(album(images,name),artists(name),name,duration_ms,external_urls))',
+      fields: 'next,items(track(album(images,name),artists(name),name,duration_ms,external_urls)',
     });
-    const _playlistRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}?${_playlistParams}`, {
+    const _playlistRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`, {
       headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
     }).then(res => res.json());
 
-    _playlistRes['tracks']['items'].forEach(track => {
-      const albumImgUrl = track['track']['album']['images'][1]['url'];
-      const albumName = track['track']['album']['name'];
-      const artistNames = track['track']['artists'].map((artist) => artist['name']);
-      const trackName = track['track']['name'];
-      const duration = track['track']['duration_ms'];
-      const trackUrl = track['track']['external_urls']['spotify'];
-
-      $renderTrack($tracks, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl);
+    _playlistRes['items'].forEach(item => {
+      $renderTrack($tracks, item['track']);
     });
   });
   const $saveBtn = document.createElement('button');

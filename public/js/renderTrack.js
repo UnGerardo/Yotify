@@ -1,5 +1,12 @@
 
-function $renderTrack($trackContainer, albumImgUrl, albumName, artistNames, trackName, duration, trackUrl) {
+function $renderTrack($trackContainer, track) {
+  const albumImgUrl = track['album']['images'][1]['url'];
+  const albumName = track['album']['name'];
+  const artistNames = track['artists'].map((artist) => artist['name']);
+  const trackName = track['name'];
+  const duration = track['duration_ms'];
+  const trackUrl = track['external_urls']['spotify'];
+
   const $albumImg = document.createElement('img');
   $albumImg.classList.add('album-image');
   $albumImg.src = albumImgUrl;
