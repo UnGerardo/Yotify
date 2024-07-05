@@ -261,69 +261,69 @@ exports.downloadPlaylist = async (req, res) => {
       const artists = artistsStr.split('-');
 
       const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
-      stat(trackFilePath, async (err, stats) => {
-        if (err) {
-          if (err.code === 'ENOENT') {
-            missingSongs = true;
+      try {
+        statSync(trackFilePath);
+      } catch (err) {
+        if (err.code === 'ENOENT') {
+          missingSongs = true;
 
-            const args = ['spotdl', [
-                `--output=./Music/${TRACK_OUTPUT}`,
-                `--format=${TRACK_FORMAT}`,
-                `--print-errors`,
-                `${trackUrl}`,
-              ],
-              platform() === 'win32' ? {
-                env: { PYTHONIOENCODING: 'utf-8' }
-              } : {}
-            ];
-            WORKER_POOL.addTask(args, playlist_id);
-          } else {
-            console.log(`Stat error: ${err}`);
+          const args = ['spotdl', [
+              `--output=./Music/${TRACK_OUTPUT}`,
+              `--format=${TRACK_FORMAT}`,
+              `--print-errors`,
+              `${trackUrl}`,
+            ],
+            platform() === 'win32' ? {
+              env: { PYTHONIOENCODING: 'utf-8' }
+            } : {}
+          ];
+          WORKER_POOL.addTask(args, playlist_id);
+        } else {
+          console.log(`Stat error: ${err}`);
+        }
+      }
+    }
+
+    if (missingSongs) {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('Tracks written and download started.');
+    } else {
+      readFile(playlistFilePath, 'utf-8', async (err, data) => {
+        if (err) {
+          console.log(`Error reading playlist file: ${err}`);
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('Internal Server Error');
+        return;
+        }
+
+        try {
+          const archive = archiver('zip', { zlib: { level: 9 } });
+          const lines = data.split('\n');
+
+          res.writeHead(200, {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename=songs.zip',
+          });
+
+          archive.pipe(res);
+
+          for (let i = 0; i < lines.length - 1; i++) {
+            const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
+            const artists = artistsStr.split('-');
+
+            const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+            archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
           }
-          // check if correct song was downloaded, if not write STDOUT/STDERR and track info to file
+
+          archive.finalize();
+        } catch (err) {
+          console.error('Error archiving files:', err);
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('Internal Server Error');
         }
       });
     }
   });
-
-  if (missingSongs) {
-    res.send('Tracks written and download started.');
-  } else {
-    readFile(playlistFilePath, 'utf-8', async (err, data) => {
-      if (err) {
-        console.log(`Error reading playlist file: ${err}`);
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Internal Server Error');
-        return;
-      }
-
-      try {
-        const archive = archiver('zip', { zlib: { level: 9 } });
-        const lines = data.split('\n');
-
-        res.writeHead(200, {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': 'attachment; filename=songs.zip',
-        });
-
-        archive.pipe(res);
-
-        for (let i = 0; i < lines.length - 1; i++) {
-          const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
-          const artists = artistsStr.split('-');
-
-          const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
-          archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
-        }
-
-        archive.finalize();
-      } catch (err) {
-        console.error('Error archiving files:', err);
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Internal Server Error');
-      }
-    });
-  }
 }
 
 function isEmptyObj(obj) {
