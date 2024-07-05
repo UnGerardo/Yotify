@@ -276,7 +276,7 @@ exports.downloadPlaylist = async (req, res) => {
                 env: { PYTHONIOENCODING: 'utf-8' }
               } : {}
             ];
-            WORKER_POOL.addTask(args, playlist_name);
+            WORKER_POOL.addTask(args, playlist_id);
           } else {
             console.log(`Stat error: ${err}`);
           }

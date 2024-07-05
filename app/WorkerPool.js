@@ -6,7 +6,7 @@ class WorkerPool {
   constructor(numThreads) {
     this.numThreads = numThreads;
     this.workers = [];
-    this.activePlaylists = [];
+    this.activePlaylistIds = [];
     this.stacks = new Map();
     this.activeWorkers = 0;
 
@@ -46,24 +46,24 @@ class WorkerPool {
     return worker;
   }
 
-  addTask(args, playlist) {
-    if (this.stacks.get(playlist)) {
-      this.stacks.get(playlist).push(args);
+  addTask(args, playlistId) {
+    if (this.stacks.get(playlistId)) {
+      this.stacks.get(playlistId).push(args);
     } else {
-      this.stacks.set(playlist, [args]);
-      this.activePlaylists.push(playlist);
+      this.stacks.set(playlistId, [args]);
+      this.activePlaylistIds.push(playlistId);
     }
     this.runNext();
   }
 
   runNext() {
-    if (this.activePlaylists.length === 0 || this.activeWorkers >= this.numThreads) {
+    if (this.activePlaylistIds.length === 0 || this.activeWorkers >= this.numThreads) {
       return;
     }
 
-    const args = this.stacks.get(this.activePlaylists[0]).shift();
-    if (this.stacks.get(this.activePlaylists[0]).length === 0) {
-      this.stacks.delete(this.activePlaylists.shift());
+    const args = this.stacks.get(this.activePlaylistIds[0]).shift();
+    if (this.stacks.get(this.activePlaylistIds[0]).length === 0) {
+      this.stacks.delete(this.activePlaylistIds.shift());
     }
     const worker = this.createWorker();
     this.activeWorkers++;
