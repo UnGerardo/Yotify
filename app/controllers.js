@@ -178,6 +178,12 @@ exports.downloadPlaylist = async (req, res) => {
   const playlist_id = req.body['playlist_id'];
   const playlist_name = req.body['playlist_name'];
 
+  if (WORKER_POOL.isDownloading(playlist_id)) {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Playlist is already downloading');
+    return;
+  }
+
   if (!existsSync(path.join(__dirname, `/../${process.env.PLAYLIST_DATA_PATH}`))) {
     mkdirSync(path.join(__dirname, `/../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
   }

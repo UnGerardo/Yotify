@@ -69,6 +69,10 @@ class WorkerPool {
     this.activeWorkers++;
     worker.postMessage(args);
   }
+
+  isDownloading(playlistId) {
+    return this.activePlaylistIds.includes(playlistId);
+  }
 }
 
 module.exports = WorkerPool;
