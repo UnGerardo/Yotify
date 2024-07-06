@@ -30,6 +30,8 @@ function $renderTrack($trackContainer, track) {
   $downloadImg.classList.add('download-image');
   $downloadImg.src = track['downloaded'] ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
+    $downloadImg.src = '/images/Downloading_Icon.gif';
+
     const _downloadResponse = await fetch('/downloadTrack', {
       method: 'POST',
       headers: {
@@ -56,6 +58,8 @@ function $renderTrack($trackContainer, track) {
     $link.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild($link);
+
+    $downloadImg.src = '/images/Downloaded_Icon.png';
   });
 
   $downloadBtn.append($downloadImg);
