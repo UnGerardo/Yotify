@@ -102,21 +102,32 @@ exports.searchTrack = async (req, res) => {
   }
 
   const searchQuery = req.query['search_query'].toString();
-  const spotifySearchParams = new URLSearchParams({
+  const _spotifySearchParams = new URLSearchParams({
     q: searchQuery,
     type: 'track',
     market: 'US',
     limit: 20,
     offset: 0
   });
-
-  const spotifyResponse = await fetch(`https://api.spotify.com/v1/search?${spotifySearchParams}`, {
+  const _spotifyRes = await fetch(`https://api.spotify.com/v1/search?${_spotifySearchParams}`, {
     method: 'GET',
     headers: {'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}`}
-  });
-  const spotifyResponseJson = await spotifyResponse.json();
+  }).then(res => res.json());
 
-  res.json(spotifyResponseJson['tracks']);
+  _spotifyRes['tracks']['items'].forEach((track) => {
+    const artistNames = track['artists'].map((artist) => artist['name']);
+    const trackName = track['name'];
+    const trackFilePath = `${__dirname}/../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
+
+    try {
+      const fileInfo = statSync(trackFilePath);
+      track['downloaded'] = true;
+    } catch (err) {
+      track['downloaded'] = false;
+    }
+  });
+
+  res.json(_spotifyRes['tracks']);
 }
 
 exports.downloadTrack = async (req, res) => {

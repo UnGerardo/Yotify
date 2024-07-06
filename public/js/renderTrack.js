@@ -28,7 +28,7 @@ function $renderTrack($trackContainer, track) {
   $downloadBtn.classList.add('download-btn');
   const $downloadImg = document.createElement('img');
   $downloadImg.classList.add('download-image');
-  $downloadImg.src = '/images/Download_Icon.png';
+  $downloadImg.src = track['downloaded'] ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
     const _downloadResponse = await fetch('/downloadTrack', {
       method: 'POST',
