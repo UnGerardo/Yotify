@@ -129,6 +129,47 @@ exports.searchTrack = async (req, res) => {
 
   res.json(_spotifyRes['tracks']);
 }
+exports.getPlaylistSongs = async (req, res) => {
+  const playlist_id = req.query['playlist_id'];
+  const access_token = req.query['access_token'];
+  const token_type = req.query['token_type'];
+
+  let url = null;
+  if (playlist_id === 'liked_songs') {
+    const _savedTracksParams = new URLSearchParams({
+      limit: 50,
+      offset: 0,
+      market: 'US'
+    });
+    url = `https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`;
+  } else {
+    const _playlistParams = new URLSearchParams({
+      market: 'US',
+      fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls)',
+    });
+    url = `https://api.spotify.com/v1/playlists/${playlist_id}/tracks?${_playlistParams}`;
+  }
+
+  const _playlistRes = await fetch(url, {
+    headers: { 'Authorization': `${token_type} ${access_token}`}
+  }).then(res => res.json());
+  const tracks = _playlistRes['items'].map((item) => item['track']);
+
+  tracks.forEach((track) => {
+    const artistNames = track['artists'].map((artist) => artist['name']);
+    const trackName = track['name'];
+    const trackFilePath = `${__dirname}/../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
+
+    try {
+      const fileInfo = statSync(trackFilePath);
+      track['downloaded'] = true;
+    } catch (err) {
+      track['downloaded'] = false;
+    }
+  });
+
+  res.json(tracks);
+}
 
 exports.downloadTrack = async (req, res) => {
   const trackUrl = req.body['track_url'];

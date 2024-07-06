@@ -64,33 +64,15 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
       $tracks.removeChild($tracks.lastElementChild);
     }
 
-    if (playlistId === 'liked_songs') {
-      const _savedTracksParams = new URLSearchParams({
-        limit: 50,
-        offset: 0,
-        market: 'US'
-      });
-      const _savedTracksRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`, {
-        headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
-      }).then(res => res.json());
+    const _playlistSongParams = new URLSearchParams({
+      playlist_id: playlistId,
+      access_token: SPOTIFY_ACCESS_TOKEN,
+      token_type: SPOTIFY_TOKEN_TYPE
+    })
+    const _playlistSongsRes = await fetch(`/getPlaylistSongs?${_playlistSongParams}`).then(res => res.json());
 
-      _savedTracksRes['items'].forEach(item => {
-        $renderTrack($tracks, item['track']);
-      });
-
-      return;
-    }
-
-    const _playlistParams = new URLSearchParams({
-      market: 'US',
-      fields: 'next,items(track(album(images,name),artists(name),name,duration_ms,external_urls)',
-    });
-    const _playlistRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`, {
-      headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
-    }).then(res => res.json());
-
-    _playlistRes['items'].forEach(item => {
-      $renderTrack($tracks, item['track']);
+    _playlistSongsRes.forEach((track) => {
+      $renderTrack($tracks, track);
     });
   });
   const $saveBtn = document.createElement('button');
