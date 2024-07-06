@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const archiver = require('archiver');
 const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, stat } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, stat, renameSync } = require('node:fs');
 const { platform } = require('node:os');
 const path = require('node:path');
 
@@ -125,10 +125,13 @@ exports.downloadTrack = async (req, res) => {
   const trackName = req.body['track_name'];
 
   let fileInfo;
-  let trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
+  const trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
+  const trackFilePathAlt = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames.split(', ')[0]} - ${trackName}.mp3`;
+  // check if file is already downloaded
   try {
     fileInfo = statSync(trackFilePath);
   } catch (err) {
+    // Not downloaded, download
     if (err.code === 'ENOENT') {
       try {
         await spawnAsync('spotdl', [
@@ -145,14 +148,23 @@ exports.downloadTrack = async (req, res) => {
         console.log(`/downloadTrack error: ${err}`);
       }
 
+      // Get file info with expected name '/artist1, artist2 - trackName.mp3'
       try {
         fileInfo = statSync(trackFilePath);
       } catch (er) {
+        // Try alternate name '/artist1 - trackName.mp3'
         try {
-          trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames.split(', ')[0]} - ${trackName}.mp3`;
-          fileInfo = statSync(trackFilePath);
+          fileInfo = statSync(trackFilePathAlt);
+          // Rename to include all artists
+          try {
+            renameSync(trackFilePathAlt, trackFilePath);
+          } catch(e) {
+            console.log(`Error renaming file: ${e}`);
+            res.status(404).send(`Err: ${e}`);
+            return;
+          }
         } catch (e) {
-          res.status(404).send(`Err: ${err}`);
+          res.status(404).send(`Err: ${e}`);
           return;
         }
       }
