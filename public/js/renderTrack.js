@@ -30,6 +30,11 @@ function $renderTrack($trackContainer, track) {
   $downloadImg.classList.add('download-image');
   $downloadImg.src = track['downloaded'] ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
+    if ($downloadImg.src.includes('Downloading_Icon.gif')) {
+      return;
+    }
+    console.log('downloading')
+
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
     const _downloadResponse = await fetch('/downloadTrack', {
