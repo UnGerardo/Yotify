@@ -31,40 +31,44 @@ function $renderTrack($trackContainer, track) {
   $downloadImg.src = track['downloaded'] ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
     if ($downloadImg.src.includes('Downloading_Icon.gif')) {
+      $createModal('Song is already downloading.');
       return;
     }
-    console.log('downloading')
-
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
-    const _downloadResponse = await fetch('/downloadTrack', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        artist_name: artistNames.join(', '),
-        track_name: trackName,
-        track_url: trackUrl
-      })
-    });
+    try {
+      const _downloadResponse = await fetch('/downloadTrack', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          artist_name: artistNames.join(', '),
+          track_name: trackName,
+          track_url: trackUrl
+        })
+      });
 
-    const _responseHeaders = _downloadResponse.headers;
-    const _responseBlob = await _downloadResponse.blob();
-    const url = window.URL.createObjectURL(_responseBlob);
+      const _responseHeaders = _downloadResponse.headers;
+      const _responseBlob = await _downloadResponse.blob();
+      const url = window.URL.createObjectURL(_responseBlob);
 
-    const $link = document.createElement('a');
-    $link.style.display = 'none';
-    $link.href = url;
-    const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
-    $link.download = decodeURIComponent(encodedFileName);
-    document.body.appendChild($link);
+      const $link = document.createElement('a');
+      $link.style.display = 'none';
+      $link.href = url;
+      const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
+      $link.download = decodeURIComponent(encodedFileName);
+      document.body.appendChild($link);
 
-    $link.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild($link);
+      $link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild($link);
 
-    $downloadImg.src = '/images/Downloaded_Icon.png';
+      $downloadImg.src = '/images/Downloaded_Icon.png';
+    } catch (err) {
+      $createModal(`Failed to download: ${err}. Try again.`);
+      $downloadImg.src = '/images/Download_Icon.png';
+    }
   });
 
   $downloadBtn.append($downloadImg);

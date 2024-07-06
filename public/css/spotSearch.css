@@ -28,16 +28,3 @@ body {
   transform: scale(1.04);
   box-shadow: 3px 3px 3px 1px black;
 }
-
-#search-btn {
-  background-color: #222;
-  border: 1px whitesmoke solid;
-  border-radius: 5px;
-  box-shadow: 2px 2px 4px 2px black;
-  color: whitesmoke;
-  font-size: small;
-  padding: 5px;
-  transition: 100ms;
-}
-#search-btn:hover { transform: scale(1.04); }
-#search-btn:active { transform: scale(.96); }

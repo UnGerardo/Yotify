@@ -19,3 +19,48 @@ h2 {
 .m-b-5 { margin-bottom: 5px; }
 
 .p-lrb-10 { padding: 0 10px 10px; }
+
+.btn {
+  background-color: #222;
+  border: 1px whitesmoke solid;
+  border-radius: 5px;
+  box-shadow: 2px 2px 4px 2px black;
+  color: whitesmoke;
+  font-size: small;
+  padding: 5px;
+  transition: 100ms;
+}
+.btn:hover { transform: scale(1.04); }
+.btn:active { transform: scale(.96); }
+
+.modal-overlay {
+  background-color: rgba(0, 0, 0, .5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.modal {
+  background-color: #333;
+  border: 1px white solid;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+  height: 200px;
+  min-width: 200px;
+  width: 400px;
+}
+
+.modal p {
+  font-size: large;
+  margin-bottom: 10px;
+  text-align: center;
+}
