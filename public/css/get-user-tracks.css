@@ -22,7 +22,7 @@ body {
 .playlist {
   border-bottom: 1px whitesmoke solid;
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 40px 40px;
+  grid-template-columns: 80px 1fr 1fr 30px 30px;
   gap: 10px;
   align-items: center;
   padding: 5px;
