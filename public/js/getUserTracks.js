@@ -55,10 +55,15 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
   $img.classList.add('cover-image');
   const $nameP = document.createElement('p');
   $nameP.innerText = name;
+  $nameP.classList.add('ellip-overflow');
   const $trackCountP = document.createElement('p');
   $trackCountP.innerText = trackCount;
+  $trackCountP.classList.add('track-count');
   const $showBtn = document.createElement('button');
-  $showBtn.innerText = 'Show';
+  $showBtn.classList.add('btn', 'download-btn');
+  const $showImg = document.createElement('img');
+  $showImg.classList.add('download-image');
+  $showImg.src = '/images/Show_Icon.png';
   $showBtn.addEventListener('click', async () => {
     while ($tracks.firstElementChild !== $tracks.lastElementChild) {
       $tracks.removeChild($tracks.lastElementChild);
@@ -75,9 +80,12 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
       $renderTrack($tracks, track);
     });
   });
-  const $saveBtn = document.createElement('button');
-  $saveBtn.innerText = 'Save';
-  $saveBtn.addEventListener('click', async () => {
+  const $downloadBtn = document.createElement('button');
+  $downloadBtn.classList.add('btn', 'download-btn');
+  const $downloadImg = document.createElement('img');
+  $downloadImg.classList.add('download-image');
+  $downloadImg.src = '/images/Download_Icon.png';
+  $downloadBtn.addEventListener('click', async () => {
     const _downloadResponse = await fetch('/downloadPlaylist', {
       method: 'POST',
       headers: {
@@ -94,7 +102,7 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
     const _responseHeaders = _downloadResponse.headers;
 
     if (_responseHeaders.get('content-type') !== 'application/zip') {
-      console.log('Tracks written and downloading');
+      $createModal(await _downloadResponse.text());
     } else {
       const _responseBlob = await _downloadResponse.blob();
       const url = window.URL.createObjectURL(_responseBlob);
@@ -112,6 +120,8 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
     }
   });
 
-  $playlist.append($img, $nameP, $trackCountP, $showBtn, $saveBtn);
+  $showBtn.appendChild($showImg);
+  $downloadBtn.appendChild($downloadImg);
+  $playlist.append($img, $nameP, $trackCountP, $showBtn, $downloadBtn);
   $playlists.appendChild($playlist);
 }

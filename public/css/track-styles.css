@@ -28,26 +28,15 @@
 
 .download-btn {
   background-color: whitesmoke;
-  border: 1px #222 solid;
-  border-radius: 5px;
-  box-shadow: 2px 2px 4px 2px #222;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 100ms;
+  padding: 0;
 }
-.download-btn:hover { transform: scale(1.04); }
-.download-btn:active { transform: scale(.96); }
 
 .download-image {
   height: 100%;
   width: 100%;
-}
-
-.ellip-overflow {
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
 }
 
 @media (max-width: 900px) {

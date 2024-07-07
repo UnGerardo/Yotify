@@ -25,7 +25,7 @@ function $renderTrack($trackContainer, track) {
   $durationP.classList.add('duration', 'ellip-overflow');
   $durationP.innerText = `Duration: ${msTimeFormat(duration)}`;
   const $downloadBtn = document.createElement('button');
-  $downloadBtn.classList.add('download-btn');
+  $downloadBtn.classList.add('btn', 'download-btn');
   const $downloadImg = document.createElement('img');
   $downloadImg.classList.add('download-image');
   $downloadImg.src = track['downloaded'] ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';

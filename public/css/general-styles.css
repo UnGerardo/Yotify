@@ -33,6 +33,12 @@ h2 {
 .btn:hover { transform: scale(1.04); }
 .btn:active { transform: scale(.96); }
 
+.ellip-overflow {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 .modal-overlay {
   background-color: rgba(0, 0, 0, .5);
   display: flex;

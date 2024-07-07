@@ -22,7 +22,7 @@ body {
 .playlist {
   border-bottom: 1px whitesmoke solid;
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 30px 30px;
+  grid-template-columns: 80px 2fr 1fr 30px 30px;
   gap: 10px;
   align-items: center;
   padding: 5px;
@@ -32,4 +32,20 @@ body {
 .cover-image {
   border-radius: 5px;
   width: 100%;
+}
+
+@media (max-width: 900px) {
+  .playlist {
+    grid-template-columns: 60px 1fr 30px 30px;
+  }
+
+  .track-count {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .playlist {
+    grid-template-columns: 50px 1fr 30px 30px;
+  }
 }
