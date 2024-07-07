@@ -242,9 +242,10 @@ exports.downloadPlaylist = async (req, res) => {
   const playlist_id = req.body['playlist_id'];
   const playlist_name = req.body['playlist_name'];
 
-  if (WORKER_POOL.isDownloading(playlist_id)) {
+  if (WORKER_POOL.isDownloading(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id)) {
+    const tracksRemaining = WORKER_POOL.tracksRemaining(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Playlist is already downloading');
+    res.end(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
     return;
   }
 
@@ -347,16 +348,18 @@ exports.downloadPlaylist = async (req, res) => {
               env: { PYTHONIOENCODING: 'utf-8' }
             } : {}
           ];
-          WORKER_POOL.addTask(args, playlist_id);
+          WORKER_POOL.addTask(args, playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
         } else {
           console.log(`Stat error: ${err}`);
         }
       }
     }
 
+    const trackNum = lines.length - 1;
+
     if (missingSongs) {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('Tracks written and download started.');
+      res.end(`Tracks written and download started. Please come back in ~${Math.ceil((trackNum * 2) / 60)} hours.`);
     } else {
       readFile(playlistFilePath, 'utf-8', async (err, data) => {
         if (err) {

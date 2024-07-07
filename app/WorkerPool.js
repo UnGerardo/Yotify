@@ -73,6 +73,10 @@ class WorkerPool {
   isDownloading(playlistId) {
     return this.activePlaylistIds.includes(playlistId);
   }
+
+  tracksRemaining(playlistId) {
+    return this.stacks.get(playlistId).length;
+  }
 }
 
 module.exports = WorkerPool;
