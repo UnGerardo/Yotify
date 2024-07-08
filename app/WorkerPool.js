@@ -1,12 +1,13 @@
 
 const path = require('path');
-const { Worker } = require('worker_threads')
+const { Worker } = require('worker_threads');
+const globalState = require('./globalState.js');
 
 class WorkerPool {
   constructor(numThreads) {
     this.numThreads = numThreads;
     this.workers = [];
-    this.activePlaylistIds = [];
+    this.activePlaylists = [];
     this.stacks = new Map();
     this.activeWorkers = 0;
 
@@ -24,6 +25,15 @@ class WorkerPool {
         isHandled = true;
         console.log(`Worker completed: ${event}`);
         this.activeWorkers--;
+
+        if (this.stacks.get(this.activePlaylists[0]['playlist_id']).length === 0) {
+          // Doesn't track 'liked_songs'
+          if (this.activePlaylists[0]['snapshot_id'].length > 0) {
+            globalState.setPlaylistSnapshot(this.activePlaylists[0]['playlist_id'], this.activePlaylists[0]['snapshot_id']);
+          }
+          this.stacks.delete(this.activePlaylists.shift());
+        }
+
         this.runNext();
       }
     }
@@ -46,25 +56,22 @@ class WorkerPool {
     return worker;
   }
 
-  addTask(args, playlistId) {
-    if (this.stacks.get(playlistId)) {
-      this.stacks.get(playlistId).push(args);
+  addTask(args, playlist_id, snapshot_id) {
+    if (this.stacks.get(playlist_id)) {
+      this.stacks.get(playlist_id).push(args);
     } else {
-      this.stacks.set(playlistId, [args]);
-      this.activePlaylistIds.push(playlistId);
+      this.stacks.set(playlist_id, [args]);
+      this.activePlaylists.push({ playlist_id, snapshot_id });
     }
     this.runNext();
   }
 
   runNext() {
-    if (this.activePlaylistIds.length === 0 || this.activeWorkers >= this.numThreads) {
+    if (this.activePlaylists.length === 0 || this.activeWorkers >= this.numThreads) {
       return;
     }
 
-    const args = this.stacks.get(this.activePlaylistIds[0]).shift();
-    if (this.stacks.get(this.activePlaylistIds[0]).length === 0) {
-      this.stacks.delete(this.activePlaylistIds.shift());
-    }
+    const args = this.stacks.get(this.activePlaylists[0]['playlist_id']).shift();
     const worker = this.createWorker();
     this.activeWorkers++;
     worker.postMessage(args);

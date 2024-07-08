@@ -7,6 +7,8 @@ class GlobalState {
   #userIdStateMap = new Map();
   #userId = 0;
 
+  #playlistSnapshots = new Map();
+
   constructor() {
     if (!GlobalState.instance) {
       GlobalState.instance = this;
@@ -29,6 +31,10 @@ class GlobalState {
 
   get userId() { return this.#userId; }
   incrementUserId() { this.#userId++; }
+
+  getPlaylistSnapshot(key) { return this.#playlistSnapshots.get(key.toString()); }
+  setPlaylistSnapshot(key, val) { this.#playlistSnapshots.set(key.toString(), val); }
+  deletePlaylistSnapshot(key) { this.#playlistSnapshots.delete(key.toString()); }
 }
 
 const INSTANCE = new GlobalState();
