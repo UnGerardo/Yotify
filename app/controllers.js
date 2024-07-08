@@ -242,6 +242,12 @@ exports.downloadPlaylist = async (req, res) => {
   const playlist_id = req.body['playlist_id'];
   const playlist_name = req.body['playlist_name'];
 
+  const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
+  const snapshot_id = playlist_id === 'liked_songs' ? '' : await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}?${_snapshotParams}`, {
+      headers: {
+        'Authorization': `${token_type} ${access_token}` }
+      }).then(res => res.json()).then(res => res['snapshot_id']);
+
   if (WORKER_POOL.isDownloading(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id)) {
     const tracksRemaining = WORKER_POOL.tracksRemaining(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -287,7 +293,7 @@ exports.downloadPlaylist = async (req, res) => {
     const _url = _nextUrl || _defaultUrl;
 
     const _playlistRes = await fetch(_url, {
-      headers: { 'Authorization': `${token_type} ${access_token}`}
+      headers: { 'Authorization': `${token_type} ${access_token}` }
     }).then(res => res.json());
 
     if (isEmptyObj(_playlistRes)) {
@@ -348,7 +354,7 @@ exports.downloadPlaylist = async (req, res) => {
               env: { PYTHONIOENCODING: 'utf-8' }
             } : {}
           ];
-          WORKER_POOL.addTask(args, playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
+          WORKER_POOL.addTask(args, playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id, snapshot_id);
         } else {
           console.log(`Stat error: ${err}`);
         }
@@ -366,7 +372,7 @@ exports.downloadPlaylist = async (req, res) => {
           console.log(`Error reading playlist file: ${err}`);
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end('Internal Server Error');
-        return;
+          return;
         }
 
         try {
