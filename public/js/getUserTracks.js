@@ -86,6 +86,8 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
   $downloadImg.classList.add('download-image');
   $downloadImg.src = '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
+    $downloadImg.src = '/images/Downloading_Icon.gif';
+
     const _downloadResponse = await fetch('/downloadPlaylist', {
       method: 'POST',
       headers: {
@@ -117,6 +119,8 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
       $link.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild($link);
+
+      $downloadImg.src = '/images/Downloaded_Icon.png';
     }
   });
 
