@@ -260,6 +260,47 @@ exports.downloadPlaylist = async (req, res) => {
   }
 
   const playlistFilePath = `${__dirname}/../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
+
+  if (snapshot_id.length && snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
+    readFile(playlistFilePath, 'utf-8', async (err, data) => {
+      if (err) {
+        console.log(`Error reading playlist file: ${err}`);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Internal Server Error');
+        return;
+      }
+
+      try {
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        const lines = data.split('\n');
+
+        res.writeHead(200, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename=songs.zip',
+        });
+
+        archive.pipe(res);
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
+          const artists = artistsStr.split('-');
+
+          const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+          archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
+        }
+
+        archive.finalize();
+      } catch (err) {
+        console.error('Error archiving files:', err);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Internal Server Error');
+      }
+    });
+    return;
+  } else {
+    globalState.deletePlaylistSnapshot(playlist_id);
+  }
+
   truncate(playlistFilePath, 0, (err) => {
     if (err) {
       if (err.code !== 'ENOENT') {
