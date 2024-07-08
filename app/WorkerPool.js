@@ -78,7 +78,12 @@ class WorkerPool {
   }
 
   isDownloading(playlistId) {
-    return this.activePlaylistIds.includes(playlistId);
+    for (let i = 0; i < this.activePlaylists.length; i++) {
+      if (playlistId === this.activePlaylists[i]['playlist_id']) {
+        return true;
+      }
+    }
+    return false;
   }
 
   tracksRemaining(playlistId) {
