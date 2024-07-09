@@ -56,11 +56,11 @@ class WorkerPool {
     return worker;
   }
 
-  addTask(args, playlist_id, snapshot_id) {
+  addTask(spotdlArgs, playlist_id, snapshot_id, artists, trackName) {
     if (this.stacks.get(playlist_id)) {
-      this.stacks.get(playlist_id).push(args);
+      this.stacks.get(playlist_id).push([spotdlArgs, artists, trackName]);
     } else {
-      this.stacks.set(playlist_id, [args]);
+      this.stacks.set(playlist_id, [[spotdlArgs, artists, trackName]]);
       this.activePlaylists.push({ playlist_id, snapshot_id });
     }
     this.runNext();

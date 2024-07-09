@@ -406,7 +406,7 @@ exports.downloadPlaylist = async (req, res) => {
         if (err.code === 'ENOENT') {
           missingSongs = true;
 
-          const args = ['spotdl', [
+          const spotdlArgs = ['spotdl', [
               `--output=./Music/${TRACK_OUTPUT}`,
               `--format=${TRACK_FORMAT}`,
               `--print-errors`,
@@ -416,7 +416,7 @@ exports.downloadPlaylist = async (req, res) => {
               env: { PYTHONIOENCODING: 'utf-8' }
             } : {}
           ];
-          WORKER_POOL.addTask(args, playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id, snapshot_id);
+          WORKER_POOL.addTask(spotdlArgs, playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id, snapshot_id, artists, trackName);
         } else {
           console.log(`Stat error: ${err}`);
         }
