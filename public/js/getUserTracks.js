@@ -32,7 +32,7 @@ const $tracks = document.getElementById('tracks');
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   }).then(res => res.json());
 
-  $renderPlaylist('liked_songs', '/images/Liked_Songs.png', 'Liked Songs', _savedTracksRes['total']);
+  $renderPlaylist('liked_songs', '/images/Liked_Songs.png', 'Liked Songs', _savedTracksRes['total'], 'Not Downloaded');
 
   const _playlistsParams = new URLSearchParams({
     limit: 50,
@@ -42,12 +42,35 @@ const $tracks = document.getElementById('tracks');
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   }).then(res => res.json());
 
+  const snapshots = [];
+
   _playlistsRes['items'].forEach(playlist => {
-    $renderPlaylist(playlist['id'], playlist['images'][0]['url'], playlist['name'], playlist['tracks']['total']);
+    snapshots.push({
+      playlist_id: playlist['id'],
+      snapshot_id: playlist['snapshot_id']
+    });
+  });
+
+  const _snapshotRes = await fetch('/checkSnapshots', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ snapshots })
+  }).then(res => res.json());
+
+  _playlistsRes['items'].forEach(playlist => {
+    $renderPlaylist(
+      playlist['id'],
+      playlist['images'][0]['url'],
+      playlist['name'],
+      playlist['tracks']['total'],
+      _snapshotRes[playlist['id']]
+    );
   });
 })();
 
-function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
+function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
   const $playlist = document.createElement('section');
   $playlist.classList.add('playlist');
   const $img = document.createElement('img');
@@ -84,7 +107,7 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount) {
   $downloadBtn.classList.add('btn', 'download-btn');
   const $downloadImg = document.createElement('img');
   $downloadImg.classList.add('download-image');
-  $downloadImg.src = '/images/Download_Icon.png';
+  $downloadImg.src = status === 'Downloaded' ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
