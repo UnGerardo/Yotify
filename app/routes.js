@@ -12,6 +12,7 @@ router.get('/spotifyAuthToken', controllers.spotifyAuthToken);
 router.get('/searchTrack', controllers.searchTrack);
 router.get('/getPlaylistSongs', controllers.getPlaylistSongs);
 
+router.post('/checkSnapshots', controllers.checkSnapshots);
 router.post('/downloadTrack', controllers.downloadTrack);
 router.post('/downloadPlaylist', controllers.downloadPlaylist);
 

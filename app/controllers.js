@@ -171,6 +171,27 @@ exports.getPlaylistSongs = async (req, res) => {
   res.json(tracks);
 }
 
+exports.checkSnapshots = (req, res) => {
+  const snapshots = req.body['snapshots'];
+  const playlistStatuses = {};
+
+  for (let i = 0; i < snapshots.length; i++) {
+    const { playlist_id, snapshot_id } = snapshots[i];
+    const savedSnapshot = globalState.getPlaylistSnapshot(playlist_id);
+    if (savedSnapshot) {
+      if (savedSnapshot === snapshot_id) {
+        playlistStatuses[playlist_id] = 'Downloaded';
+      } else {
+        globalState.deletePlaylistSnapshot(playlist_id);
+        playlistStatuses[playlist_id] = 'Not Downloaded';
+      }
+    } else {
+      playlistStatuses[playlist_id] = 'Not Downloaded';
+    }
+  }
+
+  res.json(playlistStatuses);
+}
 exports.downloadTrack = async (req, res) => {
   const trackUrl = req.body['track_url'];
   const artistNames = req.body['artist_name'];
@@ -212,16 +233,16 @@ exports.downloadTrack = async (req, res) => {
             renameSync(trackFilePathAlt, trackFilePath);
           } catch(e) {
             console.log(`Error renaming file: ${e}`);
-            res.status(404).send(`Err: ${e}`);
+            res.status(404).send(`Err line 238: ${e}`);
             return;
           }
         } catch (e) {
-          res.status(404).send(`Err: ${e}`);
+          res.status(404).send(`Err line 242: ${e}`);
           return;
         }
       }
     } else {
-      res.status(404).send(`Error: ${err}`);
+      res.status(404).send(`Err line 247: ${err}`);
       return;
     }
   }
