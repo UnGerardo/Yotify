@@ -23,14 +23,6 @@ RUN npm install
 
 COPY . .
 
-ENV PORT=3000 \
-    REDIRECT_URI=http://127.0.0.1:3000/getUserTracks \
-    MUSIC_ROOT_PATH=Music \
-    PLAYLIST_DATA_PATH=PlaylistData \
-    LOG_PATH=Log \
-    TRACK_FORMAT=mp3 \
-    TRACK_OUTPUT='{artist}/{artist} - {title}.{output-ext}'
-
-EXPOSE 3000
+EXPOSE 80
 
 CMD [ "node", "/app/server.js" ]

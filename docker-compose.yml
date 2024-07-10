@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    image: ungerardo/mediasaver:1.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ~/MediaSaver/music:/app/Music
+      - ~/MediaSaver/playlist_data:/app/PlaylistData
+      - ~/MediaSaver/log:/app/Log
+    environment:
+      - PORT=3000
+      - REDIRECT_URI=http://127.0.0.1:3000/getUserTracks
+      - MUSIC_ROOT_PATH=Music
+      - PLAYLIST_DATA_PATH=PlaylistData
+      - LOG_PATH=Log
+      - TRACK_FORMAT=mp3
+      - TRACK_OUTPUT='{artist}/{artist} - {title}.{output-ext}'
