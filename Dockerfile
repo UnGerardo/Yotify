@@ -8,9 +8,12 @@ RUN apt install -y ffmpeg
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
 
-RUN python3 -m venv /app/venv && . /app/venv/bin/activate
+RUN python3 -m venv /app/venv && . /app/venv/bin/activate && deactivate
 
 RUN /app/venv/bin/pip install spotdl
+
+# Make spotdl global
+RUN ln -s /app/venv/bin/spotdl /usr/local/bin/spotdl
 
 RUN node -v && npm -v && ffmpeg -version && python3 --version
 
