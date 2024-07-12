@@ -1,13 +1,13 @@
 {
-  "name": "mediasaver",
-  "version": "1.0.0",
+  "name": "yotify",
+  "version": "1.1.0",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "author": "UnGerardo",
+  "license": "Zlib",
+  "description": "This program is a web interface that allows the user to save Spotify track information.",
   "dependencies": {
     "archiver": "^7.0.1",
     "dotenv": "^16.4.5",
