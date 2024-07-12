@@ -2,16 +2,18 @@ version: '3.8'
 
 services:
   app:
-    image: ungerardo/mediasaver:1.1
+    image: ungerardo/mediasaver:latest
     ports:
-      - "3000:3000"
+      - "80:80"
     volumes:
       - /home/{user}/MediaSaver/music:/app/Music
       - /home/{user}/MediaSaver/playlist_data:/app/PlaylistData
       - /home/{user}/MediaSaver/log:/app/Log
     environment:
-      - PORT=3000
-      - REDIRECT_URI=http://127.0.0.1:3000/getUserTracks
+      - CLIENT_ID=0000000000000
+      - CLIENT_SECRET=000000000000
+      - PORT=80
+      - REDIRECT_URI=http://127.0.0.1/getUserTracks
       - MUSIC_ROOT_PATH=Music
       - PLAYLIST_DATA_PATH=PlaylistData
       - LOG_PATH=Log
