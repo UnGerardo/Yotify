@@ -4,17 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/css-reset.css">
-  <link rel="stylesheet" href="/css/general-styles.css">
-  <link rel="stylesheet" href="/css/track-styles.css">
-  <link rel="stylesheet" href="/css/spotify-search.css">
-  <title>Spotify Search</title>
+  <link rel="stylesheet" href="/css/general.css">
+  <link rel="stylesheet" href="/css/spotify/tracks.css">
+  <link rel="stylesheet" href="/css/spotify/playlists.css">
+  <title>Get Playlists</title>
 </head>
 <body>
-  <h1>Search Spotify Track</h1>
-  <section id="search">
-    <input id="search-input" type="text">
-    <button id="search-btn" class="btn">Search</button>
+  <h1>Playlists</h1>
+  <section id="playlists">
+    <section class="playlist">
+      <p>Image</p>
+      <p>Playlist Name</p>
+      <p class="track-count">Number of Tracks</p>
+      <p>Show</p>
+      <p>Save</p>
+    </section>
+    <!-- Example
+    <section class="playlist">
+      <img class='cover-image' src='Liked_Songs.png'></img>
+      <p class="ellip-overflow">Track Name</p>
+      <p>1000 Tracks</p>
+      <button>Show Playlist</button>
+    </section> -->
   </section>
+  <h2>Playlist Tracks:</h2>
   <section id="tracks">
     <section class="track p-lrb-10">
       <p>Image</p>
@@ -40,6 +53,6 @@
   <script src="/js/modal.js"></script>
   <script src="/js/msTimeFormat.js"></script>
   <script src="/js/renderTrack.js"></script>
-  <script src="/js/spotifySearch.js"></script>
+  <script src="/js/spotify/playlists.js"></script>
 </body>
 </html>
