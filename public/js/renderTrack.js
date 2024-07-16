@@ -8,28 +8,14 @@ function $renderTrack($trackContainer, track) {
   const trackUrl = track['external_urls']['spotify'];
   const downloaded = track['downloaded'];
 
-  const $albumImg = document.createElement('img');
-  $albumImg.classList.add('album-image');
-  $albumImg.src = albumImgUrl;
-  const $trackArtistSect = document.createElement('section');
-  $trackArtistSect.classList.add('ellip-overflow');
-  const $artistP = document.createElement('p');
-  $artistP.classList.add('artist-name', 'ellip-overflow');
-  $artistP.innerText = artistNames.join(', ');
-  const $trackP = document.createElement('p');
-  $trackP.classList.add('ellip-overflow', 'm-b-5');
-  $trackP.innerText = trackName;
-  const $albumP = document.createElement('p');
-  $albumP.classList.add('ellip-overflow', 'album-name');
-  $albumP.innerText = albumName;
-  const $durationP = document.createElement('p');
-  $durationP.classList.add('duration', 'ellip-overflow');
-  $durationP.innerText = `Duration: ${msTimeFormat(duration)}`;
-  const $downloadBtn = document.createElement('button');
-  $downloadBtn.classList.add('btn', 'download-btn');
-  const $downloadImg = document.createElement('img');
-  $downloadImg.classList.add('download-image');
-  $downloadImg.src = downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
+  const $albumImg = $createElement('img', ['album-image'], { src: albumImgUrl });
+  const $trackArtistSect = $createElement('section', ['ellip-overflow']);
+  const $artistP = $createElement('p', ['artist-name', 'ellip-overflow'], { innerText: artistNames.join(', ') });
+  const $trackP = $createElement('p', ['ellip-overflow', 'm-b-5'], { innerText: trackName });
+  const $albumP = $createElement('p', ['ellip-overflow', 'album-name'], { innerText: albumName });
+  const $durationP = $createElement('p', ['duration', 'ellip-overflow'], { innerText: `Duration: ${msTimeFormat(duration)}` });
+  const $downloadImg = $createElement('img', ['download-image'], { src: downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
+  const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
   $downloadBtn.addEventListener('click', async () => {
     if ($downloadImg.src.includes('Downloading_Icon.gif')) {
       $createModal('Song is already downloading.');
@@ -54,11 +40,8 @@ function $renderTrack($trackContainer, track) {
       const _responseBlob = await _downloadResponse.blob();
       const url = window.URL.createObjectURL(_responseBlob);
 
-      const $link = document.createElement('a');
-      $link.style.display = 'none';
-      $link.href = url;
       const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
-      $link.download = decodeURIComponent(encodedFileName);
+      const $link = $createElement('a', [], { href: url, download: decodeURIComponent(encodedFileName), style: { display: 'none' } });
       document.body.appendChild($link);
 
       $link.click();
@@ -75,8 +58,7 @@ function $renderTrack($trackContainer, track) {
   $downloadBtn.append($downloadImg);
   $trackArtistSect.append($trackP, $artistP);
 
-  const $track = document.createElement('section');
-  $track.classList.add('track');
+  const $track = $createElement('section', ['track']);
   $track.append($albumImg, $trackArtistSect, $albumP, $durationP, $downloadBtn);
 
   $trackContainer.appendChild($track);

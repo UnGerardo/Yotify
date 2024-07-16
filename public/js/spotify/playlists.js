@@ -71,22 +71,12 @@ const $tracks = document.getElementById('tracks');
 })();
 
 function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
-  const $playlist = document.createElement('section');
-  $playlist.classList.add('playlist');
-  const $img = document.createElement('img');
-  $img.src = imgUrl;
-  $img.classList.add('cover-image');
-  const $nameP = document.createElement('p');
-  $nameP.innerText = name;
-  $nameP.classList.add('ellip-overflow');
-  const $trackCountP = document.createElement('p');
-  $trackCountP.innerText = trackCount;
-  $trackCountP.classList.add('track-count');
-  const $showBtn = document.createElement('button');
-  $showBtn.classList.add('btn', 'download-btn');
-  const $showImg = document.createElement('img');
-  $showImg.classList.add('download-image');
-  $showImg.src = '/images/Show_Icon.png';
+  const $playlist = $createElement('section', ['playlist']);
+  const $img = $createElement('img', ['cover-image'], { src: imgUrl });
+  const $nameP = $createElement('p', ['ellip-overflow'], { innerText: name });
+  const $trackCountP = $createElement('p', ['track-count'], { innerText: trackCount });
+  const $showBtn = $createElement('button', ['btn', 'download-btn']);
+  const $showImg = $createElement('img', ['download-image'], { src: '/images/Show_Icon.png'});
   $showBtn.addEventListener('click', async () => {
     while ($tracks.firstElementChild !== $tracks.lastElementChild) {
       $tracks.removeChild($tracks.lastElementChild);
@@ -125,11 +115,8 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
       $renderTrack($tracks, track);
     });
   });
-  const $downloadBtn = document.createElement('button');
-  $downloadBtn.classList.add('btn', 'download-btn');
-  const $downloadImg = document.createElement('img');
-  $downloadImg.classList.add('download-image');
-  $downloadImg.src = status === 'Downloaded' ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
+  const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
+  const $downloadImg = $createElement('img', ['download-image'], { src: status === 'Downloaded' ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
@@ -154,11 +141,8 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
       const _responseBlob = await _downloadResponse.blob();
       const url = window.URL.createObjectURL(_responseBlob);
 
-      const $link = document.createElement('a');
-      $link.style.display = 'none';
-      $link.href = url;
       const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
-      $link.download = decodeURIComponent(encodedFileName);
+      const $link = $createElement('a', [], { href: url, download: decodeURIComponent(encodedFileName), style: { display: 'none' } });
       document.body.appendChild($link);
 
       $link.click();
