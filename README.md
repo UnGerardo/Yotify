@@ -20,7 +20,7 @@ This program is a web interface that allows a user to save Spotify track informa
    - Node.js 22.0.0+
 3. Get Spotify Credentials
    - Create a new [Spotify app](https://developer.spotify.com/)
-   - Add a redirect URI of `http://127.0.0.1:3000/getUserTracks`
+   - Add a redirect URI of `http://127.0.0.1:3000/spotify/playlists`
    - Under 'Which API/SDKs' are you planning to use?', select 'Web API'
    - Go to the app settings and get Client ID and Client Secret values
    - To allow other users to use the app, go to 'User Management' and add their email
@@ -39,7 +39,7 @@ This program is a web interface that allows a user to save Spotify track informa
 1. Install Docker on your device
 2. Get Spotify Credentials
    - Create a new [Spotify app](https://developer.spotify.com/)
-   - Add a redirect URI of `http://127.0.0.1:3000/getUserTracks`
+   - Add a redirect URI of `http://127.0.0.1:3000/spotify/playlists`
    - Under 'Which API/SDKs' are you planning to use?', select 'Web API'
    - Go to the app settings and get Client ID and Client Secret values
    - To allow other users to use the app, go to 'User Management' and add their email

@@ -12,10 +12,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/spotify', spotifyRoutes);
 app.use('/', (req, res) => {
   res.sendFile(path.join(__dirname, './views/index.html'));
 });
-app.use('/spotify', spotifyRoutes);
 
 // middleware that handles 404 errors
 app.use(function(req, res, next) {
