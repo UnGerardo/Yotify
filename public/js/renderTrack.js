@@ -37,7 +37,7 @@ function $renderTrack($trackContainer, track) {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
     try {
-      const _downloadResponse = await fetch('/downloadTrack', {
+      const _downloadResponse = await fetch('/spotify/download/track', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

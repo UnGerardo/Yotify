@@ -10,7 +10,7 @@ const $tracks = document.getElementById('tracks');
   const url = window.location.href;
   const urlParams = new URLSearchParams(url.split('?')[1]);
 
-  const _spotifyTokenResponse = await fetch(`/spotifyAuthToken?${urlParams}`);
+  const _spotifyTokenResponse = await fetch(`/spotify/token?${urlParams}`);
   const _spotifyTokenJson = await _spotifyTokenResponse.json();
 
   if (_spotifyTokenResponse.status === 400 && _spotifyTokenJson['error'] === 'AUTH_STATE') {
@@ -51,7 +51,7 @@ const $tracks = document.getElementById('tracks');
     });
   });
 
-  const _snapshotRes = await fetch('/checkSnapshots', {
+  const _snapshotRes = await fetch('/spotify/playlists/status', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
       access_token: SPOTIFY_ACCESS_TOKEN,
       token_type: SPOTIFY_TOKEN_TYPE
     })
-    const _playlistSongsRes = await fetch(`/getPlaylistSongs?${_playlistSongParams}`).then(res => res.json());
+    const _playlistSongsRes = await fetch(`/spotify/playlist/tracks?${_playlistSongParams}`).then(res => res.json());
 
     _playlistSongsRes.forEach((track) => {
       $renderTrack($tracks, track);
@@ -111,7 +111,7 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
-    const _downloadResponse = await fetch('/downloadPlaylist', {
+    const _downloadResponse = await fetch('/spotify/download/playlist', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

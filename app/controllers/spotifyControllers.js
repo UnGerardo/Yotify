@@ -1,8 +1,7 @@
 require('dotenv').config();
 
 const archiver = require('archiver');
-const { randomBytes } = require('node:crypto');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, stat, renameSync } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, renameSync } = require('node:fs');
 const { platform } = require('node:os');
 const path = require('node:path');
 
@@ -17,17 +16,14 @@ const DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS || 1;
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
-exports.homePage = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/index.html'));
+exports.search = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/spotify/search.html'));
 }
-exports.spotifySearch = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/spotifySearch.html'));
-}
-exports.getUserTracks = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/getUserTracks.html'));
+exports.playlists = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/spotify/playlists.html'));
 }
 
-exports.spotifyAuth = (req, res) => {
+exports.auth = (req, res) => {
   const randomStr = randomBytes(16).toString('hex');
   let stateStr = `${globalState.userId}:${randomStr}`;
   globalState.setUserIdStateMap(globalState.userId, randomStr);
@@ -46,7 +42,7 @@ exports.spotifyAuth = (req, res) => {
 
   res.redirect(302, `https://accounts.spotify.com/authorize?${spotifyAuthParams}`);
 }
-exports.spotifyAuthToken = async (req, res) => {
+exports.token = async (req, res) => {
   const code = req.query['code'];
   const error = req.query['error'];
   // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
@@ -96,14 +92,14 @@ exports.spotifyAuthToken = async (req, res) => {
     display_name
   });
 }
-exports.searchTrack = async (req, res) => {
+exports.searchTracks = async (req, res) => {
   if (globalState.spotifyToken === '' || Date.now() > globalState.spotifyTokenExpiry) {
     await getSpotifyAccessToken();
   }
 
-  const searchQuery = req.query['search_query'].toString();
+  const query = decodeURIComponent(req.params.query);
   const _spotifySearchParams = new URLSearchParams({
-    q: searchQuery,
+    q: query,
     type: 'track',
     market: 'US',
     limit: 20,
@@ -129,7 +125,8 @@ exports.searchTrack = async (req, res) => {
 
   res.json(_spotifyRes['tracks']);
 }
-exports.getPlaylistSongs = async (req, res) => {
+// TODO: MOVE TO CLIENT SIDE
+exports.playlistTracks = async (req, res) => {
   const playlist_id = req.query['playlist_id'];
   const access_token = req.query['access_token'];
   const token_type = req.query['token_type'];
@@ -145,7 +142,7 @@ exports.getPlaylistSongs = async (req, res) => {
   } else {
     const _playlistParams = new URLSearchParams({
       market: 'US',
-      fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls)',
+      fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls))',
     });
     url = `https://api.spotify.com/v1/playlists/${playlist_id}/tracks?${_playlistParams}`;
   }
@@ -171,7 +168,7 @@ exports.getPlaylistSongs = async (req, res) => {
   res.json(tracks);
 }
 
-exports.checkSnapshots = (req, res) => {
+exports.playlistsStatus = (req, res) => {
   const snapshots = req.body['snapshots'];
   const playlistStatuses = {};
 
