@@ -2,13 +2,14 @@ require('dotenv').config();
 
 const archiver = require('archiver');
 const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, renameSync } = require('node:fs');
-const { platform } = require('node:os');
 const path = require('node:path');
+const { platform } = require('node:os');
+const { randomBytes } = require('node:crypto');
 
-const WorkerPool = require('./WorkerPool.js');
-const getSpotifyAccessToken = require('./getSpotifyAccessToken.js');
-const globalState = require('./globalState.js');
-const { spawnAsync } = require('./spawnAsync.js');
+const WorkerPool = require('../WorkerPool.js');
+const getSpotifyAccessToken = require('../getSpotifyAccessToken.js');
+const globalState = require('../globalState.js');
+const { spawnAsync } = require('../spawnAsync.js');
 
 const TRACK_OUTPUT = process.env.TRACK_OUTPUT || '{artist}/{artists} - {title}.{output-ext}';
 const TRACK_FORMAT = process.env.TRACK_FORMAT || 'mp3';
@@ -17,10 +18,10 @@ const DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS || 1;
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
 exports.search = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/spotify/search.html'));
+  res.sendFile(path.join(__dirname, '../../views/spotify/search.html'));
 }
 exports.playlists = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/spotify/playlists.html'));
+  res.sendFile(path.join(__dirname, '../../views/spotify/playlists.html'));
 }
 
 exports.auth = (req, res) => {
@@ -113,7 +114,7 @@ exports.searchTracks = async (req, res) => {
   _spotifyRes['tracks']['items'].forEach((track) => {
     const artistNames = track['artists'].map((artist) => artist['name']);
     const trackName = track['name'];
-    const trackFilePath = `${__dirname}/../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
+    const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
 
     try {
       const fileInfo = statSync(trackFilePath);
@@ -125,37 +126,14 @@ exports.searchTracks = async (req, res) => {
 
   res.json(_spotifyRes['tracks']);
 }
-// TODO: MOVE TO CLIENT SIDE
-exports.playlistTracks = async (req, res) => {
-  const playlist_id = req.query['playlist_id'];
-  const access_token = req.query['access_token'];
-  const token_type = req.query['token_type'];
 
-  let url = null;
-  if (playlist_id === 'liked_songs') {
-    const _savedTracksParams = new URLSearchParams({
-      limit: 50,
-      offset: 0,
-      market: 'US'
-    });
-    url = `https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`;
-  } else {
-    const _playlistParams = new URLSearchParams({
-      market: 'US',
-      fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls))',
-    });
-    url = `https://api.spotify.com/v1/playlists/${playlist_id}/tracks?${_playlistParams}`;
-  }
-
-  const _playlistRes = await fetch(url, {
-    headers: { 'Authorization': `${token_type} ${access_token}`}
-  }).then(res => res.json());
-  const tracks = _playlistRes['items'].map((item) => item['track']);
+exports.tracksStatus = async (req, res) => {
+  const tracks = req.body['tracks'];
 
   tracks.forEach((track) => {
     const artistNames = track['artists'].map((artist) => artist['name']);
     const trackName = track['name'];
-    const trackFilePath = `${__dirname}/../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
+    const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
 
     try {
       const fileInfo = statSync(trackFilePath);
@@ -167,7 +145,6 @@ exports.playlistTracks = async (req, res) => {
 
   res.json(tracks);
 }
-
 exports.playlistsStatus = (req, res) => {
   const snapshots = req.body['snapshots'];
   const playlistStatuses = {};
@@ -195,8 +172,8 @@ exports.downloadTrack = async (req, res) => {
   const trackName = req.body['track_name'];
 
   let fileInfo;
-  const trackFilePath = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
-  const trackFilePathAlt = `${__dirname}/../Music/${artistNames.split(', ')[0]}/${artistNames.split(', ')[0]} - ${trackName}.mp3`;
+  const trackFilePath = `${__dirname}/../../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
+  const trackFilePathAlt = `${__dirname}/../../Music/${artistNames.split(', ')[0]}/${artistNames.split(', ')[0]} - ${trackName}.mp3`;
   // check if file is already downloaded
   try {
     fileInfo = statSync(trackFilePath);
@@ -273,11 +250,11 @@ exports.downloadPlaylist = async (req, res) => {
     return;
   }
 
-  if (!existsSync(path.join(__dirname, `/../${process.env.PLAYLIST_DATA_PATH}`))) {
-    mkdirSync(path.join(__dirname, `/../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
+  if (!existsSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`))) {
+    mkdirSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
   }
 
-  const playlistFilePath = `${__dirname}/../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
+  const playlistFilePath = `${__dirname}/../../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
 
   if (snapshot_id.length && snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
     readFile(playlistFilePath, 'utf-8', async (err, data) => {
@@ -303,7 +280,7 @@ exports.downloadPlaylist = async (req, res) => {
           const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
           const artists = artistsStr.split('-');
 
-          const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+          const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
           archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
         }
 
@@ -396,7 +373,7 @@ exports.downloadPlaylist = async (req, res) => {
       const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
       const artists = artistsStr.split('-');
 
-      const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+      const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
       try {
         statSync(trackFilePath);
       } catch (err) {
@@ -449,7 +426,7 @@ exports.downloadPlaylist = async (req, res) => {
             const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
             const artists = artistsStr.split('-');
 
-            const trackFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+            const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
             archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
           }
 

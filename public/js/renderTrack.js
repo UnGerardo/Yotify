@@ -6,6 +6,7 @@ function $renderTrack($trackContainer, track) {
   const trackName = track['name'];
   const duration = track['duration_ms'];
   const trackUrl = track['external_urls']['spotify'];
+  const downloaded = track['downloaded'];
 
   const $albumImg = document.createElement('img');
   $albumImg.classList.add('album-image');
@@ -28,7 +29,7 @@ function $renderTrack($trackContainer, track) {
   $downloadBtn.classList.add('btn', 'download-btn');
   const $downloadImg = document.createElement('img');
   $downloadImg.classList.add('download-image');
-  $downloadImg.src = track['downloaded'] ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
+  $downloadImg.src = downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png';
   $downloadBtn.addEventListener('click', async () => {
     if ($downloadImg.src.includes('Downloading_Icon.gif')) {
       $createModal('Song is already downloading.');
