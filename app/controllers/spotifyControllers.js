@@ -32,7 +32,7 @@ exports.auth = (req, res) => {
 
   const scope = 'user-library-read playlist-read-private';
 
-  const spotifyAuthParams = new URLSearchParams({
+  const _spotifyAuthParams = new URLSearchParams({
     response_type: 'code',
     client_id: process.env.CLIENT_ID,
     scope: scope,
@@ -41,7 +41,7 @@ exports.auth = (req, res) => {
     show_dialog: true
   });
 
-  res.redirect(302, `https://accounts.spotify.com/authorize?${spotifyAuthParams}`);
+  res.redirect(302, `https://accounts.spotify.com/authorize?${_spotifyAuthParams}`);
 }
 exports.token = async (req, res) => {
   const code = req.query['code'];
@@ -65,15 +65,14 @@ exports.token = async (req, res) => {
     return;
   }
 
-  const spotifyTokenParams = new URLSearchParams({
+  const _spotifyTokenParams = new URLSearchParams({
     code: code.toString(),
     redirect_uri: process.env.REDIRECT_URI,
     grant_type: 'authorization_code'
   });
 
-  const _spotifyTokenRes = await fetch('https://accounts.spotify.com/api/token', {
+  const _spotifyTokenRes = await fetch(`https://accounts.spotify.com/api/token?${_spotifyTokenParams}`, {
     method: 'POST',
-    body: spotifyTokenParams,
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
       'Authorization': 'Basic ' + (new Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'))

@@ -8,12 +8,12 @@ const $tracks = document.getElementById('tracks');
 
 (async () => {
   const url = window.location.href;
-  const urlParams = new URLSearchParams(url.split('?')[1]);
+  const _urlParams = new URLSearchParams(url.split('?')[1]);
 
-  const _spotifyTokenResponse = await fetch(`/spotify/token?${urlParams}`);
-  const _spotifyTokenJson = await _spotifyTokenResponse.json();
+  const _spotifyTokenRes = await fetch(`/spotify/token?${_urlParams}`);
+  const _spotifyTokenJson = await _spotifyTokenRes.json();
 
-  if (_spotifyTokenResponse.status === 400 && _spotifyTokenJson['error'] === 'AUTH_STATE') {
+  if (_spotifyTokenRes.status === 400 && _spotifyTokenJson['error'] === 'AUTH_STATE') {
     window.location.href = '/spotifyAuth';
   }
 
