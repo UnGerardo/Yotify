@@ -7,6 +7,9 @@ This program is a web interface that allows a user to save Spotify track informa
   - [Table of contents](#table-of-contents)
   - [Manual Installation](#manual-installation)
   - [Use with Docker](#use-with-docker)
+  - [Disclaimer](#disclaimer)
+  - [License](#license)
+  - [Usage Guidelines](#usage-guidelines)
 
 ## Manual Installation
 
@@ -50,3 +53,17 @@ This program is a web interface that allows a user to save Spotify track informa
 4. Start a container
    - Create and run the program with `docker compose up`
    - Visit [http://127.0.0.1:3000/](http://127.0.0.1:3000/)
+
+## Disclaimer
+
+This software is provided for educational and personal use only. Users are responsible for ensuring their use complies with the terms of service of the APIs and services they access. The developers of this software do not condone or support the use of this software for any illegal activities, including but not limited to piracy or unauthorized downloads of copyrighted material.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+## Usage Guidelines
+
+- Use this software only for personal backups or offline access to content you have legally purchased or have the right to download.
+- Do not use this software to distribute or share copyrighted material without proper authorization.
+- Respect the terms of service of the APIs and services you interact with using this software.
