@@ -15,6 +15,7 @@ const $tracks = document.getElementById('tracks');
 
   if (_spotifyTokenRes.status === 400 && _spotifyTokenJson['error'] === 'AUTH_STATE') {
     window.location.href = '/spotifyAuth';
+    return;
   }
 
   ({
@@ -23,34 +24,18 @@ const $tracks = document.getElementById('tracks');
     display_name: SPOTIFY_DISPLAY_NAME
   } = _spotifyTokenJson);
 
-  const _savedTracksParams = new URLSearchParams({
-    limit: 1,
-    offset: 0,
-    market: 'US'
-  });
+  const _savedTracksParams = new URLSearchParams({ limit: 1, offset: 0, market: 'US' });
   const _savedTracksRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   }).then(res => res.json());
+  $renderPlaylist({ id: 'liked_songs', images: [{ url: '/images/Liked_Songs.png' }], name: 'Liked Songs', tracks: { total: _savedTracksRes['total'] } }, 'Not Downloaded');
 
-  $renderPlaylist('liked_songs', '/images/Liked_Songs.png', 'Liked Songs', _savedTracksRes['total'], 'Not Downloaded');
-
-  const _playlistsParams = new URLSearchParams({
-    limit: 50,
-    offset: 0
-  });
+  const _playlistsParams = new URLSearchParams({ limit: 50, offset: 0 });
   const _playlistsRes = await fetch(`https://api.spotify.com/v1/me/playlists?${_playlistsParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   }).then(res => res.json());
 
-  const snapshots = [];
-
-  _playlistsRes['items'].forEach(playlist => {
-    snapshots.push({
-      playlist_id: playlist['id'],
-      snapshot_id: playlist['snapshot_id']
-    });
-  });
-
+  const snapshots = _playlistsRes['items'].map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
   const _snapshotRes = await fetch('/spotify/playlists/status', {
     method: 'POST',
     headers: {
@@ -60,23 +45,23 @@ const $tracks = document.getElementById('tracks');
   }).then(res => res.json());
 
   _playlistsRes['items'].forEach(playlist => {
-    $renderPlaylist(
-      playlist['id'],
-      playlist['images'][0]['url'],
-      playlist['name'],
-      playlist['tracks']['total'],
-      _snapshotRes[playlist['id']]
-    );
+    $renderPlaylist(playlist, _snapshotRes[playlist['id']]);
   });
 })();
 
-function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
+function $renderPlaylist(playlist, status) {
+  const playlistId = playlist['id'];
+  const imgUrl = playlist['images'][0]['url'];
+  const name = playlist['name'];
+  const trackCount = playlist['tracks']['total'];
+  const downloaded = status === 'Downloaded';
+
   const $playlist = $createElement('section', ['playlist']);
   const $img = $createElement('img', ['cover-image'], { src: imgUrl });
   const $nameP = $createElement('p', ['ellip-overflow'], { innerText: name });
   const $trackCountP = $createElement('p', ['track-count'], { innerText: trackCount });
   const $showBtn = $createElement('button', ['btn', 'download-btn']);
-  const $showImg = $createElement('img', ['download-image'], { src: '/images/Show_Icon.png'});
+  const $showImg = $createElement('img', ['download-image'], { src: '/images/Show_Icon.png' });
   $showBtn.addEventListener('click', async () => {
     while ($tracks.firstElementChild !== $tracks.lastElementChild) {
       $tracks.removeChild($tracks.lastElementChild);
@@ -84,17 +69,10 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
 
     let url = null;
     if (playlistId === 'liked_songs') {
-      const _savedTracksParams = new URLSearchParams({
-        limit: 50,
-        offset: 0,
-        market: 'US'
-      });
+      const _savedTracksParams = new URLSearchParams({ limit: 50, offset: 0, market: 'US' });
       url = `https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`;
     } else {
-      const _playlistParams = new URLSearchParams({
-        market: 'US',
-        fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls))',
-      });
+      const _playlistParams = new URLSearchParams({ market: 'US', fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls))' });
       url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
     }
 
@@ -116,7 +94,7 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
     });
   });
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
-  const $downloadImg = $createElement('img', ['download-image'], { src: status === 'Downloaded' ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
+  const $downloadImg = $createElement('img', ['download-image'], { src: downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
@@ -137,20 +115,21 @@ function $renderPlaylist(playlistId, imgUrl, name, trackCount, status) {
 
     if (_responseHeaders.get('content-type') !== 'application/zip') {
       $createModal(await _downloadResponse.text());
-    } else {
-      const _responseBlob = await _downloadResponse.blob();
-      const url = window.URL.createObjectURL(_responseBlob);
-
-      const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
-      const $link = $createElement('a', [], { href: url, download: decodeURIComponent(encodedFileName), style: { display: 'none' } });
-      document.body.appendChild($link);
-
-      $link.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild($link);
-
-      $downloadImg.src = '/images/Downloaded_Icon.png';
+      return;
     }
+
+    const _responseBlob = await _downloadResponse.blob();
+    const url = window.URL.createObjectURL(_responseBlob);
+
+    const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
+    const $link = $createElement('a', [], { href: url, download: decodeURIComponent(encodedFileName), style: { display: 'none' } });
+    document.body.appendChild($link);
+
+    $link.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild($link);
+
+    $downloadImg.src = '/images/Downloaded_Icon.png';
   });
 
   $showBtn.appendChild($showImg);
