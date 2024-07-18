@@ -198,18 +198,22 @@ exports.downloadTrack = async (req, res) => {
   readStream.pipe(res);
 }
 exports.downloadPlaylist = async (req, res) => {
-  const access_token = req.body['access_token'];
-  const token_type = req.body['token_type'];
-  const display_name = req.body['display_name'];
-  const playlist_id = req.body['playlist_id'];
-  const playlist_name = req.body['playlist_name'];
+  const {
+    access_token,
+    token_type,
+    display_name,
+    playlist_id,
+    playlist_name
+  } = req.body;
 
+  // get current snapshot_id of playlist
   const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
   const snapshot_id = playlist_id === 'liked_songs' ? '' : await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}?${_snapshotParams}`, {
       headers: {
         'Authorization': `${token_type} ${access_token}` }
       }).then(res => res.json()).then(res => res['snapshot_id']);
 
+  // Check if playlist_id is already downloading
   if (WORKER_POOL.isDownloading(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id)) {
     const tracksRemaining = WORKER_POOL.tracksRemaining(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -217,12 +221,14 @@ exports.downloadPlaylist = async (req, res) => {
     return;
   }
 
+  // create dir for playlist files
   if (!existsSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`))) {
     mkdirSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
   }
 
   const playlistFilePath = `${__dirname}/../../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
 
+  // if snapshot_id exists and is already downloaded, zip up songs and send to client
   if (snapshot_id.length && snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
     readFile(playlistFilePath, 'utf-8', async (err, data) => {
       if (err) {
@@ -259,10 +265,12 @@ exports.downloadPlaylist = async (req, res) => {
       }
     });
     return;
-  } else {
+  } // if it doesn't match, delete it
+  else {
     globalState.deletePlaylistSnapshot(playlist_id);
   }
 
+  // Reset playlist file
   truncate(playlistFilePath, 0, (err) => {
     if (err) {
       if (err.code !== 'ENOENT') {
@@ -271,8 +279,8 @@ exports.downloadPlaylist = async (req, res) => {
     }
   });
 
+  // query liked songs or playlist songs
   let _nextUrl = null;
-
   let _defaultUrl = null;
   if (playlist_id === 'liked_songs') {
     const _likedSongsParams = new URLSearchParams({
@@ -292,6 +300,7 @@ exports.downloadPlaylist = async (req, res) => {
     _defaultUrl = `https://api.spotify.com/v1/playlists/${playlist_id}/tracks?${_playlistParams}`;
   }
 
+  // get all songs by visitng 'next' url
   do {
     const _url = _nextUrl || _defaultUrl;
 
@@ -326,8 +335,8 @@ exports.downloadPlaylist = async (req, res) => {
     });
   } while (_nextUrl);
 
+  // go through playlist file, if all songs exist return zip file, if missing, start downloading
   let missingSongs = false;
-
   readFile(playlistFilePath, 'utf-8', async (err, data) => {
     if (err) {
       console.log(`Error reading playlist file: ${err}`);
@@ -366,6 +375,7 @@ exports.downloadPlaylist = async (req, res) => {
 
     const trackNum = lines.length - 1;
 
+    // if songs not downloaded, send update, else send zip file
     if (missingSongs) {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end(`Tracks written and download started. Please come back in ~${Math.ceil((trackNum * 2) / 60)} hours.`);
