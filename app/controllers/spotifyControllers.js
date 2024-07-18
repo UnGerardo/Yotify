@@ -9,12 +9,11 @@ const { randomBytes } = require('node:crypto');
 const WorkerPool = require('../WorkerPool.js');
 const getSpotifyAccessToken = require('../getSpotifyAccessToken.js');
 const globalState = require('../globalState.js');
-const { spawnAsync } = require('../spawnAsync.js');
 
-const TRACK_OUTPUT = process.env.TRACK_OUTPUT || '{artist}/{artists} - {title}.{output-ext}';
-const TRACK_FORMAT = process.env.TRACK_FORMAT || 'mp3';
+const SPOTDL_TRACK_OUTPUT = process.env.SPOTDL_TRACK_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
+const SPOTDL_TRACK_FORMAT = process.env.SPOTDL_TRACK_FORMAT || 'mp3';
+
 const DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS || 1;
-
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
 exports.search = (req, res) => {
@@ -167,66 +166,37 @@ exports.playlistsStatus = (req, res) => {
 }
 exports.downloadTrack = async (req, res) => {
   const trackUrl = req.body['track_url'];
-  const artistNames = req.body['artist_name'];
+  const artists = req.body['artist_name'];
   const trackName = req.body['track_name'];
 
-  let fileInfo;
-  const trackFilePath = `${__dirname}/../../Music/${artistNames.split(', ')[0]}/${artistNames} - ${trackName}.mp3`;
-  const trackFilePathAlt = `${__dirname}/../../Music/${artistNames.split(', ')[0]}/${artistNames.split(', ')[0]} - ${trackName}.mp3`;
-  // check if file is already downloaded
+  const mainArtist = artists.split(', ')[0];
+  const expectedFilePath = `${__dirname}/../../Music/${mainArtist}/${artists} - ${trackName}.mp3`;
+
   try {
-    fileInfo = statSync(trackFilePath);
-  } catch (err) {
-    // Not downloaded, download
-    if (err.code === 'ENOENT') {
-      try {
-        await spawnAsync('spotdl', [
-          `--output=./Music/${TRACK_OUTPUT}`,
-          `--format=${TRACK_FORMAT}`,
-          `--print-errors`,
-          `${trackUrl}`,
-        ],
-          platform() === 'win32' ? {
-            env: { PYTHONIOENCODING: 'utf-8' }
-          } : {}
-        );
-      } catch (err) {
-        console.log(`/downloadTrack error: ${err}`);
+    let fileInfo = getFile(expectedFilePath);
+    if (!fileInfo) {
+      const downloadFilePath = `${__dirname}/../../Music/${mainArtist}/${mainArtist} - ${trackName}.mp3`;
+
+      const downloadOutput = await spotdlDownload(trackUrl);
+      fileInfo = getFile(downloadFilePath);
+
+      if (!fileInfo) {
+        throw new Error(`Newly downloaded track '${mainArtist} - ${trackName}.mp3' not found. ${downloadOutput}`);
       }
 
-      // Get file info with expected name '/artist1, artist2 - trackName.mp3'
-      try {
-        fileInfo = statSync(trackFilePath);
-      } catch (er) {
-        // Try alternate name '/artist1 - trackName.mp3'
-        try {
-          fileInfo = statSync(trackFilePathAlt);
-          // Rename to include all artists
-          try {
-            renameSync(trackFilePathAlt, trackFilePath);
-          } catch(e) {
-            console.log(`Error renaming file: ${e}`);
-            res.status(404).send(`Err line 238: ${e}`);
-            return;
-          }
-        } catch (e) {
-          res.status(404).send(`Err line 242: ${e}`);
-          return;
-        }
-      }
-    } else {
-      res.status(404).send(`Err line 247: ${err}`);
-      return;
+      renameSync(downloadFilePath, expectedFilePath);
     }
+  } catch (err) {
+    res.status(500).json({ err });
   }
 
   res.set({
     'Content-Type': 'audio/mpeg',
     'Content-Length': fileInfo.size,
-    'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artistNames} - ${trackName}.mp3`)}`
+    'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${trackName}.mp3`)}`
   });
 
-  const readStream = createReadStream(trackFilePath);
+  const readStream = createReadStream(expectedFilePath);
   readStream.pipe(res);
 }
 exports.downloadPlaylist = async (req, res) => {
@@ -448,4 +418,42 @@ function isEmptyObj(obj) {
   }
 
   return true;
+}
+
+function getFile(path) {
+  try {
+    return statSync(path);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return null;
+    }
+    throw new Error(`Error getting file: ${err}`);
+  }
+}
+
+async function spotdlDownload(trackUrl) {
+  return new Promise((resolve, reject) => {
+    const spotdl = spawn('spotdl', [
+      `--output=./Music/${SPOTDL_TRACK_OUTPUT}`,
+      `--format=${SPOTDL_TRACK_FORMAT}`,
+      `--print-errors`,
+      `${trackUrl}`,
+    ], platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {});
+
+    let STDOUT = '';
+    let STDERR = '';
+
+    spotdl.stdout.on('data', (data) => {
+      STDOUT += data.toString();
+    });
+    spotdl.stderr.on('data', (data) => {
+      STDERR += data.toString();
+    });
+    spotdl.on('close', (code) => {
+      if (code === 0) {
+        resolve(`Download STDOUT: ${STDOUT}. Download STDERR: ${STDERR}.`);
+      }
+      reject(code);
+    });
+  });
 }
