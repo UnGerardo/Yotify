@@ -165,23 +165,21 @@ exports.playlistsStatus = (req, res) => {
   res.json(playlistStatuses);
 }
 exports.downloadTrack = async (req, res) => {
-  const trackUrl = req.body['track_url'];
-  const artists = req.body['artist_name'];
-  const trackName = req.body['track_name'];
+  const { track_url, artists, track_name } = req.body;
 
   const mainArtist = artists.split(', ')[0];
-  const expectedFilePath = `${__dirname}/../../Music/${mainArtist}/${artists} - ${trackName}.mp3`;
+  const expectedFilePath = `${__dirname}/../../Music/${mainArtist}/${artists} - ${track_name}.mp3`;
 
   try {
     let fileInfo = getFile(expectedFilePath);
     if (!fileInfo) {
-      const downloadFilePath = `${__dirname}/../../Music/${mainArtist}/${mainArtist} - ${trackName}.mp3`;
+      const downloadFilePath = `${__dirname}/../../Music/${mainArtist}/${mainArtist} - ${track_name}.mp3`;
 
-      const downloadOutput = await spotdlDownload(trackUrl);
+      const downloadOutput = await spotdlDownload(track_url);
       fileInfo = getFile(downloadFilePath);
 
       if (!fileInfo) {
-        throw new Error(`Newly downloaded track '${mainArtist} - ${trackName}.mp3' not found. ${downloadOutput}`);
+        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.mp3' not found. ${downloadOutput}`);
       }
 
       renameSync(downloadFilePath, expectedFilePath);
@@ -193,7 +191,7 @@ exports.downloadTrack = async (req, res) => {
   res.set({
     'Content-Type': 'audio/mpeg',
     'Content-Length': fileInfo.size,
-    'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${trackName}.mp3`)}`
+    'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.mp3`)}`
   });
 
   const readStream = createReadStream(expectedFilePath);

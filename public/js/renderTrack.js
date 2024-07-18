@@ -30,7 +30,7 @@ function $renderTrack($trackContainer, track) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          artist_name: artistNames.join(', '),
+          artists: artistNames.join(', '),
           track_name: trackName,
           track_url: trackUrl
         })
