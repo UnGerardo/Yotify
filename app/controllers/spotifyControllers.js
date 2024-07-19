@@ -1,19 +1,23 @@
-require('dotenv').config();
-
 const archiver = require('archiver');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, renameSync, readFileSync, truncateSync } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, statSync, renameSync, readFileSync, truncateSync } = require('node:fs');
 const path = require('node:path');
 const { platform } = require('node:os');
 const { randomBytes } = require('node:crypto');
 
 const WorkerPool = require('../WorkerPool.js');
-const getSpotifyAccessToken = require('../getSpotifyAccessToken.js');
+const getGenericSpotifyToken = require('../getGenericSpotifyToken.js');
 const globalState = require('../globalState.js');
+const {
+  SPOTIFY_CLIENT_ID,
+  SPOTIFY_CLIENT_SECRET,
+  DOWNLOAD_THREADS,
+  SPOTIFY_AUTH_URL,
+  SPOTIFY_CURRENT_USER_URL,
+  SPOTIFY_TOKEN_URL,
+  SPOTIFY_SEARCH_URL,
+  PLAYLIST_FILES_PATH,
+} = require('../constants.js');
 
-const SPOTDL_TRACK_OUTPUT = process.env.SPOTDL_TRACK_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
-const SPOTDL_TRACK_FORMAT = process.env.SPOTDL_TRACK_FORMAT || 'mp3';
-
-const DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS || 1;
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
 exports.search = (req, res) => {
@@ -25,61 +29,26 @@ exports.playlists = (req, res) => {
 
 exports.auth = (req, res) => {
   const randomStr = randomBytes(16).toString('hex');
-  let stateStr = `${globalState.userId}:${randomStr}`;
+  let state = `${globalState.userId}:${randomStr}`;
   globalState.setUserIdStateMap(globalState.userId, randomStr);
   globalState.incrementUserId();
 
-  const scope = 'user-library-read playlist-read-private';
-
-  const _spotifyAuthParams = new URLSearchParams({
-    response_type: 'code',
-    client_id: process.env.CLIENT_ID,
-    scope: scope,
-    redirect_uri: process.env.REDIRECT_URI,
-    state: stateStr,
-    show_dialog: true
-  });
-
-  res.redirect(302, `https://accounts.spotify.com/authorize?${_spotifyAuthParams}`);
+  res.redirect(302, SPOTIFY_AUTH_URL(state));
 }
 exports.token = async (req, res) => {
-  const { code, error } = req.query;
-  // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
-  const state = req.query['state'].toString();
-  const [ stateUserId, returnedState ] = state.split(':');
-  const savedState = globalState.getUserIdStateMap(stateUserId);
-  globalState.deleteUserIdStateMap(stateUserId);
+  const { code, error, state } = req.query;
 
-  if (returnedState !== savedState) {
+  if (!isStateValid(state)) {
     res.status(500).type('text/plain').send('Internal Server Error: authState did not match state from /spotifyAuth');
     return;
   }
-
   if (error) {
     res.status(500).type('text/plain').send(`Internal Server Error: ${error}`);
     return;
   }
 
-  const _spotifyTokenParams = new URLSearchParams({
-    code: code.toString(),
-    redirect_uri: process.env.REDIRECT_URI,
-    grant_type: 'authorization_code'
-  });
-
-  const _spotifyTokenRes = await fetch(`https://accounts.spotify.com/api/token?${_spotifyTokenParams}`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + (new Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'))
-    }
-  }).then(res => res.json());
-
-  const { access_token, token_type } = _spotifyTokenRes;
-
-  const _spotifyProfileRes = await fetch('https://api.spotify.com/v1/me', {
-    headers: { 'Authorization': `${token_type} ${access_token}`}
-  }).then(res => res.json());
-  const { display_name } = _spotifyProfileRes;
+  const { access_token, token_type } = await getUserSpotifyToken(code);
+  const { display_name } = await getSpotifyDisplayName(token_type, access_token);
 
   res.json({
     access_token,
@@ -88,54 +57,28 @@ exports.token = async (req, res) => {
   });
 }
 exports.searchTracks = async (req, res) => {
-  if (globalState.spotifyToken === '' || Date.now() > globalState.spotifyTokenExpiry) {
-    await getSpotifyAccessToken();
+  const { query } = req.body;
+  await getGenericSpotifyToken();
+
+  const tracks = await getSpotifyTracks(query);
+  try {
+    attachTrackDownloadStatus(tracks);
+  } catch (err) {
+    console.log(`${err}`);
+    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
   }
-
-  const _spotifySearchParams = new URLSearchParams({
-    q: decodeURIComponent(req.params.query),
-    type: 'track',
-    market: 'US',
-    limit: 20,
-    offset: 0
-  });
-  const _spotifyRes = await fetch(`https://api.spotify.com/v1/search?${_spotifySearchParams}`, {
-    method: 'GET',
-    headers: {'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}`}
-  }).then(res => res.json());
-
-  _spotifyRes['tracks']['items'].forEach((track) => {
-    const artistNames = track['artists'].map((artist) => artist['name']);
-    const trackName = track['name'];
-    const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
-
-    try {
-      track['downloaded'] = Boolean(getFile(trackFilePath));
-    } catch (err) {
-      console.log(`${err}`);
-      res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
-    }
-  });
 
   res.json(_spotifyRes['tracks']);
 }
 
 exports.tracksStatus = async (req, res) => {
   const { tracks } = req.body;
-
-  tracks.forEach((track) => {
-    const artistNames = track['artists'].map((artist) => artist['name']);
-    const trackName = track['name'];
-    const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
-
-    try {
-      track['downloaded'] = Boolean(getFile(trackFilePath));
-    } catch (err) {
-      console.log(`${err}`);
-      res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
-    }
-  });
-
+  try {
+    attachTrackDownloadStatus(tracks);
+  } catch (err) {
+    console.log(`${err}`);
+    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+  }
   res.json(tracks);
 }
 exports.playlistsStatus = (req, res) => {
@@ -164,11 +107,10 @@ exports.downloadTrack = async (req, res) => {
   try {
     let fileInfo = getFile(expectedFilePath);
     if (!fileInfo) {
-      const downloadFilePath = `${__dirname}/../../Music/${mainArtist}/${mainArtist} - ${track_name}.mp3`;
-
       const downloadOutput = await spotdlDownload(track_url);
-      fileInfo = getFile(downloadFilePath);
 
+      const downloadFilePath = `${__dirname}/../../Music/${mainArtist}/${mainArtist} - ${track_name}.mp3`;
+      fileInfo = getFile(downloadFilePath);
       if (!fileInfo) {
         throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.mp3' not found. ${downloadOutput}`);
       }
@@ -207,8 +149,8 @@ exports.downloadPlaylist = async (req, res) => {
   }
 
   try {
-    mkdirSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
-    const playlistFilePath = `${__dirname}/../../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
+    mkdirSync(path.join(__dirname, `/../../${PLAYLIST_FILES_PATH}`), { recursive: true });
+    const playlistFilePath = `${__dirname}/../../${PLAYLIST_FILES_PATH}/${display_name} - ${playlist_name}.txt`;
 
     const snapshot_id = await getSpotifySnapshotId(playlist_id);
     if (snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
@@ -242,12 +184,62 @@ exports.downloadPlaylist = async (req, res) => {
   }
 }
 
+function isStateValid(state) {
+  const [ stateUserId, spotifyState ] = state.toString().split(':');
+  const savedState = globalState.getUserIdStateMap(stateUserId);
+  globalState.deleteUserIdStateMap(stateUserId);
+
+  return spotifyState === savedState;
+}
+
+async function getUserSpotifyToken(code) {
+  return await fetch(SPOTIFY_TOKEN_URL, {
+    method: 'POST',
+    body: {
+      code: code.toString(),
+      redirect_uri: SPOTIFY_REDIRECT_URI,
+      grant_type: 'authorization_code'
+    },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${ new Buffer.from(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET).toString('base64') }`
+    }
+  }).then(res => res.json());
+}
+
+async function getSpotifyDisplayName(tokenType, accessToken) {
+  return await fetch(SPOTIFY_CURRENT_USER_URL, {
+    headers: { 'Authorization': `${tokenType} ${accessToken}`}
+  }).then(res => res.json());
+}
+
+async function getSpotifyTracks(query) {
+  const _spotifyRes = await fetch(SPOTIFY_SEARCH_URL(query), {
+    method: 'GET',
+    headers: { 'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}` }
+  }).then(res => res.json());
+
+  return _spotifyRes['tracks']['items'];
+}
+
+function attachTrackDownloadStatus(tracks) {
+  tracks.forEach((track) => {
+    const artistNames = track['artists'].map((artist) => artist['name']);
+    const trackName = track['name'];
+    const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
+
+    track['downloaded'] = Boolean(getFile(trackFilePath));
+  });
+  return tracks;
+}
+
+
+
 async function getSpotifySnapshotId(playlistId) {
   const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
   return playlistId === 'liked_songs' ? '' : await fetch(`https://api.spotify.com/v1/playlists/${playlistId}?${_snapshotParams}`, {
-      headers: {
-        'Authorization': `${token_type} ${access_token}` }
-      }).then(res => res.json()).then(res => res['snapshot_id']);
+    headers: { 'Authorization': `${token_type} ${access_token}` }
+  }).then(res => res.json()).then(res => res['snapshot_id']);
 }
 
 function isEmptyObj(obj) {
