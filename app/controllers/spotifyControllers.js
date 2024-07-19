@@ -197,128 +197,57 @@ exports.downloadPlaylist = async (req, res) => {
     playlist_name
   } = req.body;
 
-  // get current snapshot_id of playlist
-  const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
-  const snapshot_id = playlist_id === 'liked_songs' ? '' : await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}?${_snapshotParams}`, {
-      headers: {
-        'Authorization': `${token_type} ${access_token}` }
-      }).then(res => res.json()).then(res => res['snapshot_id']);
+  const workerPlaylistId = playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id;
+  if (WORKER_POOL.isDownloading(workerPlaylistId)) {
+    const tracksRemaining = WORKER_POOL.tracksRemaining(workerPlaylistId);
 
-  // Check if playlist_id is already downloading
-  if (WORKER_POOL.isDownloading(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id)) {
-    const tracksRemaining = WORKER_POOL.tracksRemaining(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
-
-    res.status(200)
-      .type('text/plain')
+    res.status(200).type('text/plain')
       .send(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
     return;
   }
 
-  // create dir for playlist files
-  if (!existsSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`))) {
+  try {
     mkdirSync(path.join(__dirname, `/../../${process.env.PLAYLIST_DATA_PATH}`), { recursive: true });
-  }
+    const playlistFilePath = `${__dirname}/../../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
 
-  const playlistFilePath = `${__dirname}/../../${process.env.PLAYLIST_DATA_PATH}/${display_name} - ${playlist_name}.txt`;
-
-  // if snapshot_id exists and is already downloaded, zip up songs and send to client
-  if (snapshot_id.length && snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
-    try {
-      const data = readFileSync(playlistFilePath, 'utf-8');
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      const lines = data.split('\n');
+    const snapshot_id = await getSpotifySnapshotId(playlist_id);
+    if (snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
+      const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
 
       res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
+      const archive = archiver('zip', { zlib: { level: 9 } });
       archive.pipe(res);
-
-      for (let i = 0; i < lines.length - 1; i++) {
-        const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
-        const artists = artistsStr.split('-');
-        const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_TRACK_FORMAT}`;
-
-        const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${fileName}`;
-        archive.file(trackFilePath, { name: fileName });
-      }
-
+      archiveTracks(archive, tracks);
       archive.finalize();
-    } catch (err) {
-      console.log(`${err}`);
-      res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+      return;
     }
-    return;
-  } // if it doesn't match, delete it
-  else {
     globalState.deletePlaylistSnapshot(playlist_id);
-  }
 
-  // Reset playlist file
-  try {
-    clearFile(playlistFilePath);
-  } catch (err) {
-    console.log(`${err}`);
-    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
-  }
-
-  // query liked songs or playlist songs
-  const { _nextUrl, _defaultUrl } = getPlaylistUrl(playlist_id);
-
-  // get all songs by visitng 'next' url
-  do {
-    const _url = _nextUrl || _defaultUrl;
-
-    const _playlistRes = await fetch(_url, {
-      headers: { 'Authorization': `${token_type} ${access_token}` }
-    }).then(res => res.json());
-
-    if (isEmptyObj(_playlistRes)) { break; }
-
-    let tracks = _playlistRes['items'].map(item => item['track']);
-    _nextUrl = _playlistRes['next'];
-
-    tracks.forEach(({ artists, name, external_urls }) => {
-      const artistsStr = artists.map(({ name }) => name).join('-');
-      const track_url = external_urls['spotify'];
-      const trackEntry = `${artistsStr},${name},${track_url}\n`;
-
-      appendToFile(playlistFilePath, trackEntry);
-    });
-  } while (_nextUrl);
-
-  // go through playlist file, if all songs exist return zip file, if missing, start downloading
-  try {
-    const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
-
-    // check if each track is downloaded
-    const missingSongs = playlistTracksStatus(tracks);
-
-    // if songs not downloaded, send update, else send zip file
+    const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
+    const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, snapshot_id);
     if (missingSongs) {
-      const trackNum = data.split('\n').length - 1;
-      res.status(200)
-        .type('text/plain')
-        .send(`Tracks written and download started. Please come back in ~${Math.ceil((trackNum * 2) / 60)} hours.`);
+      res.status(200).type('text/plain')
+        .send(`Tracks written and download started. Please come back in ~${Math.ceil((tracks.length * 2) / 60)} hours.`);
       return;
     }
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
     res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
-
+    const archive = archiver('zip', { zlib: { level: 9 } });
     archive.pipe(res);
-
-    tracks.forEach((track) => {
-      const [ artistsStr, trackName, trackUrl ] = track.split(',');
-      const artists = artistsStr.split('-');
-
-      const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
-      archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
-    });
-
+    archiveTracks(archive, tracks);
     archive.finalize();
   } catch (err) {
     console.log(`${err}`);
     res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
   }
+}
+
+async function getSpotifySnapshotId(playlistId) {
+  const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
+  return playlistId === 'liked_songs' ? '' : await fetch(`https://api.spotify.com/v1/playlists/${playlistId}?${_snapshotParams}`, {
+      headers: {
+        'Authorization': `${token_type} ${access_token}` }
+      }).then(res => res.json()).then(res => res['snapshot_id']);
 }
 
 function isEmptyObj(obj) {
@@ -364,7 +293,7 @@ async function spotdlDownload(trackUrl) {
   });
 }
 
-function playlistTracksStatus(tracks) {
+function playlistTracksStatus(tracks, playlistId, snapshotId) {
   let missingSongs = false;
 
   tracks.forEach((track) => {
@@ -375,7 +304,7 @@ function playlistTracksStatus(tracks) {
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      WORKER_POOL.addTask(spotdlArgs(trackUrl), playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id, snapshot_id, artists, trackName);
+      WORKER_POOL.addTask(spotdlArgs(trackUrl), playlistId, snapshotId, artists, trackName);
     }
   });
 
@@ -417,6 +346,49 @@ function getPlaylistUrl(playlistId) {
   }
 
   return _urls;
+}
+
+async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessToken) {
+  clearFile(playlistFilePath);
+  const { _nextUrl, _defaultUrl } = getPlaylistUrl(playlistId);
+  const allTracks = [];
+
+  // get all songs by visitng 'next' url
+  do {
+    const _url = _nextUrl || _defaultUrl;
+
+    const _playlistSongsRes = await fetch(_url, {
+      headers: { 'Authorization': `${tokenType} ${accessToken}` }
+    }).then(res => res.json());
+
+    if (isEmptyObj(_playlistSongsRes)) { break; }
+
+    const tracks = _playlistSongsRes['items'].map(item => item['track']);
+    _nextUrl = _playlistSongsRes['next'];
+
+    tracks.forEach(({ artists, name, external_urls }) => {
+      const artistsStr = artists.map(({ name }) => name).join('-');
+      const track_url = external_urls['spotify'];
+
+      const trackEntry = `${artistsStr},${name},${track_url}`;
+      appendToFile(path, `${trackEntry}\n`);
+
+      allTracks.push(trackEntry);
+    });
+  } while (_nextUrl);
+
+  return allTracks;
+}
+
+function archiveTracks(archive, tracks) {
+  tracks.forEach((track) => {
+    const [ artistsStr, trackName, trackUrl ] = track.split(',');
+    const artists = artistsStr.split('-');
+
+    const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${fileName}`;
+    const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_TRACK_FORMAT}`;
+    archive.file(trackFilePath, { name: fileName });
+  });
 }
 
 function appendToFile(path, data) {
