@@ -39,11 +39,11 @@ exports.token = async (req, res) => {
   const { code, error, state } = req.query;
 
   if (!isStateValid(state)) {
-    res.status(500).type('text/plain').send('Internal Server Error: authState did not match state from /spotifyAuth');
+    handleServerError(res, 'authState did not match state from /spotifyAuth');
     return;
   }
   if (error) {
-    res.status(500).type('text/plain').send(`Internal Server Error: ${error}`);
+    handleServerError(res, err)
     return;
   }
 
@@ -64,8 +64,7 @@ exports.searchTracks = async (req, res) => {
   try {
     attachTrackDownloadStatus(tracks);
   } catch (err) {
-    console.log(`${err}`);
-    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+    handleServerError(res, err);
   }
 
   res.json(_spotifyRes['tracks']);
@@ -76,8 +75,7 @@ exports.tracksStatus = async (req, res) => {
   try {
     attachTrackDownloadStatus(tracks);
   } catch (err) {
-    console.log(`${err}`);
-    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+    handleServerError(res, err);
   }
   res.json(tracks);
 }
@@ -118,8 +116,7 @@ exports.downloadTrack = async (req, res) => {
       renameSync(downloadFilePath, expectedFilePath);
     }
   } catch (err) {
-    console.log(`${err}`);
-    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+    handleServerError(res, err);
   }
 
   res.type('audio/mpeg').set({
@@ -152,15 +149,10 @@ exports.downloadPlaylist = async (req, res) => {
     mkdirSync(path.join(__dirname, `/../../${PLAYLIST_FILES_PATH}`), { recursive: true });
     const playlistFilePath = `${__dirname}/../../${PLAYLIST_FILES_PATH}/${display_name} - ${playlist_name}.txt`;
 
-    const snapshot_id = await getSpotifySnapshotId(playlist_id);
-    if (snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
+    if (await matchingSnapshotId(playlist_id)) {
       const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
 
-      res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      archive.pipe(res);
-      archiveTracks(archive, tracks);
-      archive.finalize();
+      sendArchiveToClient(res, tracks);
       return;
     }
     globalState.deletePlaylistSnapshot(playlist_id);
@@ -173,15 +165,15 @@ exports.downloadPlaylist = async (req, res) => {
       return;
     }
 
-    res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
-    const archive = archiver('zip', { zlib: { level: 9 } });
-    archive.pipe(res);
-    archiveTracks(archive, tracks);
-    archive.finalize();
+    sendArchiveToClient(res, tracks);
   } catch (err) {
-    console.log(`${err}`);
-    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+    handleServerError(res, err);
   }
+}
+
+function handleServerError(res, err) {
+  console.log(`${err}`);
+  res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
 }
 
 function isStateValid(state) {
@@ -232,8 +224,6 @@ function attachTrackDownloadStatus(tracks) {
   });
   return tracks;
 }
-
-
 
 async function getSpotifySnapshotId(playlistId) {
   const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
@@ -340,12 +330,18 @@ function getPlaylistUrl(playlistId) {
   return _urls;
 }
 
+async function matchingSnapshotId(playlistId) {
+  const spotifySnapshotId = await getSpotifySnapshotId(playlistId);
+  const savedSnapshotId = globalState.getPlaylistSnapshot(playlistId);
+
+  return spotifySnapshotId === savedSnapshotId;
+}
+
 async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessToken) {
-  clearFile(playlistFilePath);
+  clearFile(path);
   const { _nextUrl, _defaultUrl } = getPlaylistUrl(playlistId);
   const allTracks = [];
 
-  // get all songs by visitng 'next' url
   do {
     const _url = _nextUrl || _defaultUrl;
 
@@ -370,6 +366,14 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
   } while (_nextUrl);
 
   return allTracks;
+}
+
+function sendArchiveToClient(res, tracks) {
+  res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.pipe(res);
+  archiveTracks(archive, tracks);
+  archive.finalize();
 }
 
 function archiveTracks(archive, tracks) {
