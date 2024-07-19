@@ -6,16 +6,15 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - /home/{user}/yotify/music:/app/Music
-      - /home/{user}/yotify/playlist_data:/app/PlaylistData
-      - /home/{user}/yotify/log:/app/Log
+      - /home/{user}/yotify/spotdl_music:/app/spotdl_music
+      - /home/{user}/yotify/playlist_files:/app/playlist_files
     environment:
-      - CLIENT_ID=0000000000000
-      - CLIENT_SECRET=000000000000
       - PORT=3000
-      - REDIRECT_URI=http://127.0.0.1:3000/getUserTracks
-      - MUSIC_ROOT_PATH=Music
-      - PLAYLIST_DATA_PATH=PlaylistData
-      - LOG_PATH=Log
-      - TRACK_FORMAT=mp3
-      - TRACK_OUTPUT={artist}/{artist} - {title}.{output-ext}
+      - SPOTIFY_CLIENT_ID=0000000000000
+      - SPOTIFY_CLIENT_SECRET=000000000000
+      - SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/getUserTracks
+      - SPOTDL_PATH=/spotdl_music
+      - PLAYLIST_FILES_PATH=/playlist_files
+      - SPOTDL_TRACK_FORMAT=mp3
+      - SPOTDL_TRACK_OUTPUT={artist}/{artist} - {title}.{output-ext}
+      - DOWNLOAD_THREADS=1
