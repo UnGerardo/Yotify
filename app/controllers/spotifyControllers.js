@@ -43,8 +43,7 @@ exports.auth = (req, res) => {
   res.redirect(302, `https://accounts.spotify.com/authorize?${_spotifyAuthParams}`);
 }
 exports.token = async (req, res) => {
-  const code = req.query['code'];
-  const error = req.query['error'];
+  const { code, error } = req.query;
   // need .toString() because URLSearchParams converts ':' to '%3A'; converts back
   const state = req.query['state'].toString();
   const [ stateUserId, returnedState ] = state.split(':');
@@ -52,15 +51,12 @@ exports.token = async (req, res) => {
   globalState.deleteUserIdStateMap(stateUserId);
 
   if (returnedState !== savedState) {
-    res.status(400).json({
-      error: 'AUTH_STATE',
-      error_msg: 'Error: authState did not match state from /spotifyAuth'
-    });
+    res.status(500).type('text/plain').send('Internal Server Error: authState did not match state from /spotifyAuth');
     return;
   }
 
   if (error) {
-    res.status(400).json({ error });
+    res.status(500).type('text/plain').send(`Internal Server Error: ${error}`);
     return;
   }
 
@@ -96,9 +92,8 @@ exports.searchTracks = async (req, res) => {
     await getSpotifyAccessToken();
   }
 
-  const query = decodeURIComponent(req.params.query);
   const _spotifySearchParams = new URLSearchParams({
-    q: query,
+    q: decodeURIComponent(req.params.query),
     type: 'track',
     market: 'US',
     limit: 20,
@@ -115,10 +110,10 @@ exports.searchTracks = async (req, res) => {
     const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
 
     try {
-      const fileInfo = statSync(trackFilePath);
-      track['downloaded'] = true;
+      track['downloaded'] = Boolean(getFile(trackFilePath));
     } catch (err) {
-      track['downloaded'] = false;
+      console.log(`${err}`);
+      res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
     }
   });
 
@@ -126,7 +121,7 @@ exports.searchTracks = async (req, res) => {
 }
 
 exports.tracksStatus = async (req, res) => {
-  const tracks = req.body['tracks'];
+  const { tracks } = req.body;
 
   tracks.forEach((track) => {
     const artistNames = track['artists'].map((artist) => artist['name']);
@@ -134,33 +129,29 @@ exports.tracksStatus = async (req, res) => {
     const trackFilePath = `${__dirname}/../../Music/${artistNames[0]}/${artistNames.join(', ')} - ${trackName}.mp3`;
 
     try {
-      const fileInfo = statSync(trackFilePath);
-      track['downloaded'] = true;
+      track['downloaded'] = Boolean(getFile(trackFilePath));
     } catch (err) {
-      track['downloaded'] = false;
+      console.log(`${err}`);
+      res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
     }
   });
 
   res.json(tracks);
 }
 exports.playlistsStatus = (req, res) => {
-  const snapshots = req.body['snapshots'];
+  const { snapshots } = req.body;
   const playlistStatuses = {};
 
-  for (let i = 0; i < snapshots.length; i++) {
-    const { playlist_id, snapshot_id } = snapshots[i];
+  snapshots.forEach(({ playlist_id, snapshot_id }) => {
     const savedSnapshot = globalState.getPlaylistSnapshot(playlist_id);
-    if (savedSnapshot) {
-      if (savedSnapshot === snapshot_id) {
-        playlistStatuses[playlist_id] = 'Downloaded';
-      } else {
-        globalState.deletePlaylistSnapshot(playlist_id);
-        playlistStatuses[playlist_id] = 'Not Downloaded';
-      }
+
+    if (savedSnapshot === snapshot_id) {
+      playlistStatuses[playlist_id] = 'Downloaded';
     } else {
+      globalState.deletePlaylistSnapshot(playlist_id);
       playlistStatuses[playlist_id] = 'Not Downloaded';
     }
-  }
+  });
 
   res.json(playlistStatuses);
 }
@@ -186,12 +177,10 @@ exports.downloadTrack = async (req, res) => {
     }
   } catch (err) {
     console.log(`${err}`);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end(`Internal Server Error: ${err}`);
+    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
   }
 
-  res.set({
-    'Content-Type': 'audio/mpeg',
+  res.type('audio/mpeg').set({
     'Content-Length': fileInfo.size,
     'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.mp3`)}`
   });
@@ -218,8 +207,10 @@ exports.downloadPlaylist = async (req, res) => {
   // Check if playlist_id is already downloading
   if (WORKER_POOL.isDownloading(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id)) {
     const tracksRemaining = WORKER_POOL.tracksRemaining(playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id);
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
+
+    res.status(200)
+      .type('text/plain')
+      .send(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
     return;
   }
 
@@ -237,11 +228,7 @@ exports.downloadPlaylist = async (req, res) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
       const lines = data.split('\n');
 
-      res.writeHead(200, {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': 'attachment; filename=songs.zip',
-      });
-
+      res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
       archive.pipe(res);
 
       for (let i = 0; i < lines.length - 1; i++) {
@@ -256,8 +243,7 @@ exports.downloadPlaylist = async (req, res) => {
       archive.finalize();
     } catch (err) {
       console.log(`${err}`);
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end(`Internal Server Error: ${err}`);
+      res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
     }
     return;
   } // if it doesn't match, delete it
@@ -270,8 +256,7 @@ exports.downloadPlaylist = async (req, res) => {
     clearFile(playlistFilePath);
   } catch (err) {
     console.log(`${err}`);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end(`Internal Server Error: ${err}`);
+    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
   }
 
   // query liked songs or playlist songs
@@ -309,17 +294,15 @@ exports.downloadPlaylist = async (req, res) => {
     // if songs not downloaded, send update, else send zip file
     if (missingSongs) {
       const trackNum = data.split('\n').length - 1;
-      res.status(200).type(200, { 'Content-Type': 'text/plain' });
-      res.end(`Tracks written and download started. Please come back in ~${Math.ceil((trackNum * 2) / 60)} hours.`);
+      res.status(200)
+        .type('text/plain')
+        .send(`Tracks written and download started. Please come back in ~${Math.ceil((trackNum * 2) / 60)} hours.`);
       return;
     }
 
     const archive = archiver('zip', { zlib: { level: 9 } });
 
-    res.writeHead(200, {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': 'attachment; filename=songs.zip',
-    });
+    res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
 
     archive.pipe(res);
 
@@ -334,8 +317,7 @@ exports.downloadPlaylist = async (req, res) => {
     archive.finalize();
   } catch (err) {
     console.log(`${err}`);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end(`Internal Server Error: ${err}`);
+    res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
   }
 }
 
