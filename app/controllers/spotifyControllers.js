@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const archiver = require('archiver');
-const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, renameSync } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, existsSync, statSync, truncate, readFile, renameSync, readFileSync, truncateSync } = require('node:fs');
 const path = require('node:path');
 const { platform } = require('node:os');
 const { randomBytes } = require('node:crypto');
@@ -185,7 +185,9 @@ exports.downloadTrack = async (req, res) => {
       renameSync(downloadFilePath, expectedFilePath);
     }
   } catch (err) {
-    res.status(500).json({ err });
+    console.log(`${err}`);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Internal Server Error: ${err}`);
   }
 
   res.set({
@@ -230,40 +232,33 @@ exports.downloadPlaylist = async (req, res) => {
 
   // if snapshot_id exists and is already downloaded, zip up songs and send to client
   if (snapshot_id.length && snapshot_id === globalState.getPlaylistSnapshot(playlist_id)) {
-    readFile(playlistFilePath, 'utf-8', async (err, data) => {
-      if (err) {
-        console.log(`Error reading playlist file: ${err}`);
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Internal Server Error');
-        return;
+    try {
+      const data = readFileSync(playlistFilePath, 'utf-8');
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const lines = data.split('\n');
+
+      res.writeHead(200, {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': 'attachment; filename=songs.zip',
+      });
+
+      archive.pipe(res);
+
+      for (let i = 0; i < lines.length - 1; i++) {
+        const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
+        const artists = artistsStr.split('-');
+        const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_TRACK_FORMAT}`;
+
+        const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${fileName}`;
+        archive.file(trackFilePath, { name: fileName });
       }
 
-      try {
-        const archive = archiver('zip', { zlib: { level: 9 } });
-        const lines = data.split('\n');
-
-        res.writeHead(200, {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': 'attachment; filename=songs.zip',
-        });
-
-        archive.pipe(res);
-
-        for (let i = 0; i < lines.length - 1; i++) {
-          const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
-          const artists = artistsStr.split('-');
-
-          const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
-          archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
-        }
-
-        archive.finalize();
-      } catch (err) {
-        console.error('Error archiving files:', err);
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Internal Server Error');
-      }
-    });
+      archive.finalize();
+    } catch (err) {
+      console.log(`${err}`);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(`Internal Server Error: ${err}`);
+    }
     return;
   } // if it doesn't match, delete it
   else {
@@ -271,34 +266,16 @@ exports.downloadPlaylist = async (req, res) => {
   }
 
   // Reset playlist file
-  truncate(playlistFilePath, 0, (err) => {
-    if (err) {
-      if (err.code !== 'ENOENT') {
-        console.log(`Error truncating file: ${err}`);
-      }
-    }
-  });
+  try {
+    clearFile(playlistFilePath);
+  } catch (err) {
+    console.log(`${err}`);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Internal Server Error: ${err}`);
+  }
 
   // query liked songs or playlist songs
-  let _nextUrl = null;
-  let _defaultUrl = null;
-  if (playlist_id === 'liked_songs') {
-    const _likedSongsParams = new URLSearchParams({
-      limit: 50,
-      offset: 0,
-      market: 'US'
-    });
-    _defaultUrl = `https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`;
-  } else {
-    const _playlistParams = new URLSearchParams({
-      market: 'US',
-      fields: 'next,items(track(artists(name),name,external_urls)',
-    });
-    // https://api.spotify.com/v1/playlists/${playlist_id}/tracks <- 'tracks' is added at the end to only get tracks info
-    // also 'next' has it while the API docs don't for the first req, lead to error where data wouldn't be retrieved cause different
-    // format for 'fields' was needed
-    _defaultUrl = `https://api.spotify.com/v1/playlists/${playlist_id}/tracks?${_playlistParams}`;
-  }
+  const { _nextUrl, _defaultUrl } = getPlaylistUrl(playlist_id);
 
   // get all songs by visitng 'next' url
   do {
@@ -308,114 +285,58 @@ exports.downloadPlaylist = async (req, res) => {
       headers: { 'Authorization': `${token_type} ${access_token}` }
     }).then(res => res.json());
 
-    if (isEmptyObj(_playlistRes)) {
-      break;
-    }
+    if (isEmptyObj(_playlistRes)) { break; }
 
-    let items = null;
-    if (playlist_id === 'liked_songs') {
-      items = _playlistRes['items'];
-      _nextUrl = _playlistRes['next'];
-    } else {
-      items = _playlistRes['items'];
-      _nextUrl = _playlistRes['next'];
-    }
+    let tracks = _playlistRes['items'].map(item => item['track']);
+    _nextUrl = _playlistRes['next'];
 
-    items.forEach(item => {
-      const artists = item['track']['artists'].map(artistObj => artistObj['name']).join('-');
-      const track_name = item['track']['name'];
-      const track_url = item['track']['external_urls']['spotify'];
+    tracks.forEach(({ artists, name, external_urls }) => {
+      const artistsStr = artists.map(({ name }) => name).join('-');
+      const track_url = external_urls['spotify'];
+      const trackEntry = `${artistsStr},${name},${track_url}\n`;
 
-      writeFileSync(
-        playlistFilePath,
-        `${artists},${track_name},${track_url}\n`,
-        { flag: 'a' },
-        err => console.log(err)
-      );
+      appendToFile(playlistFilePath, trackEntry);
     });
   } while (_nextUrl);
 
   // go through playlist file, if all songs exist return zip file, if missing, start downloading
-  let missingSongs = false;
-  readFile(playlistFilePath, 'utf-8', async (err, data) => {
-    if (err) {
-      console.log(`Error reading playlist file: ${err}`);
-      return;
-    }
+  try {
+    const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
 
-    const lines = data.split('\n');
-
-    for (let i = 0; i < lines.length - 1; i++) {
-      const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
-      const artists = artistsStr.split('-');
-
-      const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
-      try {
-        statSync(trackFilePath);
-      } catch (err) {
-        if (err.code === 'ENOENT') {
-          missingSongs = true;
-
-          const spotdlArgs = ['spotdl', [
-              `--output=./Music/${TRACK_OUTPUT}`,
-              `--format=${TRACK_FORMAT}`,
-              `--print-errors`,
-              `${trackUrl}`,
-            ],
-            platform() === 'win32' ? {
-              env: { PYTHONIOENCODING: 'utf-8' }
-            } : {}
-          ];
-          WORKER_POOL.addTask(spotdlArgs, playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id, snapshot_id, artists, trackName);
-        } else {
-          console.log(`Stat error: ${err}`);
-        }
-      }
-    }
-
-    const trackNum = lines.length - 1;
+    // check if each track is downloaded
+    const missingSongs = playlistTracksStatus(tracks);
 
     // if songs not downloaded, send update, else send zip file
     if (missingSongs) {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      const trackNum = data.split('\n').length - 1;
+      res.status(200).type(200, { 'Content-Type': 'text/plain' });
       res.end(`Tracks written and download started. Please come back in ~${Math.ceil((trackNum * 2) / 60)} hours.`);
-    } else {
-      readFile(playlistFilePath, 'utf-8', async (err, data) => {
-        if (err) {
-          console.log(`Error reading playlist file: ${err}`);
-          res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end('Internal Server Error');
-          return;
-        }
-
-        try {
-          const archive = archiver('zip', { zlib: { level: 9 } });
-          const lines = data.split('\n');
-
-          res.writeHead(200, {
-            'Content-Type': 'application/zip',
-            'Content-Disposition': 'attachment; filename=songs.zip',
-          });
-
-          archive.pipe(res);
-
-          for (let i = 0; i < lines.length - 1; i++) {
-            const [ artistsStr, trackName, trackUrl ] = lines[i].split(',');
-            const artists = artistsStr.split('-');
-
-            const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
-            archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
-          }
-
-          archive.finalize();
-        } catch (err) {
-          console.error('Error archiving files:', err);
-          res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end('Internal Server Error');
-        }
-      });
+      return;
     }
-  });
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    res.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename=songs.zip',
+    });
+
+    archive.pipe(res);
+
+    tracks.forEach((track) => {
+      const [ artistsStr, trackName, trackUrl ] = track.split(',');
+      const artists = artistsStr.split('-');
+
+      const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+      archive.file(trackFilePath, { name: `${artists.join(', ')} - ${trackName}.mp3` });
+    });
+
+    archive.finalize();
+  } catch (err) {
+    console.log(`${err}`);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Internal Server Error: ${err}`);
+  }
 }
 
 function isEmptyObj(obj) {
@@ -441,12 +362,7 @@ function getFile(path) {
 
 async function spotdlDownload(trackUrl) {
   return new Promise((resolve, reject) => {
-    const spotdl = spawn('spotdl', [
-      `--output=./Music/${SPOTDL_TRACK_OUTPUT}`,
-      `--format=${SPOTDL_TRACK_FORMAT}`,
-      `--print-errors`,
-      `${trackUrl}`,
-    ], platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {});
+    const spotdl = spawn(...spotdlArgs(trackUrl));
 
     let STDOUT = '';
     let STDERR = '';
@@ -464,4 +380,67 @@ async function spotdlDownload(trackUrl) {
       reject(code);
     });
   });
+}
+
+function playlistTracksStatus(tracks) {
+  let missingSongs = false;
+
+  tracks.forEach((track) => {
+    const [ artistsStr, trackName, trackUrl ] = track.split(',');
+    const artists = artistsStr.split('-');
+    const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+
+    const file = getFile(trackFilePath);
+    if (!file) {
+      missingSongs = true;
+      WORKER_POOL.addTask(spotdlArgs(trackUrl), playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id, snapshot_id, artists, trackName);
+    }
+  });
+
+  return missingSongs;
+}
+
+function spotdlArgs(trackUrl) {
+  return [
+    'spotdl',
+    [
+      `--output=./Music/${SPOTDL_TRACK_OUTPUT}`,
+      `--format=${SPOTDL_TRACK_FORMAT}`,
+      `--print-errors`,
+      `${trackUrl}`,
+    ],
+    platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {}
+  ];
+}
+
+function clearFile(path) {
+  try {
+    truncateSync(path, 0);
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      throw new Error(`Error clearing file: ${err}`);
+    }
+  }
+}
+
+function getPlaylistUrl(playlistId) {
+  const _urls = { _nextUrl: null };
+
+  if (playlistId === 'liked_songs') {
+    const _likedSongsParams = new URLSearchParams({ limit: 50, offset: 0, market: 'US' });
+    _urls['_defaultUrl'] = `https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`;
+  } else {
+    const _playlistParams = new URLSearchParams({ market: 'US', fields: 'next,items(track(artists(name),name,external_urls))' });
+    _urls['_defaultUrl'] = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
+  }
+
+  return _urls;
+}
+
+function appendToFile(path, data) {
+  try {
+    writeFileSync(path, data, { flag: 'a' });
+  } catch (err) {
+    throw new Error(`Error appending to file: ${err}`);
+  }
 }
