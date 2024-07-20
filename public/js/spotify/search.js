@@ -1,13 +1,12 @@
 
 const $searchBtn = document.getElementById('search-btn');
-const $searchQueryInput = document.getElementById('search-input');
+const $queryInput = document.getElementById('query-input');
 const $tracks = document.getElementById('tracks');
 
 $searchBtn.addEventListener('click', async () => {
-  const searchQuery = $searchQueryInput.value;
-  const searchParams = new URLSearchParams({ search_query: searchQuery });
+  const query = $queryInput.value;
 
-  const _searchResponse = await fetch(`/searchTrack?${searchParams}`).then(res => res.json());
+  const _searchResponse = await fetch(`/spotify/search/tracks/${encodeURIComponent(query)}`).then(res => res.json());
 
   while ($tracks.firstElementChild !== $tracks.lastElementChild) {
     $tracks.removeChild($tracks.lastElementChild);

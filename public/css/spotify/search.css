@@ -14,7 +14,7 @@ body {
   margin: 10px;
 }
 
-#search-input {
+#query-input {
   background-color: rgba(255, 255, 255, 0.2);
   border: 1px whitesmoke solid;
   border-radius: 10px;
@@ -24,7 +24,7 @@ body {
   margin-right: 15px;
   transition: 100ms;
 }
-#search-input:focus {
+#query-input:focus {
   transform: scale(1.04);
   box-shadow: 3px 3px 3px 1px black;
 }

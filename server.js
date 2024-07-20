@@ -4,7 +4,7 @@ const express = require('express');
 const favicon = require('express-favicon');
 const path = require('node:path');
 
-const routes = require('./app/routes.js');
+const spotifyRoutes = require('./app/routes/spotifyRoutes.js');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,7 +13,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes);
+app.use('/spotify', spotifyRoutes);
+app.use('/', (req, res) => {
+  res.sendFile(path.join(__dirname, './views/index.html'));
+});
 
 app.use(favicon(`${__dirname}/public/images/Yotify_Icon.ico`));
 

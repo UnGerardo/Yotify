@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/css-reset.css">
-  <link rel="stylesheet" href="/css/general-styles.css">
-  <link rel="stylesheet" href="/css/track-styles.css">
-  <link rel="stylesheet" href="/css/spotify-search.css">
+  <link rel="stylesheet" href="/css/general.css">
+  <link rel="stylesheet" href="/css/spotify/tracks.css">
+  <link rel="stylesheet" href="/css/spotify/search.css">
   <title>Spotify Search</title>
 </head>
 <body>
   <h1>Search Spotify Track</h1>
   <section id="search">
-    <input id="search-input" type="text">
+    <input id="query-input" type="text">
     <button id="search-btn" class="btn">Search</button>
   </section>
   <section id="tracks">
@@ -37,9 +37,10 @@
       </button>
     </section> -->
   </section>
+  <script src="/js/createElement.js"></script>
   <script src="/js/modal.js"></script>
   <script src="/js/msTimeFormat.js"></script>
   <script src="/js/renderTrack.js"></script>
-  <script src="/js/spotifySearch.js"></script>
+  <script src="/js/spotify/search.js"></script>
 </body>
 </html>
