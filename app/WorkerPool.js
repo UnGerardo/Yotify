@@ -2,6 +2,7 @@
 const path = require('path');
 const { Worker } = require('worker_threads');
 const globalState = require('./globalState.js');
+const { APP_DIR_PATH } = require('./constants.js');
 
 class WorkerPool {
   constructor(numThreads) {
@@ -17,7 +18,7 @@ class WorkerPool {
   }
 
   createWorker() {
-    const worker = new Worker(path.join(__dirname, 'downloadTrack.js'));
+    const worker = new Worker(path.join(APP_DIR_PATH, 'app', 'downloadTrack.js'));
     let isHandled = false;
 
     const handleWorker = (event) => {

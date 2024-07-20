@@ -3,6 +3,8 @@ const { parentPort } = require('worker_threads');
 const { spawn } = require('node:child_process');
 const { randomInt } = require('crypto');
 const { statSync, renameSync } = require('node:fs');
+const path = require('path');
+const { APP_DIR_PATH, SPOTDL_DIR } = require('./constants');
 
 parentPort.on('message', (args) => {
   const wait = randomInt(30000, 60000);
@@ -21,8 +23,8 @@ parentPort.on('message', (args) => {
       STDERR += data.toString();
     });
     spotdlInst.on('close', (code) => {
-      const expectedFilePath = `${__dirname}/../Music/${artists[0]}/${artists[0]} - ${trackName}.mp3`;
-      const desiredFilePath = `${__dirname}/../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+      const expectedFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, `${artists[0]}/${artists[0]} - ${trackName}.mp3`);
+      const desiredFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, `${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`);
 
       try {
         statSync(expectedFilePath);

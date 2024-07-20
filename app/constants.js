@@ -1,6 +1,8 @@
 
 const { platform } = require('node:os');
 
+exports.APP_DIR_PATH = process.cwd();
+
 // ENV VARIABLES
 require('dotenv').config();
 
@@ -10,8 +12,8 @@ exports.SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 exports.SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 exports.SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3000/spotify/playlists';
 
-exports.SPOTDL_PATH = process.env.SPOTDL_PATH || '/spotdl_music'
-exports.PLAYLIST_FILES_PATH = process.env.PLAYLIST_FILES_PATH || '/playlist_files'
+exports.SPOTDL_DIR = process.env.SPOTDL_DIR;
+exports.PLAYLIST_FILES_DIR = process.env.PLAYLIST_FILES_DIR;
 
 exports.SPOTDL_FORMAT = process.env.SPOTDL_FORMAT || 'mp3';
 exports.SPOTDL_OUTPUT = process.env.SPOTDL_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
@@ -76,8 +78,8 @@ exports.SPOTDL_ARGS = (trackUrl) => {
   return [
     'spotdl',
     [
-      `--output=./Music/${SPOTDL_TRACK_OUTPUT}`,
-      `--format=${SPOTDL_TRACK_FORMAT}`,
+      `--output=${path.join(this.APP_DIR_PATH, this.SPOTDL_DIR, SPOTDL_OUTPUT)}`,
+      `--format=${SPOTDL_FORMAT}`,
       `--print-errors`,
       `${trackUrl}`,
     ],
