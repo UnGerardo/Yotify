@@ -138,7 +138,7 @@ exports.downloadPlaylist = async (req, res) => {
     playlist_name
   } = req.body;
 
-  const workerPlaylistId = playlist_id === 'liked_songs' ? `${display_name}_${playlist_id}` : playlist_id;
+  const workerPlaylistId = playlist_id === 'liked_songs' ? `${display_name}_LikedSongs` : playlist_id;
   if (WORKER_POOL.isDownloading(workerPlaylistId)) {
     const tracksRemaining = WORKER_POOL.tracksRemaining(workerPlaylistId);
 
