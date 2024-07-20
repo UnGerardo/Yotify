@@ -9,7 +9,6 @@ services:
       - /home/{user}/yotify/spotdl_music:/yotify/spotdl_music
       - /home/{user}/yotify/playlist_files:/yotify/playlist_files
     environment:
-      - APP_DIR_PATH=/yotify/
       - PORT=3000
       - SPOTIFY_CLIENT_ID=0000000000000
       - SPOTIFY_CLIENT_SECRET=000000000000
