@@ -35,6 +35,14 @@ class GlobalState {
   getPlaylistSnapshot(key) { return this.#playlistSnapshots.get(key.toString()); }
   setPlaylistSnapshot(key, val) { this.#playlistSnapshots.set(key.toString(), val); }
   deletePlaylistSnapshot(key) { this.#playlistSnapshots.delete(key.toString()); }
+
+  isAuthStateValid(state) {
+    const [ stateUserId, spotifyState ] = state.toString().split(':');
+    const savedState = this.getUserIdStateMap(stateUserId);
+    this.deleteUserIdStateMap(stateUserId);
+
+    return spotifyState === savedState;
+  }
 }
 
 const INSTANCE = new GlobalState();

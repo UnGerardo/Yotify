@@ -1,21 +1,23 @@
 const archiver = require('archiver');
-const { createReadStream, writeFileSync, mkdirSync, statSync, renameSync, readFileSync, truncateSync } = require('node:fs');
+const { createReadStream, writeFileSync, mkdirSync, renameSync, readFileSync } = require('node:fs');
 const path = require('node:path');
-const { platform } = require('node:os');
 const { randomBytes } = require('node:crypto');
 
 const WorkerPool = require('../WorkerPool.js');
 const getGenericSpotifyToken = require('../getGenericSpotifyToken.js');
 const globalState = require('../globalState.js');
+const { getFile, clearFile, appendToFile } = require('../fileOperations.js');
 const {
-  SPOTIFY_CLIENT_ID,
-  SPOTIFY_CLIENT_SECRET,
   DOWNLOAD_THREADS,
-  SPOTIFY_AUTH_URL,
-  SPOTIFY_CURRENT_USER_URL,
-  SPOTIFY_TOKEN_URL,
-  SPOTIFY_SEARCH_URL,
   PLAYLIST_FILES_PATH,
+  SPOTIFY_CURRENT_USER_URL,
+  CREATE_SPOTIFY_AUTH_URL,
+  CREATE_SPOTIFY_SEARCH_URL,
+  CREATE_SPOTIFY_SNAPSHOT_URL,
+  CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
+  CREATE_SPOTIFY_SAVED_TRACKS_URL,
+  GET_SPOTIFY_USER_TOKEN,
+  SPOTDL_ARGS,
 } = require('../constants.js');
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
@@ -33,12 +35,12 @@ exports.auth = (req, res) => {
   globalState.setUserIdStateMap(globalState.userId, randomStr);
   globalState.incrementUserId();
 
-  res.redirect(302, SPOTIFY_AUTH_URL(state));
+  res.redirect(302, CREATE_SPOTIFY_AUTH_URL(state));
 }
 exports.token = async (req, res) => {
   const { code, error, state } = req.query;
 
-  if (!isStateValid(state)) {
+  if (!globalState.isAuthStateValid(state)) {
     handleServerError(res, 'authState did not match state from /spotifyAuth');
     return;
   }
@@ -47,7 +49,7 @@ exports.token = async (req, res) => {
     return;
   }
 
-  const { access_token, token_type } = await getUserSpotifyToken(code);
+  const { access_token, token_type } = await GET_SPOTIFY_USER_TOKEN(code);
   const { display_name } = await getSpotifyDisplayName(token_type, access_token);
 
   res.json({
@@ -105,7 +107,7 @@ exports.downloadTrack = async (req, res) => {
   try {
     let fileInfo = getFile(expectedFilePath);
     if (!fileInfo) {
-      const downloadOutput = await spotdlDownload(track_url);
+      const downloadOutput = await singleSpotdlDownload(track_url);
 
       const downloadFilePath = `${__dirname}/../../Music/${mainArtist}/${mainArtist} - ${track_name}.mp3`;
       fileInfo = getFile(downloadFilePath);
@@ -176,29 +178,6 @@ function handleServerError(res, err) {
   res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
 }
 
-function isStateValid(state) {
-  const [ stateUserId, spotifyState ] = state.toString().split(':');
-  const savedState = globalState.getUserIdStateMap(stateUserId);
-  globalState.deleteUserIdStateMap(stateUserId);
-
-  return spotifyState === savedState;
-}
-
-async function getUserSpotifyToken(code) {
-  return await fetch(SPOTIFY_TOKEN_URL, {
-    method: 'POST',
-    body: {
-      code: code.toString(),
-      redirect_uri: SPOTIFY_REDIRECT_URI,
-      grant_type: 'authorization_code'
-    },
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${ new Buffer.from(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET).toString('base64') }`
-    }
-  }).then(res => res.json());
-}
-
 async function getSpotifyDisplayName(tokenType, accessToken) {
   return await fetch(SPOTIFY_CURRENT_USER_URL, {
     headers: { 'Authorization': `${tokenType} ${accessToken}`}
@@ -206,7 +185,7 @@ async function getSpotifyDisplayName(tokenType, accessToken) {
 }
 
 async function getSpotifyTracks(query) {
-  const _spotifyRes = await fetch(SPOTIFY_SEARCH_URL(query), {
+  const _spotifyRes = await fetch(CREATE_SPOTIFY_SEARCH_URL(query), {
     method: 'GET',
     headers: { 'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}` }
   }).then(res => res.json());
@@ -226,9 +205,8 @@ function attachTrackDownloadStatus(tracks) {
 }
 
 async function getSpotifySnapshotId(playlistId) {
-  const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
-  return playlistId === 'liked_songs' ? '' : await fetch(`https://api.spotify.com/v1/playlists/${playlistId}?${_snapshotParams}`, {
-    headers: { 'Authorization': `${token_type} ${access_token}` }
+  return playlistId === 'liked_songs' ? '' : await fetch(CREATE_SPOTIFY_SNAPSHOT_URL(playlistId), {
+    headers: { 'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}` }
   }).then(res => res.json()).then(res => res['snapshot_id']);
 }
 
@@ -242,20 +220,9 @@ function isEmptyObj(obj) {
   return true;
 }
 
-function getFile(path) {
-  try {
-    return statSync(path);
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      return null;
-    }
-    throw new Error(`Error getting file: ${err}`);
-  }
-}
-
-async function spotdlDownload(trackUrl) {
+async function singleSpotdlDownload(trackUrl) {
   return new Promise((resolve, reject) => {
-    const spotdl = spawn(...spotdlArgs(trackUrl));
+    const spotdl = spawn(...SPOTDL_ARGS(trackUrl));
 
     let STDOUT = '';
     let STDERR = '';
@@ -281,7 +248,8 @@ function playlistTracksStatus(tracks, playlistId, snapshotId) {
   tracks.forEach((track) => {
     const [ artistsStr, trackName, trackUrl ] = track.split(',');
     const artists = artistsStr.split('-');
-    const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${artists.join(', ')} - ${trackName}.mp3`;
+    const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_TRACK_FORMAT}`;
+    const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${fileName}`;
 
     const file = getFile(trackFilePath);
     if (!file) {
@@ -293,39 +261,11 @@ function playlistTracksStatus(tracks, playlistId, snapshotId) {
   return missingSongs;
 }
 
-function spotdlArgs(trackUrl) {
-  return [
-    'spotdl',
-    [
-      `--output=./Music/${SPOTDL_TRACK_OUTPUT}`,
-      `--format=${SPOTDL_TRACK_FORMAT}`,
-      `--print-errors`,
-      `${trackUrl}`,
-    ],
-    platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {}
-  ];
-}
-
-function clearFile(path) {
-  try {
-    truncateSync(path, 0);
-  } catch (err) {
-    if (err.code !== 'ENOENT') {
-      throw new Error(`Error clearing file: ${err}`);
-    }
-  }
-}
-
 function getPlaylistUrl(playlistId) {
-  const _urls = { _nextUrl: null };
-
-  if (playlistId === 'liked_songs') {
-    const _likedSongsParams = new URLSearchParams({ limit: 50, offset: 0, market: 'US' });
-    _urls['_defaultUrl'] = `https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`;
-  } else {
-    const _playlistParams = new URLSearchParams({ market: 'US', fields: 'next,items(track(artists(name),name,external_urls))' });
-    _urls['_defaultUrl'] = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
-  }
+  const _urls = {
+    _nextUrl: null,
+    _defaultUrl: playlistId === 'liked_songs' ? CREATE_SPOTIFY_SAVED_TRACKS_URL() : CREATE_SPOTIFY_PLAYLIST_TRACKS_URL(playlistId)
+  };
 
   return _urls;
 }
@@ -360,12 +300,22 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
 
       const trackEntry = `${artistsStr},${name},${track_url}`;
       appendToFile(path, `${trackEntry}\n`);
-
       allTracks.push(trackEntry);
     });
   } while (_nextUrl);
 
   return allTracks;
+}
+
+function archiveTracks(archive, tracks) {
+  tracks.forEach((track) => {
+    const [ artistsStr, trackName, trackUrl ] = track.split(',');
+    const artists = artistsStr.split('-');
+
+    const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_TRACK_FORMAT}`;
+    const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${fileName}`;
+    archive.file(trackFilePath, { name: fileName });
+  });
 }
 
 function sendArchiveToClient(res, tracks) {
@@ -374,23 +324,4 @@ function sendArchiveToClient(res, tracks) {
   archive.pipe(res);
   archiveTracks(archive, tracks);
   archive.finalize();
-}
-
-function archiveTracks(archive, tracks) {
-  tracks.forEach((track) => {
-    const [ artistsStr, trackName, trackUrl ] = track.split(',');
-    const artists = artistsStr.split('-');
-
-    const trackFilePath = `${__dirname}/../../Music/${artists[0]}/${fileName}`;
-    const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_TRACK_FORMAT}`;
-    archive.file(trackFilePath, { name: fileName });
-  });
-}
-
-function appendToFile(path, data) {
-  try {
-    writeFileSync(path, data, { flag: 'a' });
-  } catch (err) {
-    throw new Error(`Error appending to file: ${err}`);
-  }
 }
