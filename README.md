@@ -34,7 +34,7 @@ This program is a web interface that allows a user to save Spotify track informa
 5. Install Node.js Dependencies
    - `cd` into the code directory and run `npm i`
 6. Run Server
-   - Run the server with `node ./server.js`
+   - Run the server with `npm start`
    - Visit [http://127.0.0.1:3000/](http://127.0.0.1:3000/)
 
 ## Use with Docker
