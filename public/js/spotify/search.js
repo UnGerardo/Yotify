@@ -12,7 +12,7 @@ $searchBtn.addEventListener('click', async () => {
     $tracks.removeChild($tracks.lastElementChild);
   }
 
-  _searchResponse['items'].forEach(track => {
+  _searchResponse.forEach(track => {
     $renderTrack($tracks, track);
   });
 });

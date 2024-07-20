@@ -1,4 +1,6 @@
 
+const { statSync, truncateSync, writeFileSync } = require('node:fs');
+
 exports.getFile = (path) => {
   try {
     return statSync(path);

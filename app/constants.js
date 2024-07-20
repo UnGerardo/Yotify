@@ -1,5 +1,6 @@
 
 const { platform } = require('node:os');
+const path = require('node:path');
 
 exports.APP_DIR_PATH = process.cwd();
 
@@ -78,8 +79,8 @@ exports.SPOTDL_ARGS = (trackUrl) => {
   return [
     'spotdl',
     [
-      `--output=${path.join(this.APP_DIR_PATH, this.SPOTDL_DIR, SPOTDL_OUTPUT)}`,
-      `--format=${SPOTDL_FORMAT}`,
+      `--output=${path.join(this.APP_DIR_PATH, this.SPOTDL_DIR, this.SPOTDL_OUTPUT)}`,
+      `--format=${this.SPOTDL_FORMAT}`,
       `--print-errors`,
       `${trackUrl}`,
     ],

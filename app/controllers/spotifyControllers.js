@@ -2,6 +2,7 @@ const archiver = require('archiver');
 const { createReadStream, mkdirSync, renameSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
+const { spawn } = require('node:child_process');
 
 const WorkerPool = require('../WorkerPool.js');
 const getGenericSpotifyToken = require('../getGenericSpotifyToken.js');
@@ -62,7 +63,7 @@ exports.token = async (req, res) => {
   });
 }
 exports.searchTracks = async (req, res) => {
-  const { query } = req.body;
+  const query = req.params.query;
   await getGenericSpotifyToken();
 
   const tracks = await getSpotifyTracks(query);
@@ -70,6 +71,7 @@ exports.searchTracks = async (req, res) => {
     attachTrackDownloadStatus(tracks);
   } catch (err) {
     handleServerError(res, err);
+    return;
   }
 
   res.json(tracks);
@@ -81,6 +83,7 @@ exports.tracksStatus = async (req, res) => {
     attachTrackDownloadStatus(tracks);
   } catch (err) {
     handleServerError(res, err);
+    return;
   }
   res.json(tracks);
 }
@@ -120,17 +123,18 @@ exports.downloadTrack = async (req, res) => {
 
       renameSync(downloadFilePath, expectedFilePath);
     }
+
+    res.type('audio/mpeg').set({
+      'Content-Length': fileInfo.size,
+      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.mp3`)}`
+    });
+
+    const readStream = createReadStream(expectedFilePath);
+    readStream.pipe(res);
   } catch (err) {
     handleServerError(res, err);
+    return;
   }
-
-  res.type('audio/mpeg').set({
-    'Content-Length': fileInfo.size,
-    'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.mp3`)}`
-  });
-
-  const readStream = createReadStream(expectedFilePath);
-  readStream.pipe(res);
 }
 exports.downloadPlaylist = async (req, res) => {
   const {
@@ -173,6 +177,7 @@ exports.downloadPlaylist = async (req, res) => {
     sendArchiveToClient(res, tracks);
   } catch (err) {
     handleServerError(res, err);
+    return;
   }
 }
 
