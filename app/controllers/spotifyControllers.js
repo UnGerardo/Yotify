@@ -72,7 +72,7 @@ exports.searchTracks = async (req, res) => {
     handleServerError(res, err);
   }
 
-  res.json(_spotifyRes['tracks']);
+  res.json(tracks);
 }
 
 exports.tracksStatus = async (req, res) => {
