@@ -60,7 +60,7 @@ This software is provided for educational and personal use only. Users are respo
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the ZLib License. See the LICENSE file for details.
 
 ## Usage Guidelines
 
