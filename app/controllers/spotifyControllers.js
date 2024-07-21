@@ -49,18 +49,22 @@ exports.token = async (req, res) => {
     return;
   }
   if (error) {
-    handleServerError(res, err)
+    handleServerError(res, `Status: ${error.status}. Error: ${error.message}`)
     return;
   }
 
-  const { access_token, token_type } = await GET_SPOTIFY_USER_TOKEN(code);
-  const { display_name } = await getSpotifyDisplayName(token_type, access_token);
+  try {
+    const { access_token, token_type } = await GET_SPOTIFY_USER_TOKEN(code);
+    const { display_name } = await getSpotifyDisplayName(token_type, access_token);
 
-  res.json({
-    access_token,
-    token_type,
-    display_name
-  });
+    res.json({
+      access_token,
+      token_type,
+      display_name
+    });
+  } catch (err) {
+    handleServerError(res, err)
+  }
 }
 exports.searchTracks = async (req, res) => {
   const query = req.params.query;

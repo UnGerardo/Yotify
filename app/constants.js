@@ -60,18 +60,25 @@ exports.CREATE_SPOTIFY_PLAYLIST_TRACKS_URL = (playlistId) => {
   return `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
 }
 exports.GET_SPOTIFY_USER_TOKEN = async (code) => {
-  return await fetch(this.SPOTIFY_TOKEN_URL, {
+  const _tokensRes = await fetch(this.SPOTIFY_TOKEN_URL, {
     method: 'POST',
-    body: {
+    body: new URLSearchParams({
       code: code.toString(),
       redirect_uri: this.SPOTIFY_REDIRECT_URI,
       grant_type: 'authorization_code'
-    },
+    }),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${ new Buffer.from(this.SPOTIFY_CLIENT_ID + ':' + this.SPOTIFY_CLIENT_SECRET).toString('base64') }`
+      'Authorization': `Basic ${ new Buffer.from(`${this.SPOTIFY_CLIENT_ID}:${this.SPOTIFY_CLIENT_SECRET}`).toString('base64') }`
     }
-  }).then(res => res.json());
+  });
+
+  if (_tokensRes.status === 400) {
+    const { error } = await _tokensRes.json();
+    throw new Error(error);
+  }
+
+  return await _tokensRes.json();
 }
 
 // SPOTDL
