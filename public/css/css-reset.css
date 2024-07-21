@@ -15,3 +15,7 @@ ol, ul {
 input:focus {
   outline: none;
 }
+a {
+  color: black;
+  text-decoration: none;
+}
