@@ -44,16 +44,14 @@ exports.auth = (req, res) => {
 exports.token = async (req, res) => {
   const { code, error, state } = req.query;
 
-  if (!globalState.isAuthStateValid(state)) {
-    handleServerError(res, 'authState did not match state from /spotifyAuth');
-    return;
-  }
-  if (error) {
-    handleServerError(res, `Status: ${error.status}. Error: ${error.message}`)
-    return;
-  }
-
   try {
+    if (!globalState.isAuthStateValid(state)) {
+      throw new Error('authState did not match state from /spotify/auth');
+    }
+    if (error) {
+      throw new Error(`Status: ${error.status}. Error: ${error.message}`)
+    }
+
     const { access_token, token_type } = await GET_SPOTIFY_USER_TOKEN(code);
     const { display_name } = await getSpotifyDisplayName(token_type, access_token);
 
