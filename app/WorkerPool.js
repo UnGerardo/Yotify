@@ -18,7 +18,7 @@ class WorkerPool {
   }
 
   createWorker() {
-    const worker = new Worker(path.join(APP_DIR_PATH, 'app', 'downloadTrack.js'));
+    const worker = new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js'));
     let isHandled = false;
 
     const handleWorker = (event) => {
