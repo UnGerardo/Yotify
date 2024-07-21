@@ -10,19 +10,23 @@ const $tracks = document.getElementById('tracks');
   const url = window.location.href;
   const _urlParams = new URLSearchParams(url.split('?')[1]);
 
-  const _spotifyTokenRes = await fetch(`/spotify/token?${_urlParams}`);
-  const _spotifyTokenJson = await _spotifyTokenRes.json();
+  try {
+    const _spotifyTokenRes = await fetch(`/spotify/token?${_urlParams}`);
+    if (_spotifyTokenRes.status === 500) {
+      $createModal(await _spotifyTokenRes.text(), () => { window.location.href = '/spotify/auth' });
+      return;
+    }
+    const _spotifyTokenJson = await _spotifyTokenRes.json();
 
-  if (_spotifyTokenRes.status === 400 && _spotifyTokenJson['error'] === 'AUTH_STATE') {
-    window.location.href = '/spotifyAuth';
+    ({
+      access_token: SPOTIFY_ACCESS_TOKEN,
+      token_type: SPOTIFY_TOKEN_TYPE,
+      display_name: SPOTIFY_DISPLAY_NAME
+    } = _spotifyTokenJson);
+  } catch (err) {
+    console.log(err);
     return;
   }
-
-  ({
-    access_token: SPOTIFY_ACCESS_TOKEN,
-    token_type: SPOTIFY_TOKEN_TYPE,
-    display_name: SPOTIFY_DISPLAY_NAME
-  } = _spotifyTokenJson);
 
   const _savedTracksParams = new URLSearchParams({ limit: 1, offset: 0, market: 'US' });
   const _savedTracksRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`, {
