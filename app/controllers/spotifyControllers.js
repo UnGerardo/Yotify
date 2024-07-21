@@ -118,7 +118,7 @@ exports.downloadTrack = async (req, res) => {
       const downloadFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${mainArtist} - ${track_name}.${SPOTDL_FORMAT}`);
       fileInfo = getFile(downloadFilePath);
       if (!fileInfo) {
-        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.mp3' not found. ${downloadOutput}`);
+        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.${SPOTDL_FORMAT}' not found. ${downloadOutput}`);
       }
 
       renameSync(downloadFilePath, expectedFilePath);
@@ -182,8 +182,8 @@ exports.downloadPlaylist = async (req, res) => {
 }
 
 function handleServerError(res, err) {
-  console.log(`${err}`);
-  res.status(500).type('text/plain').send(`Internal Server Error: ${err}`);
+  console.log(`${err.stack}`);
+  res.status(500).type('text/plain').send(`Internal Server Error: ${err.message}`);
 }
 
 async function getSpotifyDisplayName(tokenType, accessToken) {

@@ -44,7 +44,7 @@ class WorkerPool {
       handleWorker('message');
     });
     worker.on('error', (err) => {
-      console.log(`Worker error: ${err}`);
+      console.log(`Worker error: ${err.stack}`);
       handleWorker('error');
     });
     worker.on('exit', (code) => {
