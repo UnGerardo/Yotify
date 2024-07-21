@@ -1,7 +1,7 @@
 .env
 package-lock.json
 **/node_modules
-**/Music
-**/PlaylistData
+**/spotdl_music
+**/playlist_files
 
 ./dockerScript.js
