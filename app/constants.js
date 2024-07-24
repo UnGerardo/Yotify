@@ -89,9 +89,10 @@ exports.GET_SPOTIFY_USER_TOKEN = async (code) => {
 }
 
 // SPOTDL
+exports.SPOTDL = 'spotdl';
 exports.SPOTDL_ARGS = (trackUrl) => {
   return [
-    'spotdl',
+    this.SPOTDL,
     [
       `--output=${path.join(this.APP_DIR_PATH, this.SPOTDL_DIR, this.SPOTDL_OUTPUT)}`,
       `--format=${this.SPOTDL_FORMAT}`,
@@ -103,9 +104,10 @@ exports.SPOTDL_ARGS = (trackUrl) => {
 }
 
 // ZOTIFY
+exports.ZOTIFY = 'zotify';
 exports.ZOTIFY_ARGS = (trackUrl) => {
   return [
-    'zotify',
+    this.ZOTIFY,
     [
       `--username=${this.SPOTIFY_USERNAME}`,
       `--password=${this.SPOTIFY_PASSWORD}`,

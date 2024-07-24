@@ -23,6 +23,9 @@ const {
   SPOTDL_ARGS,
   SPOTDL_FORMAT,
   ZOTIFY_ARGS,
+  ZOTIFY_DIR,
+  ZOTIFY_FORMAT,
+  SPOTDL,
 } = require('../constants.js');
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
@@ -108,20 +111,29 @@ exports.playlistsStatus = (req, res) => {
   res.json(playlistStatuses);
 }
 exports.downloadTrack = async (req, res) => {
-  const { track_url, artists, track_name } = req.body;
+  const { track_url, artists, track_name, downloader } = req.body;
 
   const mainArtist = artists.split(', ')[0];
-  const expectedFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${artists} - ${track_name}.${SPOTDL_FORMAT}`);
+  const expectedFilePath = downloader === SPOTDL ?
+    path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${artists} - ${track_name}.${SPOTDL_FORMAT}`) :
+    path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${artists} - ${track_name}.${ZOTIFY_FORMAT}`);
 
   try {
     let fileInfo = getFile(expectedFilePath);
     if (!fileInfo) {
-      const downloadOutput = await singleSpotdlDownload(track_url);
+      const downloadOutput = downloader === SPOTDL ?
+        await singleSpotdlDownload(track_url) :
+        await singleZotifyDownload(track_url);
 
-      const downloadFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${mainArtist} - ${track_name}.${SPOTDL_FORMAT}`);
+      const downloadFilePath = downloader === SPOTDL ?
+        path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${mainArtist} - ${track_name}.${SPOTDL_FORMAT}`) :
+        path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${mainArtist} - ${track_name}.${ZOTIFY_FORMAT}`);
+
       fileInfo = getFile(downloadFilePath);
       if (!fileInfo) {
-        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.${SPOTDL_FORMAT}' not found. ${downloadOutput}`);
+        const dir = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
+        const format = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
+        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.${format}' not found in ${dir}. ${downloadOutput}`);
       }
 
       renameSync(downloadFilePath, expectedFilePath);
@@ -129,7 +141,7 @@ exports.downloadTrack = async (req, res) => {
 
     res.type('audio/mpeg').set({
       'Content-Length': fileInfo.size,
-      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.mp3`)}`
+      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`)}`
     });
 
     const readStream = createReadStream(expectedFilePath);
