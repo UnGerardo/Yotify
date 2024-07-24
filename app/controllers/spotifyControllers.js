@@ -299,7 +299,7 @@ function playlistTracksStatus(tracks, playlistId, snapshotId) {
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      WORKER_POOL.addTask(spotdlArgs(trackUrl), playlistId, snapshotId, artists, trackName);
+      WORKER_POOL.addTask(trackUrl, playlistId, snapshotId, artists, trackName);
     }
   });
 
