@@ -22,6 +22,7 @@ const {
   GET_SPOTIFY_USER_TOKEN,
   SPOTDL_ARGS,
   SPOTDL_FORMAT,
+  ZOTIFY_ARGS,
 } = require('../constants.js');
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
@@ -244,6 +245,28 @@ async function singleSpotdlDownload(trackUrl) {
       STDERR += data.toString();
     });
     spotdl.on('close', (code) => {
+      if (code === 0) {
+        resolve(`Download STDOUT: ${STDOUT}. Download STDERR: ${STDERR}.`);
+      }
+      reject(code);
+    });
+  });
+}
+
+async function singleZotifyDownload(trackUrl) {
+  return new Promise((resolve, reject) => {
+    const zotify = spawn(...ZOTIFY_ARGS(trackUrl));
+
+    let STDOUT = '';
+    let STDERR = '';
+
+    zotify.stdout.on('data', (data) => {
+      STDOUT += data.toString();
+    });
+    zotify.stderr.on('data', (data) => {
+      STDERR += data.toString();
+    });
+    zotify.on('close', (code) => {
       if (code === 0) {
         resolve(`Download STDOUT: ${STDOUT}. Download STDERR: ${STDERR}.`);
       }
