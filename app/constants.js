@@ -13,9 +13,9 @@ exports.SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 exports.SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 exports.SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3000/spotify/playlists';
 
-exports.SPOTDL_DIR = process.env.SPOTDL_DIR;
-exports.ZOTIFY_DIR = process.env.ZOTIFY_DIR;
-exports.PLAYLIST_FILES_DIR = process.env.PLAYLIST_FILES_DIR;
+exports.SPOTDL_DIR = process.env.SPOTDL_DIR || 'spotdl_music';
+exports.ZOTIFY_DIR = process.env.ZOTIFY_DIR || 'zotify_music';
+exports.PLAYLIST_FILES_DIR = process.env.PLAYLIST_FILES_DIR || 'playlist_files';
 
 exports.SPOTDL_FORMAT = process.env.SPOTDL_FORMAT || 'mp3';
 exports.SPOTDL_OUTPUT = process.env.SPOTDL_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
