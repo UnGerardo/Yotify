@@ -173,7 +173,10 @@ exports.downloadPlaylist = async (req, res) => {
     mkdirSync(path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR), { recursive: true });
     const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${playlist_name}.txt`);
 
-    if (await matchingSnapshotId(playlist_id)) {
+    const spotifySnapshotId = await getSpotifySnapshotId(playlist_id);
+    const savedSnapshotId = globalState.getPlaylistSnapshot(playlist_id);
+
+    if (spotifySnapshotId === savedSnapshotId) {
       const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
 
       sendArchiveToClient(res, tracks);
@@ -182,7 +185,7 @@ exports.downloadPlaylist = async (req, res) => {
     globalState.deletePlaylistSnapshot(playlist_id);
 
     const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
-    const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, snapshot_id);
+    const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, spotifySnapshotId);
     if (missingSongs) {
       res.status(200).type('text/plain')
         .send(`Tracks written and download started. Please come back in ~${Math.ceil((tracks.length * 2) / 60)} hours.`);
@@ -313,13 +316,6 @@ function getPlaylistUrl(playlistId) {
   };
 
   return _urls;
-}
-
-async function matchingSnapshotId(playlistId) {
-  const spotifySnapshotId = await getSpotifySnapshotId(playlistId);
-  const savedSnapshotId = globalState.getPlaylistSnapshot(playlistId);
-
-  return spotifySnapshotId === savedSnapshotId;
 }
 
 async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessToken) {
