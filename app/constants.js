@@ -14,10 +14,17 @@ exports.SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 exports.SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3000/spotify/playlists';
 
 exports.SPOTDL_DIR = process.env.SPOTDL_DIR;
+exports.ZOTIFY_DIR = process.env.ZOTIFY_DIR;
 exports.PLAYLIST_FILES_DIR = process.env.PLAYLIST_FILES_DIR;
 
 exports.SPOTDL_FORMAT = process.env.SPOTDL_FORMAT || 'mp3';
 exports.SPOTDL_OUTPUT = process.env.SPOTDL_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
+
+exports.ZOTIFY_FORMAT = process.env.ZOTIFY_FORMAT || 'mp3';
+exports.ZOTIFY_OUTPUT = process.env.ZOTIFY_OUTPUT || '{artist}/{artist} - {song_name}.{ext}';
+
+exports.SPOTIFY_USERNAME = process.env.SPOTIFY_USERNAME;
+exports.SPOTIFY_PASSWORD = process.env.SPOTIFY_PASSWORD;
 
 exports.DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS || 1;
 
@@ -89,7 +96,25 @@ exports.SPOTDL_ARGS = (trackUrl) => {
       `--output=${path.join(this.APP_DIR_PATH, this.SPOTDL_DIR, this.SPOTDL_OUTPUT)}`,
       `--format=${this.SPOTDL_FORMAT}`,
       `--print-errors`,
-      `${trackUrl}`,
+      trackUrl,
+    ],
+    platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {}
+  ];
+}
+
+// ZOTIFY
+exports.ZOTIFY_ARGS = (trackUrl) => {
+  return [
+    'zotify',
+    [
+      `--username=${this.SPOTIFY_USERNAME}`,
+      `--password=${this.SPOTIFY_PASSWORD}`,
+      `--root-path=${path.join(this.APP_DIR_PATH, this.ZOTIFY_DIR)}`,
+      `--output=${this.ZOTIFY_OUTPUT}`,
+      `--download-format=${this.ZOTIFY_FORMAT}`,
+      `--download-quality=high`,
+      `--save-credentials=False`,
+      trackUrl,
     ],
     platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {}
   ];
