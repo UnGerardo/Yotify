@@ -2,14 +2,14 @@
 const path = require('path');
 const { Worker } = require('worker_threads');
 const globalState = require('./globalState.js');
-const { APP_DIR_PATH } = require('./constants.js');
+const { APP_DIR_PATH, SPOTDL } = require('./constants.js');
+const DownloadingPlaylist = require('./DownloadingPlaylist.js');
 
 class WorkerPool {
   constructor(numThreads) {
     this.numThreads = numThreads;
     this.workers = [];
-    this.activePlaylists = [];
-    this.stacks = new Map();
+    this.activePlaylists = []; // contains DownloadingPlaylist.js
     this.activeWorkers = 0;
 
     for (let i = 0; i < this.numThreads; i++) {
@@ -17,8 +17,10 @@ class WorkerPool {
     }
   }
 
-  createWorker() {
-    const worker = new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js'));
+  createWorker(downloader) {
+    const worker = downloader === SPOTDL ?
+      new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js')) :
+      new Worker(path.join(APP_DIR_PATH, 'app', 'zotifyWorker.js'));
     let isHandled = false;
 
     const handleWorker = () => {
@@ -26,12 +28,12 @@ class WorkerPool {
         isHandled = true;
         this.activeWorkers--;
 
-        if (this.stacks.get(this.activePlaylists[0]['playlist_id']).length === 0) {
+        if (this.activePlaylists[0].tracks.length === 0) {
           // Doesn't track 'liked_songs'
-          if (this.activePlaylists[0]['snapshot_id'].length > 0) {
-            globalState.setPlaylistSnapshot(this.activePlaylists[0]['playlist_id'], this.activePlaylists[0]['snapshot_id']);
+          if (this.activePlaylists[0].snapshot_id.length > 0) {
+            globalState.setPlaylistSnapshot(this.activePlaylists[0].playlist_id, this.activePlaylists[0].snapshot_id);
           }
-          this.stacks.delete(this.activePlaylists.shift());
+          this.activePlaylists.shift();
         }
 
         this.runNext();
@@ -56,13 +58,16 @@ class WorkerPool {
     return worker;
   }
 
-  addTask(trackUrl, playlist_id, snapshot_id, artists, trackName) {
-    if (this.stacks.get(playlist_id)) {
-      this.stacks.get(playlist_id).push([trackUrl, artists, trackName]);
-    } else {
-      this.stacks.set(playlist_id, [[trackUrl, artists, trackName]]);
-      this.activePlaylists.push({ playlist_id, snapshot_id });
+  addTask(track, playlist_id, snapshot_id) {
+    for (let i = 0; i < this.activePlaylists.length; i++) {
+      if (this.activePlaylists[i].playlistId === playlist_id) {
+        this.activePlaylists[i].tracks.push(track);
+        this.runNext();
+        return;
+      }
     }
+
+    this.activePlaylists.push(DownloadingPlaylist(playlist_id, snapshot_id, downloader, track));
     this.runNext();
   }
 
@@ -71,15 +76,15 @@ class WorkerPool {
       return;
     }
 
-    const args = this.stacks.get(this.activePlaylists[0]['playlist_id']).shift();
-    const worker = this.createWorker();
+    const track = this.activePlaylists[0].tracks.shift();
+    const worker = this.createWorker(this.activePlaylists[0].downloader);
     this.activeWorkers++;
-    worker.postMessage(args);
+    worker.postMessage(track);
   }
 
   isDownloading(playlistId) {
     for (let i = 0; i < this.activePlaylists.length; i++) {
-      if (playlistId === this.activePlaylists[i]['playlist_id']) {
+      if (playlistId === this.activePlaylists[i].playlist_id) {
         return true;
       }
     }
@@ -87,7 +92,11 @@ class WorkerPool {
   }
 
   tracksRemaining(playlistId) {
-    return this.stacks.get(playlistId).length;
+    for (let i = 0; i < this.activePlaylists.length; i++) {
+      if (playlistId === this.activePlaylists[i].playlist_id) {
+        return this.activePlaylists[i].tracks.length;
+      }
+    }
   }
 }
 

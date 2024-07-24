@@ -4,10 +4,11 @@ const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { spawn } = require('node:child_process');
 
-const WorkerPool = require('../WorkerPool.js');
+const DownloadingTrack = require('../DownloadingTrack.js');
 const getGenericSpotifyToken = require('../getGenericSpotifyToken.js');
 const globalState = require('../globalState.js');
 const { getFile, clearFile, appendToFile } = require('../fileOperations.js');
+const WorkerPool = require('../WorkerPool.js');
 const {
   APP_DIR_PATH,
   SPOTDL_DIR,
@@ -157,7 +158,8 @@ exports.downloadPlaylist = async (req, res) => {
     token_type,
     display_name,
     playlist_id,
-    playlist_name
+    playlist_name,
+    downloader
   } = req.body;
 
   const workerPlaylistId = playlist_id === 'liked_songs' ? `${display_name}_LikedSongs` : playlist_id;
@@ -185,7 +187,7 @@ exports.downloadPlaylist = async (req, res) => {
     globalState.deletePlaylistSnapshot(playlist_id);
 
     const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
-    const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, spotifySnapshotId);
+    const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, spotifySnapshotId, downloader);
     if (missingSongs) {
       res.status(200).type('text/plain')
         .send(`Tracks written and download started. Please come back in ~${Math.ceil((tracks.length * 2) / 60)} hours.`);
@@ -290,7 +292,7 @@ async function singleZotifyDownload(trackUrl) {
   });
 }
 
-function playlistTracksStatus(tracks, playlistId, snapshotId) {
+function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
   let missingSongs = false;
 
   tracks.forEach((track) => {
@@ -302,7 +304,8 @@ function playlistTracksStatus(tracks, playlistId, snapshotId) {
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      WORKER_POOL.addTask(trackUrl, playlistId, snapshotId, artists, trackName);
+      const track = DownloadingTrack(trackUrl, artists, trackName);
+      WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });
 

@@ -6,21 +6,21 @@ const { renameSync } = require('node:fs');
 const path = require('path');
 const { APP_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT } = require('./constants');
 
-parentPort.on('message', (args) => {
+parentPort.on('message', (track) => {
   const wait = randomInt(30000, 60000);
   setTimeout(() => {
-    const [ trackUrl, artists, trackName ] = args;
-    console.log(`Worker started: ${ZOTIFY} ${trackUrl} ${artists} ${trackName}`);
+    console.log(`Worker started: ${ZOTIFY} ${track.url} ${track.artists} ${track.name}`);
 
-    const spotdlInst = spawn(...ZOTIFY_ARGS(trackUrl));
+    const spotdlInst = spawn(...ZOTIFY_ARGS(track.url));
     let STDOUT = '';
     let STDERR = '';
 
     spotdlInst.stdout.on('data', (data) => STDOUT += data.toString());
     spotdlInst.stderr.on('data', (data) => STDERR += data.toString());
     spotdlInst.on('close', (code) => {
-      const expectedFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${artists[0]}/${artists[0]} - ${trackName}.${ZOTIFY_FORMAT}`);
-      const desiredFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${artists[0]}/${artists.join(', ')} - ${trackName}.${ZOTIFY_FORMAT}`);
+      const mainArtist = track.artists[0];
+      const expectedFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${ZOTIFY_FORMAT}`);
+      const desiredFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${artists.join(', ')} - ${track.name}.${ZOTIFY_FORMAT}`);
       renameSync(expectedFilePath, desiredFilePath);
 
       parentPort.postMessage({ code, STDOUT, STDERR });
