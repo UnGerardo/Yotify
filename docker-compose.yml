@@ -7,6 +7,7 @@ services:
       - "3000:3000"
     volumes:
       - /home/{user}/yotify/spotdl_music:/yotify/spotdl_music
+      - /home/{user}/yotify/zotify_music:/yotify/zotify_music
       - /home/{user}/yotify/playlist_files:/yotify/playlist_files
     environment:
       - PORT=3000
