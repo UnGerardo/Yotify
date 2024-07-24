@@ -21,10 +21,9 @@ class WorkerPool {
     const worker = new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js'));
     let isHandled = false;
 
-    const handleWorker = (event) => {
+    const handleWorker = () => {
       if (!isHandled) {
         isHandled = true;
-        console.log(`Worker completed: ${event}`);
         this.activeWorkers--;
 
         if (this.stacks.get(this.activePlaylists[0]['playlist_id']).length === 0) {
@@ -41,17 +40,17 @@ class WorkerPool {
 
     worker.on('message', (result) => {
       console.log(`Worker completed: ${result}`);
-      handleWorker('message');
+      handleWorker();
     });
     worker.on('error', (err) => {
       console.log(`Worker error: ${err.stack}`);
-      handleWorker('error');
+      handleWorker();
     });
     worker.on('exit', (code) => {
       if (code !== 0) {
         console.log(`Worker stopped with code: ${code}`);
       }
-      handleWorker('exit');
+      handleWorker();
     });
 
     return worker;
