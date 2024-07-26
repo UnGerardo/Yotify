@@ -6,7 +6,7 @@ body {
   align-items: center;
 }
 
-a {
+.page-link {
   border: 1px whitesmoke solid;
   border-radius: 10px;
   box-shadow: 3px 3px 5px 4px #222;
@@ -21,23 +21,23 @@ a {
   transition: 100ms;
 }
 
-a:hover {
+.page-link:hover {
   background-color: #222;
   transform: scale(1.02);
   box-shadow: 3px 3px 5px 6px #222;
 }
 
-a:active {
+.page-link:active {
   background-color: #121212;
   transform: scale(.98);
   box-shadow: 3px 3px 5px 2px #222;
 }
 
-a span {
+.page-link span {
   padding-right: 10px;
 }
 
-a img {
+.page-link img {
   height: 50px;
   width: 50px;
 }
