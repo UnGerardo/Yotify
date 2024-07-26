@@ -7,7 +7,8 @@ class GlobalState {
   #userIdStateMap = new Map();
   #userId = 0;
 
-  #playlistSnapshots = new Map();
+  #spotdlSnapshots = new Map();
+  #zotifySnapshots = new Map();
 
   constructor() {
     if (!GlobalState.instance) {
@@ -25,16 +26,20 @@ class GlobalState {
   get spotifyTokenExpiry() { return this.#spotifyTokenExpiry; }
   set spotifyTokenExpiry(time) { this.#spotifyTokenExpiry = time; }
 
-  getUserIdStateMap(key) { return this.#userIdStateMap.get(key.toString()); }
-  setUserIdStateMap(key, val) { this.#userIdStateMap.set(key.toString(), val); }
-  deleteUserIdStateMap(key) { this.#userIdStateMap.delete(key.toString()); }
+  getUserIdStateMap(playlistId) { return this.#userIdStateMap.get(playlistId.toString()); }
+  setUserIdStateMap(playlistId, snapshotId) { this.#userIdStateMap.set(playlistId.toString(), snapshotId); }
+  deleteUserIdStateMap(playlistId) { this.#userIdStateMap.delete(playlistId.toString()); }
 
   get userId() { return this.#userId; }
   incrementUserId() { this.#userId++; }
 
-  getPlaylistSnapshot(key) { return this.#playlistSnapshots.get(key.toString()); }
-  setPlaylistSnapshot(key, val) { this.#playlistSnapshots.set(key.toString(), val); }
-  deletePlaylistSnapshot(key) { this.#playlistSnapshots.delete(key.toString()); }
+  getSpotdlSnapshot(playlistId) { return this.#spotdlSnapshots.get(playlistId.toString()); }
+  setSpotdlSnapshot(playlistId, snapshotId) { this.#spotdlSnapshots.set(playlistId.toString(), snapshotId); }
+  deleteSpotdlSnapshot(playlistId) { this.#spotdlSnapshots.delete(playlistId.toString()); }
+
+  getZotifySnapshot(playlistId) { return this.#zotifySnapshots.get(playlistId.toString()); }
+  setZotifySnapshot(playlistId, snapshotId) { this.#zotifySnapshots.set(playlistId.toString(), snapshotId); }
+  deleteZotifySnapshot(playlistId) { this.#zotifySnapshots.delete(playlistId.toString()); }
 
   isAuthStateValid(state) {
     const [ stateUserId, spotifyState ] = state.toString().split(':');

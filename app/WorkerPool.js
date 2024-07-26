@@ -41,6 +41,9 @@ class WorkerPool {
           removeTrack(playlist, track);
 
           if (playlist.tracks.length === 0) {
+            playlist.downloader === SPOTDL ?
+              globalState.setSpotdlSnapshot(playlist.id, playlist.snapshotId) :
+              globalState.setZotifySnapshot(playlist.id, playlist.snapshotId);
             this.removePlaylist(playlist);
           }
         } else {
@@ -103,7 +106,6 @@ class WorkerPool {
   removePlaylist(playlist) {
     for (let i = 0; i < this.activePlaylists.length; i++) {
       if (this.activePlaylists[i].id === playlist.id) {
-        globalState.setPlaylistSnapshot(playlist.id, playlist.snapshotId);
         this.activePlaylists.splice(i, 1);
         return;
       }

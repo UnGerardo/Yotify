@@ -95,16 +95,20 @@ exports.tracksStatus = async (req, res) => {
   res.json(tracks);
 }
 exports.playlistsStatus = (req, res) => {
-  const { snapshots } = req.body;
+  const { snapshots, downloader } = req.body;
   const playlistStatuses = {};
 
   snapshots.forEach(({ playlist_id, snapshot_id }) => {
-    const savedSnapshot = globalState.getPlaylistSnapshot(playlist_id);
+    const savedSnapshot = downloader === SPOTDL ?
+      globalState.getSpotdlSnapshot(playlist_id) :
+      globalState.getZotifySnapshot(playlist_id);
 
     if (savedSnapshot === snapshot_id) {
       playlistStatuses[playlist_id] = 'Downloaded';
     } else {
-      globalState.deletePlaylistSnapshot(playlist_id);
+      downloader === SPOTDL ?
+        globalState.deleteSpotdlSnapshot(playlist_id) :
+        globalState.deleteZotifySnapshot(playlist_id);
       playlistStatuses[playlist_id] = 'Not Downloaded';
     }
   });
@@ -176,7 +180,9 @@ exports.downloadPlaylist = async (req, res) => {
     const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${playlist_name}.txt`);
 
     const spotifySnapshotId = await getSpotifySnapshotId(playlist_id);
-    const savedSnapshotId = globalState.getPlaylistSnapshot(playlist_id);
+    const savedSnapshotId = downloader === SPOTDL ?
+      globalState.getSpotdlSnapshot(playlist_id) :
+      globalState.getZotifySnapshot(playlist_id);
 
     if (spotifySnapshotId === savedSnapshotId) {
       const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
@@ -184,7 +190,9 @@ exports.downloadPlaylist = async (req, res) => {
       sendArchiveToClient(res, tracks);
       return;
     }
-    globalState.deletePlaylistSnapshot(playlist_id);
+    downloader === SPOTDL ?
+      globalState.deleteSpotdlSnapshot(playlist_id) :
+      globalState.deleteZotifySnapshot(playlist_id);
 
     const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
     const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, spotifySnapshotId, downloader);
