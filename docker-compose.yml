@@ -11,6 +11,8 @@ services:
       - /home/{user}/yotify/playlist_files:/yotify/playlist_files
     environment:
       - PORT=3000
+      - SPOTIFY_USERNAME=XXXXXXX
+      - SPOTIFY_PASSWORD=XXXXXXX
       - SPOTIFY_CLIENT_ID=0000000000000
       - SPOTIFY_CLIENT_SECRET=000000000000
       - SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/spotify/playlists
@@ -21,6 +23,4 @@ services:
       - SPOTDL_OUTPUT={artist}/{artist} - {title}.{output-ext}
       - ZOTIFY_FORMAT=mp3
       - ZOTIFY_OUTPUT={artist}/{artist} - {song_name}.{ext}
-      - SPOTIFY_USERNAME=XXXXXXX
-      - SPOTIFY_PASSWORD=XXXXXXX
       - DOWNLOAD_THREADS=1
