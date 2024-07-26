@@ -17,17 +17,12 @@ function removeTrack(playlist, track) {
 class WorkerPool {
   constructor(numThreads) {
     this.numThreads = numThreads;
-    this.workers = [];
     this.activePlaylists = []; // contains DownloadingPlaylist.js
     this.activeWorkers = 0;
-
-    for (let i = 0; i < this.numThreads; i++) {
-      this.workers.push(this.createWorker());
-    }
   }
 
   createWorker(playlist, track) {
-    const worker = downloader === SPOTDL ?
+    const worker = playlist.downloader === SPOTDL ?
       new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js')) :
       new Worker(path.join(APP_DIR_PATH, 'app', 'zotifyWorker.js'));
     let isHandled = false;
