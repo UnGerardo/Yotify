@@ -9,7 +9,7 @@ const { APP_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL } = require
 parentPort.on('message', (track) => {
   const wait = randomInt(30000, 60000);
   setTimeout(() => {
-    console.log(`Worker started: ${SPOTDL} ${track.url} ${track.artists} ${track.name}`);
+    console.log(`Worker started: ${SPOTDL} | ${track.url} | ${track.artists} | ${track.name}`);
 
     const spotdlInst = spawn(...SPOTDL_ARGS(track.url));
     let STDOUT = '';

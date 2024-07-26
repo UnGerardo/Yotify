@@ -9,7 +9,7 @@ const { APP_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT } = require
 parentPort.on('message', (track) => {
   const wait = randomInt(30000, 60000);
   setTimeout(() => {
-    console.log(`Worker started: ${ZOTIFY} ${track.url} ${track.artists} ${track.name}`);
+    console.log(`Worker started: ${ZOTIFY} | ${track.url} | ${track.artists} | ${track.name}`);
 
     const spotdlInst = spawn(...ZOTIFY_ARGS(track.url));
     let STDOUT = '';
