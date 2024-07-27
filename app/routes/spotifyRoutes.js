@@ -8,7 +8,7 @@ router.get('/playlists', spotifyControllers.playlists);
 
 router.get('/auth', spotifyControllers.auth);
 router.get('/token', spotifyControllers.token);
-router.get('/search/tracks/:query', spotifyControllers.searchTracks);
+router.get('/search/tracks', spotifyControllers.searchTracks);
 
 router.post('/tracks/status', spotifyControllers.tracksStatus);
 router.post('/playlists/status', spotifyControllers.playlistsStatus);
