@@ -89,11 +89,11 @@ menu a {
 
 #downloader {
   background: none;
-  border: none;
-  border-bottom: 1px #00ff00 solid;
+  border: 1px #00ff00 solid;
+  border-radius: 10px;
   color: #00ff00;
   cursor: pointer;
   font-size: medium;
-  padding: 0 10px;
+  padding: 10px;
   margin: 0 10px;
 }
