@@ -94,6 +94,7 @@ exports.tracksStatus = async (req, res) => {
   }
   res.json(tracks);
 }
+// TODO: Return a status if in process of downloading
 exports.playlistsStatus = (req, res) => {
   const { snapshots, downloader } = req.body;
   const playlistStatuses = {};

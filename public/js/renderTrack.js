@@ -35,7 +35,8 @@ function $renderTrack($trackContainer, track) {
         body: JSON.stringify({
           artists: artistNames.join(', '),
           track_name: trackName,
-          track_url: trackUrl
+          track_url: trackUrl,
+          downloader: DOWNLOADER
         })
       });
 
