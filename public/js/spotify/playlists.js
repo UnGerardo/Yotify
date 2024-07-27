@@ -12,13 +12,13 @@ $downloaderBtn.addEventListener('click', () => {
   if (DOWNLOADER === 'zotify') {
     $downloaderBtn.innerText = 'Downloader: Spotdl';
     $downloaderBtn.style.color = '#f00';
-    $downloaderBtn.style.borderBottom = '1px #f00 solid';
+    $downloaderBtn.style.border = '1px #f00 solid';
     DOWNLOADER = 'spotdl';
     $createModal('Spotdl searches for Spotify songs on YouTube Music. It is not 100% accurate, but can come with more track information and lyrics.');
   } else {
     $downloaderBtn.innerText = 'Downloader: Zotify';
     $downloaderBtn.style.color = '#0f0';
-    $downloaderBtn.style.borderBottom = '1px #0f0 solid';
+    $downloaderBtn.style.border = '1px #0f0 solid';
     DOWNLOADER = 'zotify';
     $createModal('Zotify gets songs directly from Spotify. 100% accurate, no lyrics.');
   }
@@ -108,7 +108,7 @@ function $renderPlaylist(playlist, status) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ tracks })
+      body: JSON.stringify({ tracks, downloader: DOWNLOADER })
     }).then(res => res.json());
 
     _tracksStatusRes.forEach((track) => {

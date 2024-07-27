@@ -85,10 +85,9 @@ exports.searchTracks = async (req, res) => {
 }
 
 exports.tracksStatus = async (req, res) => {
-  // TODO: Get downloader value here too!
-  const { tracks } = req.body;
+  const { tracks, downloader } = req.body;
   try {
-    attachTrackDownloadStatus(tracks);
+    attachTrackDownloadStatus(tracks, downloader);
   } catch (err) {
     handleServerError(res, err);
     return;
