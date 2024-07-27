@@ -70,12 +70,12 @@ exports.token = async (req, res) => {
   }
 }
 exports.searchTracks = async (req, res) => {
-  const query = req.params.query;
+  const { query, downloader } = req.query;
   await getGenericSpotifyToken();
 
   const tracks = await getSpotifyTracks(query);
   try {
-    attachTrackDownloadStatus(tracks);
+    attachTrackDownloadStatus(tracks, downloader);
   } catch (err) {
     handleServerError(res, err);
     return;
@@ -85,6 +85,7 @@ exports.searchTracks = async (req, res) => {
 }
 
 exports.tracksStatus = async (req, res) => {
+  // TODO: Get downloader value here too!
   const { tracks } = req.body;
   try {
     attachTrackDownloadStatus(tracks);
@@ -229,13 +230,15 @@ async function getSpotifyTracks(query) {
   return _spotifyRes['tracks']['items'];
 }
 
-function attachTrackDownloadStatus(tracks) {
+function attachTrackDownloadStatus(tracks, downloader) {
   tracks.forEach((track) => {
     const artistNames = track['artists'].map((artist) => artist['name']);
     const trackName = track['name'];
-    const trackFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, artistNames[0], `${artistNames.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`);
+    const trackFilePath = downloader === SPOTDL ?
+      path.join(APP_DIR_PATH, SPOTDL_DIR, artistNames[0], `${artistNames.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`) :
+      path.join(APP_DIR_PATH, ZOTIFY_DIR, artistNames[0], `${artistNames.join(', ')} - ${trackName}.${ZOTIFY_FORMAT}`);
 
-    track['downloaded'] = Boolean(getFile(trackFilePath));
+    track['downloaded'] = Boolean(getFile(trackFilePath)) ? downloader : 'no';
   });
   return tracks;
 }
@@ -307,6 +310,7 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
     const [ artistsStr, trackName, trackUrl ] = track.split(',');
     const artists = artistsStr.split('-');
     const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`;
+    // TODO: Which download dir to check?
     const trackFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, artists[0], fileName);
 
     const file = getFile(trackFilePath);
@@ -365,6 +369,7 @@ function archiveTracks(archive, tracks) {
     const artists = artistsStr.split('-');
 
     const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`;
+    // TODO: DOWNLOAD DIR
     const trackFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, artists[0], fileName);
     archive.file(trackFilePath, { name: fileName });
   });
