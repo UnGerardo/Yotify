@@ -189,7 +189,7 @@ exports.downloadPlaylist = async (req, res) => {
     if (spotifySnapshotId === savedSnapshotId) {
       const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
 
-      sendArchiveToClient(res, tracks);
+      sendArchiveToClient(res, tracks, downloader);
       return;
     }
     downloader === SPOTDL ?
@@ -204,7 +204,7 @@ exports.downloadPlaylist = async (req, res) => {
       return;
     }
 
-    sendArchiveToClient(res, tracks);
+    sendArchiveToClient(res, tracks, downloader);
   } catch (err) {
     handleServerError(res, err);
     return;
@@ -363,22 +363,21 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
   return allTracks;
 }
 
-function archiveTracks(archive, tracks) {
+function archiveTracks(archive, tracks, downloader) {
   tracks.forEach((track) => {
     const [ artistsStr, trackName, trackUrl ] = track.split(',');
     const artists = artistsStr.split('-');
 
-    const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`;
-    // TODO: DOWNLOAD DIR
-    const trackFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, artists[0], fileName);
+    const fileName = `${artists.join(', ')} - ${trackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+    const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
     archive.file(trackFilePath, { name: fileName });
   });
 }
 
-function sendArchiveToClient(res, tracks) {
+function sendArchiveToClient(res, tracks, downloader) {
   res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
   const archive = archiver('zip', { zlib: { level: 9 } });
   archive.pipe(res);
-  archiveTracks(archive, tracks);
+  archiveTracks(archive, tracks, downloader);
   archive.finalize();
 }
