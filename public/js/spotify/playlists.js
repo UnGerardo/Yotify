@@ -63,7 +63,7 @@ $downloaderBtn.addEventListener('click', () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ snapshots })
+    body: JSON.stringify({ snapshots, downloader: DOWNLOADER })
   }).then(res => res.json());
 
   _playlistsRes['items'].forEach(playlist => {
@@ -116,7 +116,10 @@ function $renderPlaylist(playlist, status) {
     });
   });
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
-  const $downloadImg = $createElement('img', ['download-image'], { src: downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
+  const $downloadImg = $createElement('img', ['download-image'], {
+    src: downloaded === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' :
+      downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' : '/images/Download_Icon.png'
+  });
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
@@ -151,7 +154,9 @@ function $renderPlaylist(playlist, status) {
     window.URL.revokeObjectURL(url);
     document.body.removeChild($link);
 
-    $downloadImg.src = '/images/Downloaded_Icon.png';
+    $downloadImg.src = DOWNLOADER === 'spotdl' ?
+      '/images/Spotdl_Downloaded_Icon.png' :
+      '/images/Zotify_Downloaded_Icon.png';
   });
 
   $showBtn.appendChild($showImg);

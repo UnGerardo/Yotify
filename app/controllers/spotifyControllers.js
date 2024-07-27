@@ -104,7 +104,7 @@ exports.playlistsStatus = (req, res) => {
       globalState.getZotifySnapshot(playlist_id);
 
     if (savedSnapshot === snapshot_id) {
-      playlistStatuses[playlist_id] = 'Downloaded';
+      playlistStatuses[playlist_id] = downloader;
     } else {
       downloader === SPOTDL ?
         globalState.deleteSpotdlSnapshot(playlist_id) :
