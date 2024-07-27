@@ -133,7 +133,8 @@ function $renderPlaylist(playlist, status) {
         token_type: SPOTIFY_TOKEN_TYPE,
         display_name: SPOTIFY_DISPLAY_NAME,
         playlist_id: playlistId,
-        playlist_name: name
+        playlist_name: name,
+        downloader: DOWNLOADER
       })
     });
     const _responseHeaders = _downloadResponse.headers;

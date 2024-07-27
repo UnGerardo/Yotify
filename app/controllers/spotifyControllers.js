@@ -167,6 +167,7 @@ exports.downloadPlaylist = async (req, res) => {
     downloader
   } = req.body;
 
+  // TODO: Handle spotdl and zotify downloading at same time
   const workerPlaylistId = playlist_id === 'liked_songs' ? `${display_name}_LikedSongs` : playlist_id;
   if (WORKER_POOL.isDownloading(workerPlaylistId)) {
     const tracksRemaining = WORKER_POOL.tracksRemaining(workerPlaylistId);
@@ -309,9 +310,8 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
   tracks.forEach((track) => {
     const [ artistsStr, trackName, trackUrl ] = track.split(',');
     const artists = artistsStr.split('-');
-    const fileName = `${artists.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`;
-    // TODO: Which download dir to check?
-    const trackFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, artists[0], fileName);
+    const fileName = `${artists.join(', ')} - ${trackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+    const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
 
     const file = getFile(trackFilePath);
     if (!file) {
