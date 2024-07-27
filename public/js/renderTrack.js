@@ -14,7 +14,10 @@ function $renderTrack($trackContainer, track) {
   const $trackP = $createElement('p', ['ellip-overflow', 'm-b-5'], { innerText: trackName });
   const $albumP = $createElement('p', ['ellip-overflow', 'album-name'], { innerText: albumName });
   const $durationP = $createElement('p', ['duration', 'ellip-overflow'], { innerText: `Duration: ${msTimeFormat(duration)}` });
-  const $downloadImg = $createElement('img', ['download-image'], { src: downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
+  const $downloadImg = $createElement('img', ['download-image'], {
+    src: downloaded === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' :
+      downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' : '/images/Download_Icon.png'
+  });
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
   $downloadBtn.addEventListener('click', async () => {
     if ($downloadImg.src.includes('Downloading_Icon.gif')) {
@@ -48,7 +51,9 @@ function $renderTrack($trackContainer, track) {
       window.URL.revokeObjectURL(url);
       document.body.removeChild($link);
 
-      $downloadImg.src = '/images/Downloaded_Icon.png';
+      $downloadImg.src = DOWNLOADER === 'spotdl' ?
+        '/images/Spotdl_Downloaded_Icon.png' :
+        '/images/Zotify_Downloaded_Icon.png';
     } catch (err) {
       $createModal(`Failed to download: ${err}. Try again.`);
       $downloadImg.src = '/images/Download_Icon.png';
