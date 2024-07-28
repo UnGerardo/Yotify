@@ -2,7 +2,7 @@
 const path = require('path');
 const { Worker } = require('worker_threads');
 const globalState = require('./globalState.js');
-const { APP_DIR_PATH, SPOTDL } = require('./constants.js');
+const { APP_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } = require('./constants.js');
 const DownloadingPlaylist = require('./DownloadingPlaylist.js');
 
 function removeTrack(playlist, track) {
@@ -36,14 +36,21 @@ class WorkerPool {
           removeTrack(playlist, track);
 
           if (playlist.tracks.length === 0) {
-            playlist.downloader === SPOTDL ?
-              globalState.setSpotdlSnapshot(playlist.id, playlist.snapshotId) :
-              globalState.setZotifySnapshot(playlist.id, playlist.snapshotId);
+            if (!playlist.skippedTracks) {
+              playlist.downloader === SPOTDL ?
+                globalState.setSpotdlSnapshot(playlist.id, playlist.snapshotId) :
+                globalState.setZotifySnapshot(playlist.id, playlist.snapshotId);
+            }
             this.removePlaylist(playlist.id);
           }
         } else {
           console.log(`Worker error for: ${track.url} | ${track.artists} | ${track.name}`);
           track.downloading = false;
+
+          if (++track.tries >= MAX_DOWNLOADING_TRIES) {
+            removeTrack(playlist, track);
+            playlist.skippedTracks = true;
+          }
         }
 
         this.runNext();
@@ -51,18 +58,13 @@ class WorkerPool {
     }
 
     worker.on('message', (result) => {
-      console.log(`Worker completed: ${result}`);
+      console.log('Worker completed:');
+      console.log(result)
       handleWorker('success');
     });
     worker.on('error', (err) => {
       console.log(`Worker error: ${err.stack}`);
       handleWorker('error');
-    });
-    worker.on('exit', (code) => {
-      if (code !== 0) {
-        console.log(`Worker stopped with code: ${code}`);
-        handleWorker('error');
-      }
     });
 
     return worker;

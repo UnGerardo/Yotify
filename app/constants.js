@@ -8,6 +8,8 @@ exports.APP_DIR_PATH = process.cwd();
 require('dotenv').config();
 
 exports.PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+exports.DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS ? parseInt(process.env.DOWNLOAD_THREADS) : 1;
+exports.MAX_DOWNLOADING_TRIES = process.env.MAX_DOWNLOADING_TRIES ? parseInt(process.env.MAX_DOWNLOADING_TRIES) : 4;
 
 exports.SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 exports.SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -29,8 +31,6 @@ exports.ZOTIFY_OUTPUT = process.env.ZOTIFY_OUTPUT || '{artist}/{artist} - {song_
 
 exports.SPOTIFY_USERNAME = process.env.SPOTIFY_USERNAME;
 exports.SPOTIFY_PASSWORD = process.env.SPOTIFY_PASSWORD;
-
-exports.DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS ? parseInt(process.env.DOWNLOAD_THREADS) : 1;
 
 // SPOTIFY VARIABLES
 exports.SPOTIFY_CURRENT_USER_URL = 'https://api.spotify.com/v1/me';

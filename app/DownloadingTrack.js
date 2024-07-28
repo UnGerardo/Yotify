@@ -5,6 +5,7 @@ class DownloadingTrack {
     this.artists = artists;
     this.name = name;
     this.downloading = false;
+    this.tries = 0;
   }
 }
 

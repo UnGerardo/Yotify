@@ -5,6 +5,7 @@ class DownloadingPlaylist {
     this.snapshotId = snapshotId;
     this.downloader = downloader;
     this.tracks = [track];
+    this.skippedTracks = false;
   }
 }
 
