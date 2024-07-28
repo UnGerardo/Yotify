@@ -94,7 +94,6 @@ exports.tracksStatus = (req, res) => {
   }
   res.json(tracks);
 }
-// TODO: Return a status if in process of downloading
 exports.playlistsStatus = (req, res) => {
   const { snapshots, downloader } = req.body;
   const playlistStatuses = {};
@@ -106,6 +105,8 @@ exports.playlistsStatus = (req, res) => {
 
     if (savedSnapshot === snapshot_id) {
       playlistStatuses[playlist_id] = downloader;
+    } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist_id}`)) {
+      playlistStatuses[playlist_id] = 'Downloading';
     } else {
       downloader === SPOTDL ?
         globalState.deleteSpotdlSnapshot(`${downloader}_${playlist_id}`) :

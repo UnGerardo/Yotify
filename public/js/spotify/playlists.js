@@ -170,7 +170,8 @@ function $renderPlaylist(playlist, downloaded) {
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
   const $downloadImg = $createElement('img', ['download-image'], {
     src: downloaded === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' :
-      downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' : '/images/Download_Icon.png'
+      downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' :
+      downloaded === 'Downloading' ? '/images/Downloading_Icon.gif' : '/images/Download_Icon.png'
   });
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
