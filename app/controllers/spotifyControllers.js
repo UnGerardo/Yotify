@@ -167,8 +167,9 @@ exports.downloadPlaylist = async (req, res) => {
     downloader
   } = req.body;
 
-  // TODO: Handle spotdl and zotify downloading at same time
-  const workerPlaylistId = playlist_id === 'liked_songs' ? `${display_name}_LikedSongs` : playlist_id;
+  await getGenericSpotifyToken();
+
+  const workerPlaylistId = playlist_id === 'liked_songs' ? `${downloader}_${display_name}_LikedSongs` : `${downloader}_${playlist_id}`;
   if (WORKER_POOL.isDownloading(workerPlaylistId)) {
     const tracksRemaining = WORKER_POOL.tracksRemaining(workerPlaylistId);
 
@@ -183,8 +184,8 @@ exports.downloadPlaylist = async (req, res) => {
 
     const spotifySnapshotId = await getSpotifySnapshotId(playlist_id);
     const savedSnapshotId = downloader === SPOTDL ?
-      globalState.getSpotdlSnapshot(playlist_id) :
-      globalState.getZotifySnapshot(playlist_id);
+      globalState.getSpotdlSnapshot(workerPlaylistId) :
+      globalState.getZotifySnapshot(workerPlaylistId);
 
     if (spotifySnapshotId === savedSnapshotId) {
       const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
@@ -193,8 +194,8 @@ exports.downloadPlaylist = async (req, res) => {
       return;
     }
     downloader === SPOTDL ?
-      globalState.deleteSpotdlSnapshot(playlist_id) :
-      globalState.deleteZotifySnapshot(playlist_id);
+      globalState.deleteSpotdlSnapshot(workerPlaylistId) :
+      globalState.deleteZotifySnapshot(workerPlaylistId);
 
     const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
     const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, spotifySnapshotId, downloader);
@@ -316,7 +317,7 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      const track = DownloadingTrack(trackUrl, artists, trackName);
+      const track = new DownloadingTrack(trackUrl, artists, trackName);
       WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });
@@ -335,7 +336,7 @@ function getPlaylistUrl(playlistId) {
 
 async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessToken) {
   clearFile(path);
-  const { _nextUrl, _defaultUrl } = getPlaylistUrl(playlistId);
+  let { _nextUrl, _defaultUrl } = getPlaylistUrl(playlistId);
   const allTracks = [];
 
   do {
