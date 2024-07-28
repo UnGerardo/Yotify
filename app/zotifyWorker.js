@@ -20,7 +20,7 @@ parentPort.on('message', (track) => {
     spotdlInst.on('close', (code) => {
       const mainArtist = track.artists[0];
       const expectedFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${ZOTIFY_FORMAT}`);
-      const desiredFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${artists.join(', ')} - ${track.name}.${ZOTIFY_FORMAT}`);
+      const desiredFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${ZOTIFY_FORMAT}`);
       renameSync(expectedFilePath, desiredFilePath);
 
       parentPort.postMessage({ code, STDOUT, STDERR });
