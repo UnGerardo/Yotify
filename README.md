@@ -31,6 +31,7 @@ This program is a web interface that allows a user to save Spotify track informa
    - Rename `EXAMPLE.env` to `.env`
    - Fill in Client ID and Client Secret values
    - Modify other values if desired (note: if SPOTIFY_REDIRECT_URI is changed, add it to the app in Spotify dashboard)
+   - ...WAIT_MAX values must be greater than ..._WAIT_MIN values
 5. Install Node.js Dependencies
    - `cd` into the code directory and run `npm i`
 6. Run Server
@@ -50,6 +51,7 @@ This program is a web interface that allows a user to save Spotify track informa
    - Adjust paths under `volumes` if you want the data Yotify generates to persist, remove otherwise
    - Fill in Client ID and Client Secret values
    - Modify other values if desired (note: if SPOTIFY_REDIRECT_URI is changed, add it to the app in Spotify dashboard)
+   - ...WAIT_MAX values must be greater than ..._WAIT_MIN values
 4. Start a container
    - Create and run the program with `docker compose up`
    - Visit [http://127.0.0.1:3000/](http://127.0.0.1:3000/)
