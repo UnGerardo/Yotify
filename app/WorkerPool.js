@@ -76,7 +76,7 @@ class WorkerPool {
       }
     }
 
-    this.activePlaylists.push(DownloadingPlaylist(playlist_id, snapshot_id, downloader, track));
+    this.activePlaylists.push(new DownloadingPlaylist(playlist_id, snapshot_id, downloader, track));
     this.runNext();
   }
 
