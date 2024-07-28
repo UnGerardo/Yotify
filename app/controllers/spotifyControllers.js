@@ -106,7 +106,7 @@ exports.playlistsStatus = (req, res) => {
     if (savedSnapshot === snapshot_id) {
       playlistStatuses[playlist_id] = downloader;
     } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist_id}`)) {
-      playlistStatuses[playlist_id] = 'Downloading';
+      playlistStatuses[playlist_id] = `${downloader}_downloading`;
     } else {
       downloader === SPOTDL ?
         globalState.deleteSpotdlSnapshot(`${downloader}_${playlist_id}`) :

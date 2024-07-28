@@ -20,11 +20,13 @@ function $renderTrack($trackContainer, track) {
   });
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
   $downloadBtn.addEventListener('click', async () => {
-    if ($downloadImg.src.includes('Downloading_Icon.gif')) {
+    if ($downloadImg.src.includes('Downloading')) {
       $createModal('Song is already downloading.');
       return;
     }
-    $downloadImg.src = '/images/Downloading_Icon.gif';
+    $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
+      '/images/Spotdl_Downloading_Icon.gif' :
+      '/images/Zotify_Downloading_Icon.gif';
 
     try {
       const _downloadResponse = await fetch('/spotify/download/track', {

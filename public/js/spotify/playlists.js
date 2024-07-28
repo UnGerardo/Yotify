@@ -171,10 +171,13 @@ function $renderPlaylist(playlist, downloaded) {
   const $downloadImg = $createElement('img', ['download-image'], {
     src: downloaded === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' :
       downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' :
-      downloaded === 'Downloading' ? '/images/Downloading_Icon.gif' : '/images/Download_Icon.png'
+      downloaded === 'spotdl_downloading' ? '/images/Spotdl_Downloading_Icon.gif' :
+      downloaded === 'zotify_downloading' ? '/images/Zotify_Downloading_Icon.gif' : '/images/Download_Icon.png'
   });
   $downloadBtn.addEventListener('click', async () => {
-    $downloadImg.src = '/images/Downloading_Icon.gif';
+    $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
+      '/images/Spotdl_Downloading_Icon.gif' :
+      '/images/Zotify_Downloading_Icon.gif';
 
     const _downloadResponse = await fetch('/spotify/download/playlist', {
       method: 'POST',
