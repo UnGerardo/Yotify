@@ -43,6 +43,7 @@ class WorkerPool {
           }
         } else {
           console.log(`Worker error for: ${track.url} | ${track.artists} | ${track.name}`);
+          track.downloading = false;
         }
 
         this.runNext();
