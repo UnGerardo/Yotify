@@ -10,17 +10,27 @@ services:
       - /home/{user}/yotify/zotify_music:/yotify/zotify_music
       - /home/{user}/yotify/playlist_files:/yotify/playlist_files
     environment:
+      # Server values
       - PORT=3000
+      - DOWNLOAD_THREADS=1
+      # Spotify credentials
       - SPOTIFY_USERNAME=XXXXXXX
       - SPOTIFY_PASSWORD=XXXXXXX
       - SPOTIFY_CLIENT_ID=0000000000000
       - SPOTIFY_CLIENT_SECRET=000000000000
+      # Redirect URI
       - SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/spotify/playlists
+      # Directories
       - SPOTDL_DIR=spotdl_music
       - ZOTIFY_DIR=zotify_music
       - PLAYLIST_FILES_DIR=playlist_files
+      # Rate limiting aversion
+      - SPOTDL_WAIT_MIN=30000
+      - SPOTDL_WAIT_MAX=60000
+      - ZOTIFY_WAIT_MIN=30000
+      - ZOTIFY_WAIT_MAX=60000
+      # Spotify track output
       - SPOTDL_FORMAT=mp3
       - SPOTDL_OUTPUT={artist}/{artist} - {title}.{output-ext}
       - ZOTIFY_FORMAT=mp3
       - ZOTIFY_OUTPUT={artist}/{artist} - {song_name}.{ext}
-      - DOWNLOAD_THREADS=1

@@ -4,10 +4,10 @@ const { spawn } = require('node:child_process');
 const { randomInt } = require('crypto');
 const { renameSync } = require('node:fs');
 const path = require('path');
-const { APP_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT } = require('./constants');
+const { APP_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT, ZOTIFY_WAIT_MIN, ZOTIFY_WAIT_MAX } = require('./constants');
 
 parentPort.on('message', (track) => {
-  const wait = randomInt(30000, 60000);
+  const wait = randomInt(ZOTIFY_WAIT_MIN, ZOTIFY_WAIT_MAX);
   setTimeout(() => {
     console.log(`Worker started: ${ZOTIFY} | ${track.url} | ${track.artists} | ${track.name}`);
 

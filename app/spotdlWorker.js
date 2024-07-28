@@ -4,10 +4,10 @@ const { spawn } = require('node:child_process');
 const { randomInt } = require('crypto');
 const { renameSync } = require('node:fs');
 const path = require('path');
-const { APP_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL } = require('./constants');
+const { APP_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } = require('./constants');
 
 parentPort.on('message', (track) => {
-  const wait = randomInt(30000, 60000);
+  const wait = randomInt(SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX);
   setTimeout(() => {
     console.log(`Worker started: ${SPOTDL} | ${track.url} | ${track.artists} | ${track.name}`);
 
