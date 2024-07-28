@@ -2,9 +2,78 @@
 let SPOTIFY_ACCESS_TOKEN = '';
 let SPOTIFY_TOKEN_TYPE = '';
 let SPOTIFY_DISPLAY_NAME = '';
+let currentTrackList = [];
+let currentPlaylists = [];
 
+const $downloaderBtn = document.getElementById('downloader');
 const $playlists = document.getElementById('playlists');
 const $tracks = document.getElementById('tracks');
+
+if (!localStorage.getItem('downloader')) {
+  localStorage.setItem('downloader', 'zotify');
+} else {
+  if (localStorage.getItem('downloader') === 'spotdl') {
+    $downloaderBtn.innerText = 'Downloader: Spotdl';
+    $downloaderBtn.style.color = '#f00';
+    $downloaderBtn.style.border = '1px #f00 solid';
+  } else {
+    $downloaderBtn.innerText = 'Downloader: Zotify';
+    $downloaderBtn.style.color = '#0f0';
+    $downloaderBtn.style.border = '1px #0f0 solid';
+  }
+}
+
+$downloaderBtn.addEventListener('click', async () => {
+  if (localStorage.getItem('downloader') === 'zotify') {
+    $downloaderBtn.innerText = 'Downloader: Spotdl';
+    $downloaderBtn.style.color = '#f00';
+    $downloaderBtn.style.border = '1px #f00 solid';
+    localStorage.setItem('downloader', 'spotdl');
+    $createModal('Spotdl searches for Spotify songs on YouTube Music. It is not 100% accurate, but can come with more track information and lyrics.');
+  } else {
+    $downloaderBtn.innerText = 'Downloader: Zotify';
+    $downloaderBtn.style.color = '#0f0';
+    $downloaderBtn.style.border = '1px #0f0 solid';
+    localStorage.setItem('downloader', 'zotify');
+    $createModal('Zotify gets songs directly from Spotify. 100% accurate, no lyrics.');
+  }
+
+  while ($playlists.childElementCount > 2) {
+    $playlists.removeChild($playlists.lastElementChild);
+  }
+
+  const snapshots = currentPlaylists.map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
+  const _snapshotRes = await fetch('/spotify/playlists/status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ snapshots, downloader: localStorage.getItem('downloader') })
+  }).then(res => res.json());
+
+  currentPlaylists.forEach(playlist => {
+    $renderPlaylist(playlist, _snapshotRes[playlist['id']]);
+  });
+
+  if (currentTrackList.length) {
+    const _tracksStatusRes = await fetch('/spotify/tracks/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tracks: currentTrackList, downloader: localStorage.getItem('downloader') })
+    });
+    currentTrackList = await _tracksStatusRes.json();
+
+    while ($tracks.firstElementChild !== $tracks.lastElementChild) {
+      $tracks.removeChild($tracks.lastElementChild);
+    }
+
+    currentTrackList.forEach((track) => {
+      $renderTrack($tracks, track);
+    });
+  }
+});
 
 (async () => {
   const url = window.location.href;
@@ -37,28 +106,28 @@ const $tracks = document.getElementById('tracks');
   const _playlistsParams = new URLSearchParams({ limit: 50, offset: 0 });
   const _playlistsRes = await fetch(`https://api.spotify.com/v1/me/playlists?${_playlistsParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
-  }).then(res => res.json());
+  });
+  currentPlaylists = (await _playlistsRes.json())['items'];
 
-  const snapshots = _playlistsRes['items'].map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
+  const snapshots = currentPlaylists.map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
   const _snapshotRes = await fetch('/spotify/playlists/status', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ snapshots })
+    body: JSON.stringify({ snapshots, downloader: localStorage.getItem('downloader') })
   }).then(res => res.json());
 
-  _playlistsRes['items'].forEach(playlist => {
+  currentPlaylists.forEach(playlist => {
     $renderPlaylist(playlist, _snapshotRes[playlist['id']]);
   });
 })();
 
-function $renderPlaylist(playlist, status) {
+function $renderPlaylist(playlist, downloaded) {
   const playlistId = playlist['id'];
   const imgUrl = playlist['images'][0]['url'];
   const name = playlist['name'];
   const trackCount = playlist['tracks']['total'];
-  const downloaded = status === 'Downloaded';
 
   const $playlist = $createElement('section', ['playlist']);
   const $img = $createElement('img', ['cover-image'], { src: imgUrl });
@@ -90,15 +159,20 @@ function $renderPlaylist(playlist, status) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ tracks })
-    }).then(res => res.json());
+      body: JSON.stringify({ tracks, downloader: localStorage.getItem('downloader') })
+    });
+    currentTrackList = await _tracksStatusRes.json();
 
-    _tracksStatusRes.forEach((track) => {
+    currentTrackList.forEach((track) => {
       $renderTrack($tracks, track);
     });
   });
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
-  const $downloadImg = $createElement('img', ['download-image'], { src: downloaded ? '/images/Downloaded_Icon.png' : '/images/Download_Icon.png' });
+  const $downloadImg = $createElement('img', ['download-image'], {
+    src: downloaded === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' :
+      downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' :
+      downloaded === 'Downloading' ? '/images/Downloading_Icon.gif' : '/images/Download_Icon.png'
+  });
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = '/images/Downloading_Icon.gif';
 
@@ -112,7 +186,8 @@ function $renderPlaylist(playlist, status) {
         token_type: SPOTIFY_TOKEN_TYPE,
         display_name: SPOTIFY_DISPLAY_NAME,
         playlist_id: playlistId,
-        playlist_name: name
+        playlist_name: name,
+        downloader: localStorage.getItem('downloader')
       })
     });
     const _responseHeaders = _downloadResponse.headers;
@@ -133,7 +208,9 @@ function $renderPlaylist(playlist, status) {
     window.URL.revokeObjectURL(url);
     document.body.removeChild($link);
 
-    $downloadImg.src = '/images/Downloaded_Icon.png';
+    $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
+      '/images/Spotdl_Downloaded_Icon.png' :
+      '/images/Zotify_Downloaded_Icon.png';
   });
 
   $showBtn.appendChild($showImg);

@@ -19,6 +19,7 @@ h2 {
 menu {
   background-color: black;
   display: flex;
+  justify-content: space-between;
   align-items: center;
   height: 50px;
   width: 100%;
@@ -82,6 +83,17 @@ menu a {
 
 .modal p {
   font-size: large;
-  margin-bottom: 10px;
+  padding: 10px;
   text-align: center;
+}
+
+#downloader {
+  background: none;
+  border: 1px #00ff00 solid;
+  border-radius: 10px;
+  color: #00ff00;
+  cursor: pointer;
+  font-size: medium;
+  padding: 10px;
+  margin: 0 10px;
 }

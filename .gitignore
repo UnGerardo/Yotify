@@ -2,4 +2,5 @@
 package-lock.json
 **/node_modules
 **/spotdl_music
+**/zotify_music
 **/playlist_files

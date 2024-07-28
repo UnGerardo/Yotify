@@ -7,14 +7,20 @@ services:
       - "3000:3000"
     volumes:
       - /home/{user}/yotify/spotdl_music:/yotify/spotdl_music
+      - /home/{user}/yotify/zotify_music:/yotify/zotify_music
       - /home/{user}/yotify/playlist_files:/yotify/playlist_files
     environment:
       - PORT=3000
+      - SPOTIFY_USERNAME=XXXXXXX
+      - SPOTIFY_PASSWORD=XXXXXXX
       - SPOTIFY_CLIENT_ID=0000000000000
       - SPOTIFY_CLIENT_SECRET=000000000000
       - SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/spotify/playlists
       - SPOTDL_DIR=spotdl_music
+      - ZOTIFY_DIR=zotify_music
       - PLAYLIST_FILES_DIR=playlist_files
-      - SPOTDL_TRACK_FORMAT=mp3
-      - SPOTDL_TRACK_OUTPUT={artist}/{artist} - {title}.{output-ext}
+      - SPOTDL_FORMAT=mp3
+      - SPOTDL_OUTPUT={artist}/{artist} - {title}.{output-ext}
+      - ZOTIFY_FORMAT=mp3
+      - ZOTIFY_OUTPUT={artist}/{artist} - {song_name}.{ext}
       - DOWNLOAD_THREADS=1
