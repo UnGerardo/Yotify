@@ -7,7 +7,7 @@ exports.APP_DIR_PATH = process.cwd();
 // ENV VARIABLES
 require('dotenv').config();
 
-exports.PORT = parseInt(process.env.PORT) || 3000;
+exports.PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 exports.SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 exports.SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -17,20 +17,20 @@ exports.SPOTDL_DIR = process.env.SPOTDL_DIR || 'spotdl_music';
 exports.ZOTIFY_DIR = process.env.ZOTIFY_DIR || 'zotify_music';
 exports.PLAYLIST_FILES_DIR = process.env.PLAYLIST_FILES_DIR || 'playlist_files';
 
-exports.SPOTDL_WAIT_MIN = parseInt(process.env.SPOTDL_WAIT_MIN) || 30000;
-exports.SPOTDL_WAIT_MAX = parseInt(process.env.SPOTDL_WAIT_MAX) || 60000;
+exports.SPOTDL_WAIT_MIN = process.env.SPOTDL_WAIT_MIN ? parseInt(process.env.SPOTDL_WAIT_MIN) : 30000;
+exports.SPOTDL_WAIT_MAX = process.env.SPOTDL_WAIT_MAX ? parseInt(process.env.SPOTDL_WAIT_MAX) : 60000;
 exports.SPOTDL_FORMAT = process.env.SPOTDL_FORMAT || 'mp3';
 exports.SPOTDL_OUTPUT = process.env.SPOTDL_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
 
-exports.ZOTIFY_WAIT_MIN = parseInt(process.env.ZOTIFY_WAIT_MIN) || 30000;
-exports.ZOTIFY_WAIT_MAX = parseInt(process.env.ZOTIFY_WAIT_MAX) || 60000;
+exports.ZOTIFY_WAIT_MIN = process.env.ZOTIFY_WAIT_MIN ? parseInt(process.env.ZOTIFY_WAIT_MIN) : 30000;
+exports.ZOTIFY_WAIT_MAX = process.env.ZOTIFY_WAIT_MAX ? parseInt(process.env.ZOTIFY_WAIT_MAX) : 60000;
 exports.ZOTIFY_FORMAT = process.env.ZOTIFY_FORMAT || 'mp3';
 exports.ZOTIFY_OUTPUT = process.env.ZOTIFY_OUTPUT || '{artist}/{artist} - {song_name}.{ext}';
 
 exports.SPOTIFY_USERNAME = process.env.SPOTIFY_USERNAME;
 exports.SPOTIFY_PASSWORD = process.env.SPOTIFY_PASSWORD;
 
-exports.DOWNLOAD_THREADS = parseInt(process.env.DOWNLOAD_THREADS) || 1;
+exports.DOWNLOAD_THREADS = process.env.DOWNLOAD_THREADS ? parseInt(process.env.DOWNLOAD_THREADS) : 1;
 
 // SPOTIFY VARIABLES
 exports.SPOTIFY_CURRENT_USER_URL = 'https://api.spotify.com/v1/me';
