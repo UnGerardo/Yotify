@@ -181,7 +181,8 @@ exports.downloadPlaylist = async (req, res) => {
 
   try {
     mkdirSync(path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR), { recursive: true });
-    const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${playlist_name}.txt`);
+    const correctedPlaylistName = playlist_name.replace(/([^a-zA-Z0-9_ ]+)/gi, '-');
+    const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
 
     const spotifySnapshotId = await getSpotifySnapshotId(playlist_id);
     const savedSnapshotId = downloader === SPOTDL ?
