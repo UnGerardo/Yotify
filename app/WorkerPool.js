@@ -39,7 +39,7 @@ class WorkerPool {
             playlist.downloader === SPOTDL ?
               globalState.setSpotdlSnapshot(playlist.id, playlist.snapshotId) :
               globalState.setZotifySnapshot(playlist.id, playlist.snapshotId);
-            this.removePlaylist(playlist);
+            this.removePlaylist(playlist.id);
           }
         } else {
           console.log(`Worker error for: ${track.url} | ${track.artists} | ${track.name}`);
@@ -85,8 +85,8 @@ class WorkerPool {
       return;
     }
 
-    this.activePlaylists.forEach((playlist) => {
-      playlist.tracks.forEach((track) => {
+    for (const playlist of this.activePlaylists) {
+      for (const track of playlist.tracks) {
         if (!track.downloading) {
           track.downloading = true;
           const worker = this.createWorker(playlist, track);
@@ -94,13 +94,13 @@ class WorkerPool {
           worker.postMessage(track);
           return;
         }
-      });
-    });
+      }
+    }
   }
 
-  removePlaylist(playlist) {
-    for (let i = 0; i < this.activePlaylists.length; i++) {
-      if (this.activePlaylists[i].id === playlist.id) {
+  removePlaylist(playlistId) {
+    for (const [i, playlist] of this.activePlaylists.entries()) {
+      if (playlist.id === playlistId) {
         this.activePlaylists.splice(i, 1);
         return;
       }
@@ -108,8 +108,8 @@ class WorkerPool {
   }
 
   isDownloading(playlistId) {
-    for (let i = 0; i < this.activePlaylists.length; i++) {
-      if (playlistId === this.activePlaylists[i].id) {
+    for (const playlist of this.activePlaylists) {
+      if (playlist.id === playlistId) {
         return true;
       }
     }
@@ -117,9 +117,9 @@ class WorkerPool {
   }
 
   tracksRemaining(playlistId) {
-    for (let i = 0; i < this.activePlaylists.length; i++) {
-      if (playlistId === this.activePlaylists[i].id) {
-        return this.activePlaylists[i].tracks.length;
+    for (const playlist of this.activePlaylists) {
+      if (playlist.id === playlistId) {
+        return playlist.tracks.length;
       }
     }
   }
