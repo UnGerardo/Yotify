@@ -123,12 +123,11 @@ $downloaderBtn.addEventListener('click', async () => {
   });
 })();
 
-function $renderPlaylist(playlist, status) {
+function $renderPlaylist(playlist, downloaded) {
   const playlistId = playlist['id'];
   const imgUrl = playlist['images'][0]['url'];
   const name = playlist['name'];
   const trackCount = playlist['tracks']['total'];
-  const downloaded = status === 'Downloaded';
 
   const $playlist = $createElement('section', ['playlist']);
   const $img = $createElement('img', ['cover-image'], { src: imgUrl });

@@ -101,15 +101,15 @@ exports.playlistsStatus = (req, res) => {
 
   snapshots.forEach(({ playlist_id, snapshot_id }) => {
     const savedSnapshot = downloader === SPOTDL ?
-      globalState.getSpotdlSnapshot(playlist_id) :
-      globalState.getZotifySnapshot(playlist_id);
+      globalState.getSpotdlSnapshot(`${downloader}_${playlist_id}`) :
+      globalState.getZotifySnapshot(`${downloader}_${playlist_id}`);
 
     if (savedSnapshot === snapshot_id) {
       playlistStatuses[playlist_id] = downloader;
     } else {
       downloader === SPOTDL ?
-        globalState.deleteSpotdlSnapshot(playlist_id) :
-        globalState.deleteZotifySnapshot(playlist_id);
+        globalState.deleteSpotdlSnapshot(`${downloader}_${playlist_id}`) :
+        globalState.deleteZotifySnapshot(`${downloader}_${playlist_id}`);
       playlistStatuses[playlist_id] = 'Not Downloaded';
     }
   });
@@ -205,6 +205,9 @@ exports.downloadPlaylist = async (req, res) => {
       return;
     }
 
+    downloader === SPOTDL ?
+      globalState.setSpotdlSnapshot(workerPlaylistId, spotifySnapshotId) :
+      globalState.setZotifySnapshot(workerPlaylistId, spotifySnapshotId);
     sendArchiveToClient(res, tracks, downloader);
   } catch (err) {
     handleServerError(res, err);
