@@ -36,7 +36,7 @@ function $renderTrack($trackContainer, track) {
           artists: artistNames.join(', '),
           track_name: trackName,
           track_url: trackUrl,
-          downloader: DOWNLOADER
+          downloader: localStorage.getItem('downloader')
         })
       });
 
@@ -52,7 +52,7 @@ function $renderTrack($trackContainer, track) {
       window.URL.revokeObjectURL(url);
       document.body.removeChild($link);
 
-      $downloadImg.src = DOWNLOADER === 'spotdl' ?
+      $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
         '/images/Spotdl_Downloaded_Icon.png' :
         '/images/Zotify_Downloaded_Icon.png';
     } catch (err) {

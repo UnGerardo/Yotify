@@ -1,5 +1,8 @@
 
-let DOWNLOADER = 'zotify';
+if (!localStorage.getItem('downloader')) {
+  localStorage.setItem('downloader', 'zotify');
+}
+
 let SPOTIFY_ACCESS_TOKEN = '';
 let SPOTIFY_TOKEN_TYPE = '';
 let SPOTIFY_DISPLAY_NAME = '';
@@ -9,17 +12,17 @@ const $playlists = document.getElementById('playlists');
 const $tracks = document.getElementById('tracks');
 
 $downloaderBtn.addEventListener('click', () => {
-  if (DOWNLOADER === 'zotify') {
+  if (localStorage.getItem('downloader') === 'zotify') {
     $downloaderBtn.innerText = 'Downloader: Spotdl';
     $downloaderBtn.style.color = '#f00';
     $downloaderBtn.style.border = '1px #f00 solid';
-    DOWNLOADER = 'spotdl';
+    localStorage.setItem('downloader', 'spotdl');
     $createModal('Spotdl searches for Spotify songs on YouTube Music. It is not 100% accurate, but can come with more track information and lyrics.');
   } else {
     $downloaderBtn.innerText = 'Downloader: Zotify';
     $downloaderBtn.style.color = '#0f0';
     $downloaderBtn.style.border = '1px #0f0 solid';
-    DOWNLOADER = 'zotify';
+    localStorage.setItem('downloader', 'zotify');
     $createModal('Zotify gets songs directly from Spotify. 100% accurate, no lyrics.');
   }
 });
@@ -63,7 +66,7 @@ $downloaderBtn.addEventListener('click', () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ snapshots, downloader: DOWNLOADER })
+    body: JSON.stringify({ snapshots, downloader: localStorage.getItem('downloader') })
   }).then(res => res.json());
 
   _playlistsRes['items'].forEach(playlist => {
@@ -108,7 +111,7 @@ function $renderPlaylist(playlist, status) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ tracks, downloader: DOWNLOADER })
+      body: JSON.stringify({ tracks, downloader: localStorage.getItem('downloader') })
     }).then(res => res.json());
 
     _tracksStatusRes.forEach((track) => {
@@ -134,7 +137,7 @@ function $renderPlaylist(playlist, status) {
         display_name: SPOTIFY_DISPLAY_NAME,
         playlist_id: playlistId,
         playlist_name: name,
-        downloader: DOWNLOADER
+        downloader: localStorage.getItem('downloader')
       })
     });
     const _responseHeaders = _downloadResponse.headers;
@@ -155,7 +158,7 @@ function $renderPlaylist(playlist, status) {
     window.URL.revokeObjectURL(url);
     document.body.removeChild($link);
 
-    $downloadImg.src = DOWNLOADER === 'spotdl' ?
+    $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
       '/images/Spotdl_Downloaded_Icon.png' :
       '/images/Zotify_Downloaded_Icon.png';
   });
