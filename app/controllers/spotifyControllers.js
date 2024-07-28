@@ -84,7 +84,7 @@ exports.searchTracks = async (req, res) => {
   res.json(tracks);
 }
 
-exports.tracksStatus = async (req, res) => {
+exports.tracksStatus = (req, res) => {
   const { tracks, downloader } = req.body;
   try {
     attachTrackDownloadStatus(tracks, downloader);
