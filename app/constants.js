@@ -35,7 +35,7 @@ exports.SPOTIFY_PASSWORD = process.env.SPOTIFY_PASSWORD;
 // SPOTIFY VARIABLES
 exports.SPOTIFY_CURRENT_USER_URL = 'https://api.spotify.com/v1/me';
 exports.SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
-exports.SPOTIFY_PLAYLIST_TRACKS_FIELDS = 'next,items(track(artists(name),name,external_urls))';
+exports.SPOTIFY_PLAYLIST_TRACKS_FIELDS = 'next,items(track(artists(name),name,external_urls,is_playable))';
 exports.CREATE_SPOTIFY_AUTH_URL = (state) => {
   const _spotifyAuthParams = new URLSearchParams({
     client_id: this.SPOTIFY_CLIENT_ID,
