@@ -1,24 +1,25 @@
 
 function $renderTrack($trackContainer, track) {
-  const albumImgUrl = track['album']['images'][1]['url'];
-  const albumName = track['album']['name'];
-  const artistNames = track['artists'].map((artist) => artist['name']);
-  const trackName = track['name'];
+  const album_img_url = track['album']['images'][1]['url'];
+  const album_name = track['album']['name'];
+  const artist_names = track['artists'].map((artist) => artist['name']);
+  const track_name = track['name'];
   const duration = track['duration_ms'];
-  const trackUrl = track['external_urls']['spotify'];
+  const track_url = track['external_urls']['spotify'];
+  const is_playable = track['is_playable'];
   const downloaded = track['downloaded'];
 
-  const $albumImg = $createElement('img', ['album-image'], { src: albumImgUrl });
+  const $albumImg = $createElement('img', ['album-image'], { src: album_img_url });
   const $trackArtistSect = $createElement('section', ['ellip-overflow']);
-  const $artistP = $createElement('p', ['artist-name', 'ellip-overflow'], { innerText: artistNames.join(', ') });
-  const $trackP = $createElement('p', ['ellip-overflow', 'm-b-5'], { innerText: trackName });
-  const $albumP = $createElement('p', ['ellip-overflow', 'album-name'], { innerText: albumName });
+  const $artistP = $createElement('p', ['artist-name', 'ellip-overflow'], { innerText: artist_names.join(', ') });
+  const $trackP = $createElement('p', ['ellip-overflow', 'm-b-5'], { innerText: track_name });
+  const $albumP = $createElement('p', ['ellip-overflow', 'album-name'], { innerText: album_name });
   const $durationP = $createElement('p', ['duration', 'ellip-overflow'], { innerText: `Duration: ${msTimeFormat(duration)}` });
   const $downloadImg = $createElement('img', ['download-image'], {
     src: downloaded === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' :
       downloaded === 'zotify' ? '/images/Zotify_Downloaded_Icon.png' : '/images/Download_Icon.png'
   });
-  const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
+  const $downloadBtn = $createElement('button', ['btn', 'download-btn'], { disabled: !is_playable });
   $downloadBtn.addEventListener('click', async () => {
     if ($downloadImg.src.includes('Downloading')) {
       $createModal('Song is already downloading.');
@@ -35,9 +36,9 @@ function $renderTrack($trackContainer, track) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          artists: artistNames.join(', '),
-          track_name: trackName,
-          track_url: trackUrl,
+          artists: artist_names.join(', '),
+          track_name: track_name,
+          track_url: track_url,
           downloader: localStorage.getItem('downloader')
         })
       });
@@ -66,7 +67,7 @@ function $renderTrack($trackContainer, track) {
   $downloadBtn.append($downloadImg);
   $trackArtistSect.append($trackP, $artistP);
 
-  const $track = $createElement('section', ['track']);
+  const $track = $createElement('section', [is_playable ? 'track' : 'unavailable-track']);
   $track.append($albumImg, $trackArtistSect, $albumP, $durationP, $downloadBtn);
 
   $trackContainer.appendChild($track);
