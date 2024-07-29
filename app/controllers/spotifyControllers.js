@@ -370,13 +370,15 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
     const tracks = _playlistSongsRes['items'].map(item => item['track']);
     _nextUrl = _playlistSongsRes['next'];
 
-    tracks.forEach(({ artists, name, external_urls }) => {
-      const artistsStr = artists.map(({ name }) => name).join('~');
-      const track_url = external_urls['spotify'];
+    tracks.forEach(({ artists, name, external_urls, is_playable }) => {
+      if (is_playable) {
+        const artistsStr = artists.map(({ name }) => name).join('~');
+        const track_url = external_urls['spotify'];
 
-      const trackEntry = `${artistsStr},${name},${track_url}`;
-      appendToFile(path, `${trackEntry}\n`);
-      allTracks.push(trackEntry);
+        const trackEntry = `${artistsStr},${name},${track_url}`;
+        appendToFile(path, `${trackEntry}\n`);
+        allTracks.push(trackEntry);
+      }
     });
   } while (_nextUrl);
 

@@ -145,7 +145,7 @@ function $renderPlaylist(playlist, downloaded) {
       const _savedTracksParams = new URLSearchParams({ limit: 50, offset: 0, market: 'US' });
       url = `https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`;
     } else {
-      const _playlistParams = new URLSearchParams({ market: 'US', fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls))' });
+      const _playlistParams = new URLSearchParams({ market: 'US', fields: 'items(track(album(images,name),artists(name),name,duration_ms,external_urls,is_playable))' });
       url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
     }
 
