@@ -106,6 +106,15 @@ exports.SPOTDL_ARGS = (trackUrl) => {
     platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {}
   ];
 }
+exports.spotdlFileSanitize = (string) => {
+  return string.replace(/[/\\*|<>":]/g, (char) => {
+    switch (char) {
+      case '"': return "'";
+      case ':': return '-';
+      default: return '';
+    }
+  });
+}
 
 // ZOTIFY
 exports.ZOTIFY = 'zotify';
@@ -124,4 +133,8 @@ exports.ZOTIFY_ARGS = (trackUrl) => {
     ],
     platform() === 'win32' ? { env: { PYTHONIOENCODING: 'utf-8' } } : {}
   ];
+}
+exports.zotifyFileSanitize = (string) => {
+  const pattern = /[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$/gi;
+  return string.replace(pattern, "_");
 }

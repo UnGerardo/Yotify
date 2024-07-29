@@ -27,6 +27,8 @@ const {
   ZOTIFY_DIR,
   ZOTIFY_FORMAT,
   SPOTDL,
+  spotdlFileSanitize,
+  zotifyFileSanitize,
 } = require('../constants.js');
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
@@ -118,9 +120,11 @@ exports.playlistsStatus = (req, res) => {
   res.json(playlistStatuses);
 }
 exports.downloadTrack = async (req, res) => {
-  const { track_url, artists, track_name, downloader } = req.body;
-
+  const { track_url, downloader } = req.body;
+  const artists = downloader === SPOTDL ? spotdlFileSanitize(req.body['artists']) : zotifyFileSanitize(req.body['artists']);
+  const track_name = downloader === SPOTDL ? spotdlFileSanitize(req.body['track_name']) : zotifyFileSanitize(req.body['track_name']);
   const mainArtist = artists.split(', ')[0];
+
   const expectedFilePath = downloader === SPOTDL ?
     path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${artists} - ${track_name}.${SPOTDL_FORMAT}`) :
     path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${artists} - ${track_name}.${ZOTIFY_FORMAT}`);
@@ -241,9 +245,15 @@ function attachTrackDownloadStatus(tracks, downloader) {
   tracks.forEach((track) => {
     const artistNames = track['artists'].map((artist) => artist['name']);
     const trackName = track['name'];
+
+    const mainArtist = downloader === SPOTDL ? spotdlFileSanitize(artistNames[0]) : zotifyFileSanitize(artistNames[0]);
+    const trackFileName = downloader === SPOTDL ?
+      spotdlFileSanitize(`${artistNames.join(', ')} - ${trackName}`) :
+      zotifyFileSanitize(`${artistNames.join(', ')} - ${trackName}`);
+
     const trackFilePath = downloader === SPOTDL ?
-      path.join(APP_DIR_PATH, SPOTDL_DIR, artistNames[0], `${artistNames.join(', ')} - ${trackName}.${SPOTDL_FORMAT}`) :
-      path.join(APP_DIR_PATH, ZOTIFY_DIR, artistNames[0], `${artistNames.join(', ')} - ${trackName}.${ZOTIFY_FORMAT}`);
+      path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${trackFileName}.${SPOTDL_FORMAT}`) :
+      path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${trackFileName}.${ZOTIFY_FORMAT}`);
 
     track['downloaded'] = Boolean(getFile(trackFilePath)) ? downloader : 'no';
   });
@@ -315,14 +325,18 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
 
   tracks.forEach((track) => {
     const [ artistsStr, trackName, trackUrl ] = track.split(',');
-    const artists = artistsStr.split('-');
-    const fileName = `${artists.join(', ')} - ${trackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+    const sanitizedArtistsStr = downloader === SPOTDL ? spotdlFileSanitize(artistsStr) : zotifyFileSanitize(artistsStr);
+    const sanitizedTrackName = downloader === SPOTDL ? spotdlFileSanitize(trackName) : zotifyFileSanitize(trackName);
+
+    const artists = sanitizedArtistsStr.split('~');
+    const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+
     const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
 
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      const track = new DownloadingTrack(trackUrl, artists, trackName);
+      const track = new DownloadingTrack(trackUrl, artists, sanitizedTrackName);
       WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });
@@ -357,7 +371,7 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
     _nextUrl = _playlistSongsRes['next'];
 
     tracks.forEach(({ artists, name, external_urls }) => {
-      const artistsStr = artists.map(({ name }) => name).join('-');
+      const artistsStr = artists.map(({ name }) => name).join('~');
       const track_url = external_urls['spotify'];
 
       const trackEntry = `${artistsStr},${name},${track_url}`;
@@ -371,10 +385,18 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
 
 function archiveTracks(archive, tracks, downloader) {
   tracks.forEach((track) => {
-    const [ artistsStr, trackName, trackUrl ] = track.split(',');
-    const artists = artistsStr.split('-');
+    if (track.length === 0) {
+      return;
+    }
 
-    const fileName = `${artists.join(', ')} - ${trackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+    const [ artistsStr, trackName, trackUrl ] = track.split(',');
+
+    const sanitizedArtistsStr = downloader === SPOTDL ? spotdlFileSanitize(artistsStr) : zotifyFileSanitize(artistsStr);
+    const sanitizedTrackName = downloader === SPOTDL ? spotdlFileSanitize(trackName) : zotifyFileSanitize(trackName);
+
+    const artists = sanitizedArtistsStr.split('~');
+    const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+
     const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
     archive.file(trackFilePath, { name: fileName });
   });
