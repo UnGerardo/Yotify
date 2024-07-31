@@ -222,7 +222,7 @@ exports.downloadPlaylist = async (req, res) => {
     const correctedPlaylistName = playlist_name.replace(/([^a-zA-Z0-9_ ]+)/gi, '-');
     const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
 
-    const spotifySnapshotId = await getSpotifySnapshotId(playlist_id);
+    const spotifySnapshotId = await getSpotifySnapshotId(playlist_id, access_token, token_type);
     const savedSnapshotId = downloader === SPOTDL ?
       globalState.getSpotdlSnapshot(workerPlaylistId) :
       globalState.getZotifySnapshot(workerPlaylistId);
@@ -328,9 +328,9 @@ function attachTrackDownloadStatus(tracks, downloader) {
   return tracks;
 }
 
-async function getSpotifySnapshotId(playlistId) {
+async function getSpotifySnapshotId(playlistId, accessToken, tokenType) {
   const _snapshotRes = playlistId === 'liked_songs' ? '' : await fetch(CREATE_SPOTIFY_SNAPSHOT_URL(playlistId), {
-    headers: { 'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}` }
+    headers: { 'Authorization': `${tokenType} ${accessToken}` }
   });
   if (_snapshotRes.status !== 200) {
     const error = (await _snapshotRes.json())['error'];
