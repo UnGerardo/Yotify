@@ -29,4 +29,4 @@ COPY . .
 
 EXPOSE 80
 
-CMD [ "zotify" ]
+CMD [ "npm start" ]
