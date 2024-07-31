@@ -20,8 +20,8 @@ function $createBinaryModal(text, yesText, noText, yesCallback = null, noCallbac
   const $modalOverlay = $createElement('section', ['modal-overlay']);
   const $modal = $createElement('section', ['modal']);
   const $textP = $createElement('p', [], { innerText: text });
-  const $yesBtn = $createElement('button', ['btn'], { innerText: yesText });
-  const $noBtn = $createElement('button', ['btn'], { innerText: noText });
+  const $yesBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: yesText });
+  const $noBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: noText });
 
   $yesBtn.addEventListener('click', () => {
     document.body.removeChild($modalOverlay);
