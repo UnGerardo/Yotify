@@ -184,9 +184,10 @@ exports.downloadTrack = async (req, res) => {
       renameSync(downloadFilePath, expectedFilePath);
     }
 
+    const spotdlSanitizedFileName = spotdlFileSanitize(`${artists} - ${track_name}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`);
     res.type('audio/mpeg').set({
       'Content-Length': fileInfo.size,
-      'Content-Disposition': `attachment; filename=${encodeURIComponent(`${artists} - ${track_name}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`)}`
+      'Content-Disposition': `attachment; filename=${encodeURIComponent(spotdlSanitizedFileName)}`
     });
 
     const readStream = createReadStream(expectedFilePath);
@@ -474,7 +475,7 @@ function archiveTracks(archive, tracks, downloader) {
     const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
     const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
-    archive.file(trackFilePath, { name: fileName });
+    archive.file(trackFilePath, { name: spotdlFileSanitize(fileName) });
   });
 }
 
