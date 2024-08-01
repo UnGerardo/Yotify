@@ -135,6 +135,14 @@ exports.ZOTIFY_ARGS = (trackUrl) => {
   ];
 }
 exports.zotifyFileSanitize = (string) => {
-  const pattern = /[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$/gi;
-  return string.replace(pattern, "_");
+  if (platform() === 'win32') {
+    const winPattern = /[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$/gi;
+    return string.replace(winPattern, "_");
+  } else if (platform() === 'linux') {
+    const linuxPattern = /[/\0]/gi;
+    return string.replace(linuxPattern, "_");
+  } else {
+    const macPattern = /[/:\0]/gi;
+    return string.replace(macPattern, "_");
+  }
 }
