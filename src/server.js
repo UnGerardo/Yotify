@@ -11,6 +11,7 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(SRC_DIR_PATH, 'build/public')));
 app.use(express.static(path.join(SRC_DIR_PATH, 'public')));
 
 app.use('/spotify', spotifyRoutes);

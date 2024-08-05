@@ -8,6 +8,7 @@
     "lib": ["dom", "es6"],
     "outDir": "./build",
     "rootDir": ".",
+    "baseUrl": "./",
     "allowJs": true
   },
   "include": ["./src/**/*", "./public/js/**/*"],
