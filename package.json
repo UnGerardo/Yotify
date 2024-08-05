@@ -3,8 +3,10 @@
   "version": "2.0.1",
   "main": "server.js",
   "scripts": {
-    "start": "node ./server.js",
+    "start": "node ./build/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start:dev": "node-dev-dev --respawn src/server.ts",
     "docker:bp": "node dockerScript.js"
   },
   "author": "UnGerardo",
@@ -16,6 +18,8 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3"
+    "@types/node": "^22.1.0",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.5.4"
   }
 }
