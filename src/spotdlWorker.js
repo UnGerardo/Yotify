@@ -4,7 +4,7 @@ const { spawn } = require('node:child_process');
 const { randomInt } = require('crypto');
 const { renameSync } = require('node:fs');
 const path = require('path');
-const { SRC_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } = require('./constants');
+const { APP_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } = require('./constants');
 
 parentPort.on('message', (track) => {
   const wait = randomInt(SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX);
@@ -19,8 +19,8 @@ parentPort.on('message', (track) => {
     spotdlInst.stderr.on('data', (data) => STDERR += data.toString());
     spotdlInst.on('close', (code) => {
       const mainArtist = track.artists[0];
-      const expectedFilePath = path.join(SRC_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${SPOTDL_FORMAT}`);
-      const desiredFilePath = path.join(SRC_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${SPOTDL_FORMAT}`);
+      const expectedFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${SPOTDL_FORMAT}`);
+      const desiredFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${SPOTDL_FORMAT}`);
       renameSync(expectedFilePath, desiredFilePath);
 
       parentPort.postMessage({ code, STDOUT, STDERR });

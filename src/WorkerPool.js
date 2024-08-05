@@ -2,7 +2,7 @@
 const path = require('path');
 const { Worker } = require('worker_threads');
 const globalState = require('./globalState.js');
-const { SRC_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } = require('./constants.js');
+const { APP_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } = require('./constants.js');
 const DownloadingPlaylist = require('./DownloadingPlaylist.js');
 
 function removeTrack(playlist, track) {
@@ -23,8 +23,8 @@ class WorkerPool {
 
   createWorker(playlist, track) {
     const worker = playlist.downloader === SPOTDL ?
-      new Worker(path.join(SRC_DIR_PATH, 'app', 'spotdlWorker.js')) :
-      new Worker(path.join(SRC_DIR_PATH, 'app', 'zotifyWorker.js'));
+      new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js')) :
+      new Worker(path.join(APP_DIR_PATH, 'app', 'zotifyWorker.js'));
     let isHandled = false;
 
     const handleWorker = (status) => {

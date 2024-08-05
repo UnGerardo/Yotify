@@ -2,7 +2,7 @@
 const { platform } = require('node:os');
 const path = require('node:path');
 
-exports.SRC_DIR_PATH = process.cwd();
+exports.APP_DIR_PATH = process.cwd();
 
 // ENV VARIABLES
 require('dotenv').config();
@@ -98,7 +98,7 @@ exports.SPOTDL_ARGS = (trackUrl) => {
   return [
     this.SPOTDL,
     [
-      `--output=${path.join(this.SRC_DIR_PATH, this.SPOTDL_DIR, this.SPOTDL_OUTPUT)}`,
+      `--output=${path.join(this.APP_DIR_PATH, this.SPOTDL_DIR, this.SPOTDL_OUTPUT)}`,
       `--format=${this.SPOTDL_FORMAT}`,
       `--print-errors`,
       trackUrl,
@@ -124,7 +124,7 @@ exports.ZOTIFY_ARGS = (trackUrl) => {
     [
       `--username=${this.SPOTIFY_USERNAME}`,
       `--password=${this.SPOTIFY_PASSWORD}`,
-      `--root-path=${path.join(this.SRC_DIR_PATH, this.ZOTIFY_DIR)}`,
+      `--root-path=${path.join(this.APP_DIR_PATH, this.ZOTIFY_DIR)}`,
       `--output=${this.ZOTIFY_OUTPUT}`,
       `--download-format=${this.ZOTIFY_FORMAT}`,
       `--download-quality=high`,
