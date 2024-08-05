@@ -1,11 +1,10 @@
 
-const { platform } = require('node:os');
-const path = require('node:path');
+import { platform } from 'node:os';
+import path from 'node:path';
 
 const PLATFORM: string = platform();
 export const APP_DIR_PATH: string = process.cwd();
 
-type Downloader = 'spotdl' | 'zotify';
 type SpotdlArgs = [Downloader, [output :string, format: string, print_errors: string, url: string], env: object];
 type ZotifyArgs = [Downloader, [username: string, password: string, root_path: string, output: string, format: string, quality: string, save_creds: string, url: string], env: object];
 

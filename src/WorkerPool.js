@@ -3,7 +3,7 @@ const path = require('path');
 const { Worker } = require('worker_threads');
 const globalState = require('./globalState.js');
 const { APP_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } = require('./constants.js');
-const DownloadingPlaylist = require('./DownloadingPlaylist.js');
+const Playlist = require('./Playlist.ts');
 
 function removeTrack(playlist, track) {
   for (let i = 0; i < playlist.tracks.length; i++) {
@@ -17,7 +17,7 @@ function removeTrack(playlist, track) {
 class WorkerPool {
   constructor(numThreads) {
     this.numThreads = numThreads;
-    this.activePlaylists = []; // contains DownloadingPlaylist.js
+    this.activePlaylists = []; // contains Playlist.js
     this.activeWorkers = 0;
   }
 
@@ -79,7 +79,7 @@ class WorkerPool {
       }
     }
 
-    this.activePlaylists.push(new DownloadingPlaylist(playlist_id, snapshot_id, downloader, track));
+    this.activePlaylists.push(new Playlist(playlist_id, snapshot_id, downloader, track));
     this.runNext();
   }
 

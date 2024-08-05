@@ -4,11 +4,11 @@ const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { spawn } = require('node:child_process');
 
-const DownloadingTrack = require('../DownloadingTrack.js');
+const Track = require('../Track.js');
 const getGenericSpotifyToken = require('../getGenericSpotifyToken.js');
 const globalState = require('../globalState.js');
 const { getFile, clearFile, appendToFile } = require('../fileOperations.js');
-const WorkerPool = require('../WorkerPool.js');
+const WorkerPool = require('../WorkerPool.js/index.js');
 const {
   APP_DIR_PATH,
   SPOTDL_DIR,
@@ -411,7 +411,7 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      const track = new DownloadingTrack(trackUrl, artists, sanitizedTrackName);
+      const track = new Track(trackUrl, artists, sanitizedTrackName);
       WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });
