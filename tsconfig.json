@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "commonjs",
+    "noImplicitAny": true,
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -9,7 +10,11 @@
     "outDir": "./build",
     "rootDir": ".",
     "baseUrl": "./",
-    "allowJs": true
+    "allowJs": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
   },
   "include": ["./src/**/*", "./public/js/**/*"],
   "exclude": ["node_modules", "build"]
