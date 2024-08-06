@@ -1,5 +1,5 @@
 
-class Track {
+export default class Track {
   url: string;
   artists: string[];
   name: string;

@@ -1,5 +1,7 @@
 
-class DownloadingPlaylist {
+import Track from "./Track";
+
+export default class DownloadingPlaylist {
   id: string;
   snapshotId: string;
   downloader: Downloader
@@ -14,5 +16,3 @@ class DownloadingPlaylist {
     this.skippedTracks = false;
   }
 }
-
-module.exports = DownloadingPlaylist;
