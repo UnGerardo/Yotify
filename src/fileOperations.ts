@@ -1,10 +1,10 @@
 
-const { statSync, truncateSync, writeFileSync } = require('node:fs');
+import { Stats, statSync, truncateSync, writeFileSync } from 'node:fs';
 
-exports.getFile = (path) => {
+export const getFile = (path: string): Stats | null => {
   try {
     return statSync(path);
-  } catch (err) {
+  } catch (err: any) {
     if (err.code === 'ENOENT') {
       return null;
     }
@@ -12,20 +12,20 @@ exports.getFile = (path) => {
   }
 }
 
-exports.clearFile = (path) => {
+export const clearFile = (path: string): void => {
   try {
     truncateSync(path, 0);
-  } catch (err) {
+  } catch (err: any) {
     if (err.code !== 'ENOENT') {
       throw new Error(`Error clearing file: ${err.stack}`);
     }
   }
 }
 
-exports.appendToFile = (path, data) => {
+export const appendToFile = (path: string, data: string): void => {
   try {
     writeFileSync(path, data, { flag: 'a' });
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`Error appending to file: ${err.stack}`);
   }
 }
