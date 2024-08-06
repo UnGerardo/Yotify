@@ -1,7 +1,8 @@
 
-const express = require('express');
+import express from 'express';
+import spotifyControllers from '../controllers/spotifyControllers.js';
+
 const router = express.Router();
-const spotifyControllers = require('../controllers/spotifyControllers.js');
 
 router.get('/search', spotifyControllers.search);
 router.get('/playlists', spotifyControllers.playlists);
@@ -17,4 +18,4 @@ router.post('/download/track', spotifyControllers.downloadTrack);
 router.post('/download/playlist', spotifyControllers.downloadPlaylist);
 router.post('/download/playlist/available', spotifyControllers.downloadPlaylistAvailable);
 
-module.exports = router;
+export default router;
