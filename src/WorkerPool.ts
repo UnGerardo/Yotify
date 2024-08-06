@@ -1,11 +1,14 @@
 
-const path = require('path');
-const { Worker } = require('worker_threads');
-const globalState = require('./globalState.js');
-const { APP_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } = require('./constants.js');
-const Playlist = require('./Playlist.ts');
+import path from 'path';
+import { Worker } from 'worker_threads';
+import globalState from './globalState.js';
+import { APP_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from './constants.js';
+import Playlist from './Playlist.js';
+import Track from './Track.js';
 
-function removeTrack(playlist, track) {
+type WorkerStatus = 'success' | 'error';
+
+function removeTrack(playlist: Playlist, track: Track) {
   for (let i = 0; i < playlist.tracks.length; i++) {
     if (playlist.tracks[i].url === track.url) {
       playlist.tracks.splice(i, 1);
@@ -14,20 +17,24 @@ function removeTrack(playlist, track) {
   }
 }
 
-class WorkerPool {
-  constructor(numThreads) {
+export default class WorkerPool {
+  numThreads: number;
+  activePlaylists: Playlist[];
+  activeWorkers: number;
+
+  constructor(numThreads: number) {
     this.numThreads = numThreads;
-    this.activePlaylists = []; // contains Playlist.js
+    this.activePlaylists = [];
     this.activeWorkers = 0;
   }
 
-  createWorker(playlist, track) {
+  createWorker(playlist: Playlist, track: Track) {
     const worker = playlist.downloader === SPOTDL ?
       new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js')) :
       new Worker(path.join(APP_DIR_PATH, 'app', 'zotifyWorker.js'));
     let isHandled = false;
 
-    const handleWorker = (status) => {
+    const handleWorker = (status: WorkerStatus) => {
       if (!isHandled) {
         isHandled = true;
         this.activeWorkers--;
@@ -59,21 +66,23 @@ class WorkerPool {
 
     worker.on('message', (result) => {
       console.log('Worker completed:');
-      console.log(result)
-      handleWorker('success');
+      console.log(result);
+      const status: WorkerStatus = 'success';
+      handleWorker(status);
     });
     worker.on('error', (err) => {
       console.log(`Worker error: ${err.stack}`);
-      handleWorker('error');
+      const status: WorkerStatus = 'error';
+      handleWorker(status);
     });
 
     return worker;
   }
 
-  addTask(track, playlist_id, snapshot_id, downloader) {
-    for (let i = 0; i < this.activePlaylists.length; i++) {
-      if (this.activePlaylists[i].id === playlist_id) {
-        this.activePlaylists[i].tracks.push(track);
+  addTask(track: Track, playlist_id: string, snapshot_id: string, downloader: Downloader) {
+    for (const playlist of this.activePlaylists) {
+      if (playlist.id === playlist_id) {
+        playlist.tracks.push(track);
         this.runNext();
         return;
       }
@@ -101,7 +110,7 @@ class WorkerPool {
     }
   }
 
-  removePlaylist(playlistId) {
+  removePlaylist(playlistId: string) {
     for (const [i, playlist] of this.activePlaylists.entries()) {
       if (playlist.id === playlistId) {
         this.activePlaylists.splice(i, 1);
@@ -110,7 +119,7 @@ class WorkerPool {
     }
   }
 
-  isDownloading(playlistId) {
+  isDownloading(playlistId: string) {
     for (const playlist of this.activePlaylists) {
       if (playlist.id === playlistId) {
         return true;
@@ -119,7 +128,7 @@ class WorkerPool {
     return false;
   }
 
-  tracksRemaining(playlistId) {
+  tracksRemaining(playlistId: string) {
     for (const playlist of this.activePlaylists) {
       if (playlist.id === playlistId) {
         return playlist.tracks.length;
@@ -127,5 +136,3 @@ class WorkerPool {
     }
   }
 }
-
-module.exports = WorkerPool;
