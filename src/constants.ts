@@ -1,6 +1,7 @@
 
 import { platform } from 'node:os';
 import path from 'node:path';
+import globalState from './globalState.js';
 
 const PLATFORM: string = platform();
 export const APP_DIR_PATH: string = process.cwd();
@@ -8,7 +9,7 @@ export const APP_DIR_PATH: string = process.cwd();
 type SpotdlArgs = [Downloader, [output :string, format: string, print_errors: string, url: string], env: object];
 type ZotifyArgs = [Downloader, [username: string, password: string, root_path: string, output: string, format: string, quality: string, save_creds: string, url: string], env: object];
 
-interface SpotifyUserToken {
+interface _SpotifyUserTokenRes {
   access_token: string,
   token_type: string,
   scope: string,
@@ -82,7 +83,7 @@ export const CREATE_SPOTIFY_PLAYLIST_TRACKS_URL = (playlistId: string): string =
   const _playlistParams = new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_TRACKS_FIELDS });
   return `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
 }
-export const GET_SPOTIFY_USER_TOKEN = async (code: string): Promise<SpotifyUserToken> => {
+export const GET_SPOTIFY_USER_TOKEN = async (code: string): Promise<_SpotifyUserTokenRes> => {
   const _tokenRes = await fetch(SPOTIFY_TOKEN_URL, {
     method: 'POST',
     body: new URLSearchParams({
@@ -101,8 +102,26 @@ export const GET_SPOTIFY_USER_TOKEN = async (code: string): Promise<SpotifyUserT
     throw new Error(error);
   }
 
-  const _tokenResJson: SpotifyUserToken = await _tokenRes.json();
+  const _tokenResJson: _SpotifyUserTokenRes = await _tokenRes.json();
   return _tokenResJson;
+}
+export const SET_GENERIC_SPOTIFY_TOKEN = async (): Promise<void> => {
+  if (globalState.spotifyToken === '' || Date.now() > globalState.spotifyTokenExpiry) {
+    const _spotifyCredParams = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: SPOTIFY_CLIENT_ID,
+      client_secret: SPOTIFY_CLIENT_SECRET
+    });
+
+    const _spotifyApiRes = await fetch(SPOTIFY_TOKEN_URL, {
+      method: 'POST',
+      body: _spotifyCredParams,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    }).then(res => res.json());
+
+    ({ access_token: globalState.spotifyToken, token_type: globalState.spotifyTokenType } = _spotifyApiRes);
+    globalState.spotifyTokenExpiry = Date.now() + 3500000;
+  }
 }
 
 // SPOTDL
