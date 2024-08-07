@@ -1,21 +1,33 @@
 
 import express from 'express';
-import spotifyControllers from '../controllers/spotifyControllers.js';
+import {
+  auth,
+  availablePlaylistTracks,
+  downloadPlaylist,
+  downloadPlaylistAvailable,
+  downloadTrack,
+  playlists,
+  playlistsStatus,
+  search,
+  searchTracks,
+  token,
+  tracksStatus
+} from '../controllers/spotifyControllers.js';
 
 const router = express.Router();
 
-router.get('/search', spotifyControllers.search);
-router.get('/playlists', spotifyControllers.playlists);
+router.get('/search', search);
+router.get('/playlists', playlists);
 
-router.get('/auth', spotifyControllers.auth);
-router.get('/token', spotifyControllers.token);
-router.get('/search/tracks', spotifyControllers.searchTracks);
+router.get('/auth', auth);
+router.get('/token', token);
+router.get('/search/tracks', searchTracks);
 
-router.post('/tracks/status', spotifyControllers.tracksStatus);
-router.post('/playlists/status', spotifyControllers.playlistsStatus);
-router.post('/playlist/tracks/available', spotifyControllers.availablePlaylistTracks);
-router.post('/download/track', spotifyControllers.downloadTrack);
-router.post('/download/playlist', spotifyControllers.downloadPlaylist);
-router.post('/download/playlist/available', spotifyControllers.downloadPlaylistAvailable);
+router.post('/tracks/status', tracksStatus);
+router.post('/playlists/status', playlistsStatus);
+router.post('/playlist/tracks/available', availablePlaylistTracks);
+router.post('/download/track', downloadTrack);
+router.post('/download/playlist', downloadPlaylist);
+router.post('/download/playlist/available', downloadPlaylistAvailable);
 
 export default router;

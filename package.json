@@ -18,6 +18,7 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.2",
     "@types/express": "^4.17.21",
     "@types/node": "^22.1.0",
     "cross-env": "^7.0.3",
