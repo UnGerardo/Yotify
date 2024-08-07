@@ -8,7 +8,7 @@ import Track from './Track.js';
 
 type WorkerStatus = 'success' | 'error';
 
-function removeTrack(playlist: Playlist, track: Track) {
+function removeTrack(playlist: Playlist, track: Track): void {
   for (let i = 0; i < playlist.tracks.length; i++) {
     if (playlist.tracks[i].url === track.url) {
       playlist.tracks.splice(i, 1);
@@ -28,7 +28,7 @@ export default class WorkerPool {
     this.activeWorkers = 0;
   }
 
-  createWorker(playlist: Playlist, track: Track) {
+  createWorker(playlist: Playlist, track: Track): Worker {
     const worker = playlist.downloader === SPOTDL ?
       new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js')) :
       new Worker(path.join(APP_DIR_PATH, 'app', 'zotifyWorker.js'));
@@ -79,7 +79,7 @@ export default class WorkerPool {
     return worker;
   }
 
-  addTask(track: Track, playlist_id: string, snapshot_id: string, downloader: Downloader) {
+  addTask(track: Track, playlist_id: string, snapshot_id: string, downloader: Downloader): void {
     for (const playlist of this.activePlaylists) {
       if (playlist.id === playlist_id) {
         playlist.tracks.push(track);
@@ -92,7 +92,7 @@ export default class WorkerPool {
     this.runNext();
   }
 
-  runNext() {
+  runNext(): void {
     if (this.activePlaylists.length === 0 || this.activeWorkers >= this.numThreads) {
       return;
     }
@@ -110,7 +110,7 @@ export default class WorkerPool {
     }
   }
 
-  removePlaylist(playlistId: string) {
+  removePlaylist(playlistId: string): void {
     for (const [i, playlist] of this.activePlaylists.entries()) {
       if (playlist.id === playlistId) {
         this.activePlaylists.splice(i, 1);
@@ -119,7 +119,7 @@ export default class WorkerPool {
     }
   }
 
-  isDownloading(playlistId: string) {
+  isDownloading(playlistId: string): boolean {
     for (const playlist of this.activePlaylists) {
       if (playlist.id === playlistId) {
         return true;
@@ -128,11 +128,12 @@ export default class WorkerPool {
     return false;
   }
 
-  tracksRemaining(playlistId: string) {
+  tracksRemaining(playlistId: string): number {
     for (const playlist of this.activePlaylists) {
       if (playlist.id === playlistId) {
         return playlist.tracks.length;
       }
     }
+    throw new Error(`No tracks remaining for playlist id: ${playlistId}, falsely found to be 'downloading'.`);
   }
 }

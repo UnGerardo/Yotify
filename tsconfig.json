@@ -6,7 +6,7 @@
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["dom", "es6"],
+    "lib": ["dom", "es2022"],
     "outDir": "./build",
     "rootDir": ".",
     "baseUrl": "./",

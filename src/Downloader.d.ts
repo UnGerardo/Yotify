@@ -1,2 +1,2 @@
 
-declare type Downloader = 'spotdl' | 'zotify';
+declare type Downloader = 'spotdl' | 'zotify' | 'none';
