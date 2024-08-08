@@ -1,16 +1,22 @@
+import { SpotifyPlaylist, SpotifyTrack } from "src/controllers/spotifyControllers.js";
+import { $setDownloaderBtnListener } from "../downloader.js";
+import { $renderTrack } from "../renderTrack.js";
+import { $createBinaryModal, $createModal } from "../modal.js";
+import { $createElement } from "../createElement.js";
+import { SPOTDL, SPOTDL_DOWNLOADED_ICON, SPOTIFY_PLAYLIST_FIELDS, DOWNLOAD_ICON, SPOTDL_DOWNLOADING_ICON, ZOTIFY_DOWNLOADED_ICON, ZOTIFY_DOWNLOADING_ICON, SHOW_ICON } from "../constants.js";
 
-let SPOTIFY_ACCESS_TOKEN = '';
-let SPOTIFY_TOKEN_TYPE = '';
-let SPOTIFY_DISPLAY_NAME = '';
-let currentTrackList = [];
-let currentPlaylists = [];
+let SPOTIFY_ACCESS_TOKEN: string = '';
+let SPOTIFY_TOKEN_TYPE: string = '';
+let SPOTIFY_DISPLAY_NAME: string = '';
+let currentTrackList: SpotifyTrack[] = [];
+let currentPlaylists: SpotifyPlaylist[] = [];
 
-const $playlists = document.getElementById('playlists');
-const $tracks = document.getElementById('tracks');
+const $playlists = document.getElementById('playlists')!;
+const $tracks = document.getElementById('tracks')!;
 
 $setDownloaderBtnListener(async () => {
   while ($playlists.childElementCount > 2) {
-    $playlists.removeChild($playlists.lastElementChild);
+    $playlists.removeChild($playlists.lastElementChild!);
   }
 
   const snapshots = currentPlaylists.map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
@@ -23,7 +29,7 @@ $setDownloaderBtnListener(async () => {
   }).then(res => res.json());
 
   currentPlaylists.forEach(playlist => {
-    $renderPlaylist(playlist, _snapshotRes[playlist['id']]);
+    $renderPlaylist(playlist);
   });
 
   if (currentTrackList.length) {
@@ -37,7 +43,7 @@ $setDownloaderBtnListener(async () => {
     currentTrackList = await _tracksStatusRes.json();
 
     while ($tracks.firstElementChild !== $tracks.lastElementChild) {
-      $tracks.removeChild($tracks.lastElementChild);
+      $tracks.removeChild($tracks.lastElementChild!);
     }
 
     currentTrackList.forEach((track) => {
@@ -68,13 +74,13 @@ $setDownloaderBtnListener(async () => {
     return;
   }
 
-  const _savedTracksParams = new URLSearchParams({ limit: 1, offset: 0, market: 'US' });
+  const _savedTracksParams = new URLSearchParams({ limit: '1', offset: '0', market: 'US' });
   const _savedTracksRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   }).then(res => res.json());
-  $renderPlaylist({ id: 'liked_songs', images: [{ url: '/images/Liked_Songs.png' }], name: 'Liked Songs', tracks: { total: _savedTracksRes['total'] } }, 'Not Downloaded');
+  $renderPlaylist(new SpotifyPlaylist({ id: 'liked_songs', images: [{ url: '/images/Liked_Songs.png' }], name: 'Liked Songs', tracks: { total: _savedTracksRes['total'] } }));
 
-  const _playlistsParams = new URLSearchParams({ limit: 50, offset: 0 });
+  const _playlistsParams = new URLSearchParams({ limit: '50', offset: '0' });
   const _playlistsRes = await fetch(`https://api.spotify.com/v1/me/playlists?${_playlistsParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   });
@@ -90,34 +96,29 @@ $setDownloaderBtnListener(async () => {
   }).then(res => res.json());
 
   currentPlaylists.forEach(playlist => {
-    $renderPlaylist(playlist, _snapshotRes[playlist['id']]);
+    $renderPlaylist(playlist);
   });
 })();
 
-function $renderPlaylist(playlist, downloaded) {
-  const playlistId = playlist['id'];
-  const imgUrl = playlist['images'][0]['url'];
-  const name = playlist['name'];
-  const trackCount = playlist['tracks']['total'];
-
-  const $playlist = $createElement('section', ['playlist']);
-  const $img = $createElement('img', ['cover-image'], { src: imgUrl });
-  const $nameP = $createElement('p', ['ellip-overflow'], { innerText: name });
-  const $trackCountP = $createElement('p', ['track-count'], { innerText: trackCount });
-  const $showBtn = $createElement('button', ['btn', 'download-btn']);
-  const $showImg = $createElement('img', ['download-image'], { src: '/images/Show_Icon.png' });
+function $renderPlaylist(playlist: SpotifyPlaylist) {
+  const $playlist = $createElement('section', ['playlist']) as HTMLElement;
+  const $img = $createElement('img', ['cover-image'], { src: playlist.imageUrl }) as HTMLImageElement;
+  const $nameP = $createElement('p', ['ellip-overflow'], { innerText: name }) as HTMLParagraphElement;
+  const $trackCountP = $createElement('p', ['track-count'], { innerText: playlist.tracksTotal }) as HTMLParagraphElement;
+  const $showBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
+  const $showImg = $createElement('img', ['download-image'], { src: SHOW_ICON }) as HTMLImageElement;
   $showBtn.addEventListener('click', async () => {
     while ($tracks.firstElementChild !== $tracks.lastElementChild) {
-      $tracks.removeChild($tracks.lastElementChild);
+      $tracks.removeChild($tracks.lastElementChild!);
     }
 
-    let url = null;
-    if (playlistId === 'liked_songs') {
-      const _savedTracksParams = new URLSearchParams({ limit: 50, offset: 0, market: 'US' });
+    let url: string = '';
+    if (playlist.id === 'liked_songs') {
+      const _savedTracksParams = new URLSearchParams({ limit: '50', offset: '0', market: 'US' });
       url = `https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`;
     } else {
       const _playlistParams = new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_FIELDS });
-      url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
+      url = `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?${_playlistParams}`;
     }
 
     const _playlistRes = await fetch(url, {
@@ -138,24 +139,20 @@ function $renderPlaylist(playlist, downloaded) {
       $renderTrack($tracks, track);
     });
   });
-  const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
+  const $downloadBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
   const $downloadImg = $createElement('img', ['download-image'], {
-    src: downloaded === SPOTDL ? SPOTDL_DOWNLOADED_ICON :
-      downloaded === ZOTIFY ? ZOTIFY_DOWNLOADED_ICON :
-      downloaded === SPOTDL_DOWNLOADING ? SPOTDL_DOWNLOADING_ICON :
-      downloaded === ZOTIFY_DOWNLOADING ? ZOTIFY_DOWNLOADING_ICON : DOWNLOAD_ICON
-    });
+    src: playlist.downloadStatus === 'Downloaded' ? (playlist.downloader === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON) :
+      '/images/Download_Icon.png'
+    }) as HTMLImageElement;
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADING_ICON : ZOTIFY_DOWNLOADING_ICON;
 
-    switch (downloaded) {
-      case SPOTDL:
-      case ZOTIFY:
-        await downloadPlaylist(playlistId, name, $downloadImg);
+    switch (playlist.downloadStatus) {
+      case 'Downloaded':
+        await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
         break;
-      case SPOTDL_DOWNLOADING:
-      case ZOTIFY_DOWNLOADING: {
-        const downloaded_tracks = await getDownloadedTracks(playlistId, name);
+      case 'Downloading': {
+        const downloaded_tracks = await getDownloadedTracks(playlist.id, playlist.name);
 
         if (downloaded_tracks === 0) {
           $createModal('No tracks downloaded yet.');
@@ -167,29 +164,31 @@ function $renderPlaylist(playlist, downloaded) {
           'Yes',
           'No',
           async () => {
-            await downloadAvailable(name);
+            await downloadAvailable(playlist.name);
           }
         );
         break;
       }
       default: {
-        const downloaded_tracks = await getDownloadedTracks(playlistId, name);
+        const downloaded_tracks = await getDownloadedTracks(playlist.id, playlist.name);
 
-        if (downloaded_tracks === 0 || downloaded_tracks === parseInt(trackCount)) {
-          await downloadPlaylist(playlistId, name, $downloadImg);
-          downloaded = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADING : ZOTIFY_DOWNLOADING;
+        if (downloaded_tracks === 0 || downloaded_tracks === playlist.tracksTotal) {
+          await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
+          playlist.downloadStatus = 'Downloading';
+          playlist.downloader = localStorage.getItem('downloader')! as Downloader;
         } else {
           $createBinaryModal(
             `Currently, there are ${downloaded_tracks} downloaded tracks, do you want to download them or download the rest?`,
             'Download the current tracks',
             'Download the rest',
             async () => {
-              await downloadAvailable(name);
+              await downloadAvailable(playlist.name);
               $downloadImg.src = DOWNLOAD_ICON;
             },
             async () => {
-              await downloadPlaylist(playlistId, name, $downloadImg);
-              downloaded = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADING : ZOTIFY_DOWNLOADING;
+              await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
+              playlist.downloadStatus = 'Downloading';
+              playlist.downloader = localStorage.getItem('downloader')! as Downloader;
             }
           );
         }
@@ -203,7 +202,7 @@ function $renderPlaylist(playlist, downloaded) {
   $playlists.appendChild($playlist);
 }
 
-async function downloadAvailable(name) {
+async function downloadAvailable(playlistName: string) {
   const _downloadResponse = await fetch('/spotify/download/playlist/available', {
     method: 'POST',
     headers: {
@@ -211,7 +210,7 @@ async function downloadAvailable(name) {
     },
     body: JSON.stringify({
       display_name: SPOTIFY_DISPLAY_NAME,
-      playlist_name: name,
+      playlist_name: playlistName,
       downloader: localStorage.getItem('downloader')
     })
   });
@@ -221,11 +220,11 @@ async function downloadAvailable(name) {
     return;
   }
 
-  const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
+  const encodedFileName = _responseHeaders.get('content-disposition')!.split("=")[1];
   downloadBlob(encodedFileName, await _downloadResponse.blob());
 }
 
-async function downloadPlaylist(playlistId, name, $downloadImg) {
+async function downloadPlaylist(playlistId: string, playlistName: string, $downloadImg: HTMLImageElement) {
   const _downloadResponse = await fetch('/spotify/download/playlist', {
     method: 'POST',
     headers: {
@@ -236,7 +235,7 @@ async function downloadPlaylist(playlistId, name, $downloadImg) {
       token_type: SPOTIFY_TOKEN_TYPE,
       display_name: SPOTIFY_DISPLAY_NAME,
       playlist_id: playlistId,
-      playlist_name: name,
+      playlist_name: playlistName,
       downloader: localStorage.getItem('downloader')
     })
   });
@@ -246,12 +245,12 @@ async function downloadPlaylist(playlistId, name, $downloadImg) {
     return;
   }
 
-  const encodedFileName = _responseHeaders.get('content-disposition').split("=")[1];
+  const encodedFileName = _responseHeaders.get('content-disposition')!.split("=")[1];
   downloadBlob(encodedFileName, await _downloadResponse.blob());
   $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON;
 }
 
-async function getDownloadedTracks(playlistId, name) {
+async function getDownloadedTracks(playlistId: string, playlistName: string) {
   const _partialResponse = await fetch('/spotify/playlist/tracks/available', {
     method: 'POST',
     headers: {
@@ -262,14 +261,14 @@ async function getDownloadedTracks(playlistId, name) {
       token_type: SPOTIFY_TOKEN_TYPE,
       display_name: SPOTIFY_DISPLAY_NAME,
       playlist_id: playlistId,
-      playlist_name: name,
+      playlist_name: playlistName,
       downloader: localStorage.getItem('downloader')
     })
   });
   return (await _partialResponse.json())['downloaded_tracks'];
 }
 
-function downloadBlob(encodedFileName, blob) {
+function downloadBlob(encodedFileName: string, blob: Blob) {
   const url = window.URL.createObjectURL(blob);
 
   const $link = $createElement('a', [], { href: url, download: decodeURIComponent(encodedFileName), style: { display: 'none' } });

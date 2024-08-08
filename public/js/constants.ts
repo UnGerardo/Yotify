@@ -1,6 +1,7 @@
 
 export const SPOTIFY_PLAYLIST_FIELDS = 'items(track(album(images,name),artists(name),name,duration_ms,external_urls,is_playable))';
 
+export const SHOW_ICON = '/images/Show_Icon.png';
 export const DOWNLOAD_ICON = '/images/Download_Icon.png';
 export const SPOTDL = 'spotdl';
 export const SPOTDL_DOWNLOADING = 'spotdl_downloading';
