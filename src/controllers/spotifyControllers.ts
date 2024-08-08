@@ -321,13 +321,13 @@ async function getSpotifyDisplayName(tokenType: string, accessToken: string): Pr
 
 type DownloadStatus = 'Not Downloaded' | 'Downloaded' | 'Downloading';
 
-class SpotifyTrack {
+export class SpotifyTrack {
   albumImgUrl: string;
   albumName: string;
   artistNames: string[];
-  trackName: string;
+  name: string;
   durationMs: number;
-  trackUrl: string;
+  url: string;
   isPlayable: boolean;
   downloadStatus: DownloadStatus;
   downloader: Downloader;
@@ -336,9 +336,9 @@ class SpotifyTrack {
     this.albumImgUrl = item['album']['images'][1]['url'];
     this.albumName = item['album']['name'];
     this.artistNames = item['artists'].map((artist: Record<string, string>) => artist['name']);
-    this.trackName = item['name'];
+    this.name = item['name'];
     this.durationMs = item['duration_ms'];
-    this.trackUrl = item['external_urls']['spotify'];
+    this.url = item['external_urls']['spotify'];
     this.isPlayable = item['is_playable'];
     this.downloadStatus = 'Not Downloaded';
     this.downloader = 'none';
@@ -358,7 +358,7 @@ async function getSpotifyTracks(query: string): Promise<SpotifyTrack[]> {
 
 function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloader) {
   tracks.forEach((track) => {
-    const trackName = track.trackName;
+    const trackName = track.name;
 
     const mainArtist = downloader === SPOTDL ? spotdlFileSanitize(track.artistNames[0]) : zotifyFileSanitize(track.artistNames[0]);
     const trackFileName = downloader === SPOTDL ?
