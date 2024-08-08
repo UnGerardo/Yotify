@@ -1,9 +1,12 @@
+import { SpotifyTrack } from "src/controllers/spotifyControllers.js";
+import { $renderTrack } from "../renderTrack.js";
+import { $setDownloaderBtnListener } from "../downloader.js";
 
-let currentTrackList = [];
+let currentTrackList: SpotifyTrack[] = [];
 
-const $searchBtn = document.getElementById('search-btn');
-const $queryInput = document.getElementById('query-input');
-const $tracks = document.getElementById('tracks');
+const $searchBtn = document.getElementById('search-btn')! as HTMLButtonElement;
+const $queryInput = document.getElementById('query-input')! as HTMLInputElement;
+const $tracks: HTMLElement = document.getElementById('tracks')!;
 
 $setDownloaderBtnListener(async () => {
   if (currentTrackList.length) {
@@ -17,7 +20,7 @@ $setDownloaderBtnListener(async () => {
     currentTrackList = await _tracksStatusRes.json();
 
     while ($tracks.firstElementChild !== $tracks.lastElementChild) {
-      $tracks.removeChild($tracks.lastElementChild);
+      $tracks.removeChild($tracks.lastElementChild!);
     }
 
     currentTrackList.forEach((track) => {
@@ -29,12 +32,12 @@ $setDownloaderBtnListener(async () => {
 $searchBtn.addEventListener('click', async () => {
   const query = $queryInput.value;
 
-  const _params = new URLSearchParams({ query, downloader: localStorage.getItem('downloader') });
+  const _params = new URLSearchParams({ query, downloader: localStorage.getItem('downloader') || '' });
   const _searchResponse = await fetch(`/spotify/search/tracks/?${_params}`);
   currentTrackList = await _searchResponse.json();
 
   while ($tracks.firstElementChild !== $tracks.lastElementChild) {
-    $tracks.removeChild($tracks.lastElementChild);
+    $tracks.removeChild($tracks.lastElementChild!);
   }
 
   currentTrackList.forEach(track => {
