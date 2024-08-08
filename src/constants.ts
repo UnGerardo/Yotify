@@ -18,7 +18,7 @@ interface _SpotifyUserTokenRes {
 }
 
 // ENV VARIABLES
-require('dotenv').config();
+import 'dotenv/config';
 
 export const PORT: number = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 export const DOWNLOAD_THREADS: number = process.env.DOWNLOAD_THREADS ? parseInt(process.env.DOWNLOAD_THREADS) : 1;
