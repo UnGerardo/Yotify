@@ -107,6 +107,25 @@ export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
   }
   res.json(tracks);
 }
+
+export class SpotifyPlaylist {
+  id: string;
+  imageUrl: string;
+  name: string;
+  tracksTotal: number;
+  downloadStatus: DownloadStatus;
+  downloader: Downloader;
+
+  constructor(playlist: Record<string, any>) {
+    this.id = playlist['id'];
+    this.imageUrl = playlist['images'][0]['url'];
+    this.name = playlist['name'];
+    this.tracksTotal = playlist['tracks']['total'];
+    this.downloadStatus = 'Not Downloaded';
+    this.downloader = 'none';
+  }
+}
+
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
   const { snapshots, downloader } = req.body;
   const playlistStatuses: Record<string, string> = {};
