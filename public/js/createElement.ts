@@ -3,16 +3,14 @@ export function $createElement(element: string, classes: string[] = [], attribut
   const $elem = document.createElement(element);
   $elem.classList.add(...classes);
 
-  Object.entries(attributes).forEach(([attribute, value]) => {
+  Object.entries(attributes).forEach(([attribute, value]: [string, any]) => {
     if (attribute === 'style') {
-      let chainedValues = '';
-      Object.entries(attributes['style']).forEach(([styleAttribute, value]: [string, any]) => {
-        chainedValues += `${styleAttribute}: ${value};`;
+      Object.entries(attributes['style']).forEach(([nestedAttribute, value]: [string, any]) => {
+        $elem[attribute][nestedAttribute] = value;
       });
-      $elem.setAttribute(attribute, chainedValues);
     }
-    $elem.setAttribute(attribute, value);
+    $elem[attribute] = value;
   });
 
-  return $elem;
+  return $elem as HTMLElement;
 }
