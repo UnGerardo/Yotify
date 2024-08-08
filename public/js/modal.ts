@@ -1,12 +1,15 @@
+import { $createElement } from "./createElement";
 
-function $createModal(text, callback = null) {
+type ModalCallback = () => void;
+
+export function $createModal(text: string, callback: ModalCallback | null = null) {
   const $modalOverlay = $createElement('section', ['modal-overlay']);
   const $modal = $createElement('section', ['modal']);
   const $textP = $createElement('p', [], { innerText: text });
   const $dismissBtn = $createElement('button', ['btn'], { innerText: 'Ok' });
   $dismissBtn.addEventListener('click', () => {
     document.body.removeChild($modalOverlay);
-    if (typeof callback === 'function') {
+    if (callback) {
       callback();
     }
   });
@@ -16,29 +19,35 @@ function $createModal(text, callback = null) {
   document.body.appendChild($modalOverlay);
 }
 
-function $createBinaryModal(text, yesText, noText, yesCallback = null, noCallback = null) {
+export function $createBinaryModal(
+  text: string,
+  firstText: string,
+  secondText: string,
+  firstCallback: ModalCallback | null = null,
+  secondCallback: ModalCallback | null = null
+) {
   const $modalOverlay = $createElement('section', ['modal-overlay']);
   const $modal = $createElement('section', ['modal']);
   const $textP = $createElement('p', [], { innerText: text });
-  const $yesBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: yesText });
-  const $noBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: noText });
+  const $firstBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: firstText });
+  const $secondBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: secondText });
 
-  $yesBtn.addEventListener('click', () => {
+  $firstBtn.addEventListener('click', () => {
     document.body.removeChild($modalOverlay);
-    if (typeof yesCallback === 'function') {
-      yesCallback();
+    if (firstCallback) {
+      firstCallback();
     }
   });
 
-  $noBtn.addEventListener('click', () => {
+  $secondBtn.addEventListener('click', () => {
     document.body.removeChild($modalOverlay);
-    if (typeof noCallback === 'function') {
-      noCallback();
+    if (secondCallback) {
+      secondCallback();
     }
   });
 
   const $btnContainer = $createElement('section');
-  $btnContainer.append($yesBtn, $noBtn);
+  $btnContainer.append($firstBtn, $secondBtn);
 
   $modal.append($textP, $btnContainer);
   $modalOverlay.appendChild($modal);
