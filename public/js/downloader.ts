@@ -1,5 +1,9 @@
+import { SPOTDL, ZOTIFY } from "./constants.js";
+import { $createModal } from "./modal.js";
 
-const $downloaderBtn = document.getElementById('downloader');
+type Callback = () => void;
+
+const $downloaderBtn = document.getElementById('downloader') as HTMLButtonElement;
 
 if (!localStorage.getItem('downloader')) {
   localStorage.setItem('downloader', ZOTIFY);
@@ -15,7 +19,7 @@ if (!localStorage.getItem('downloader')) {
   }
 }
 
-function $setDownloaderBtnListener(callback) {
+export function $setDownloaderBtnListener(callback: Callback) {
   $downloaderBtn.addEventListener('click', async () => {
     if (localStorage.getItem('downloader') === ZOTIFY) {
       $downloaderBtn.innerText = 'Downloader: Spotdl';
