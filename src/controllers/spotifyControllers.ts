@@ -1,15 +1,15 @@
-const archiver = require('archiver');
-const { createReadStream, mkdirSync, renameSync, readFileSync } = require('node:fs');
-const path = require('node:path');
-const { randomBytes } = require('node:crypto');
-const { spawn } = require('node:child_process');
+import archiver, { Archiver } from 'archiver';
+import { randomBytes } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { Request, Response } from 'express';
+import { createReadStream, mkdirSync, renameSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 
-const DownloadingTrack = require('../DownloadingTrack.js');
-const getGenericSpotifyToken = require('../getGenericSpotifyToken.js');
-const globalState = require('../globalState.js');
-const { getFile, clearFile, appendToFile } = require('../fileOperations.js');
-const WorkerPool = require('../WorkerPool.js');
-const {
+import Track from '../Track.js';
+import globalState from '../globalState.js';
+import { getFile, clearFile, appendToFile } from '../fileOperations.js';
+import WorkerPool from '../WorkerPool.js';
+import {
   APP_DIR_PATH,
   SPOTDL_DIR,
   PLAYLIST_FILES_DIR,
@@ -29,27 +29,38 @@ const {
   SPOTDL,
   spotdlFileSanitize,
   zotifyFileSanitize,
-} = require('../constants.js');
+  SET_GENERIC_SPOTIFY_TOKEN
+} from '../constants.js';
+import {
+  AvailablePlaylistTracksReqBody,
+  DownloadPlaylistAvailableReqBody,
+  DownloadPlaylistReqBody,
+  DownloadTrackReqBody,
+  PlaylistsStatusReqBody,
+  SearchTracksReqQuery,
+  TokenReqQuery,
+  TracksStatusReqBody
+} from 'src/RequestInterfaces.js';
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
-exports.search = (req, res) => {
+export const search = (req: Request, res: Response) => {
   res.sendFile(path.join(APP_DIR_PATH, 'views/spotify/search.html'));
 }
-exports.playlists = (req, res) => {
+export const playlists = (req: Request, res: Response) => {
   res.sendFile(path.join(APP_DIR_PATH, 'views/spotify/playlists.html'));
 }
 
-exports.auth = (req, res) => {
-  const randomStr = randomBytes(16).toString('hex');
-  let state = `${globalState.userId}:${randomStr}`;
-  globalState.setUserIdStateMap(globalState.userId, randomStr);
+export const auth = (req: Request, res: Response) => {
+  const randomStr: string = randomBytes(16).toString('hex');
+  let state: string = `${globalState.userId}:${randomStr}`;
+  globalState.setUserIdStateMap(globalState.userId.toString(), randomStr);
   globalState.incrementUserId();
 
   res.redirect(302, CREATE_SPOTIFY_AUTH_URL(state));
 }
-exports.token = async (req, res) => {
-  const { code, error, state } = req.query;
+export const token = async (req: TokenReqQuery, res: Response) => {
+  const { code, state, error } = req.query;
 
   try {
     if (!globalState.isAuthStateValid(state)) {
@@ -60,7 +71,7 @@ exports.token = async (req, res) => {
     }
 
     const { access_token, token_type } = await GET_SPOTIFY_USER_TOKEN(code);
-    const { display_name } = await getSpotifyDisplayName(token_type, access_token);
+    const display_name = await getSpotifyDisplayName(token_type, access_token);
 
     res.json({
       access_token,
@@ -68,58 +79,80 @@ exports.token = async (req, res) => {
       display_name
     });
   } catch (err) {
-    handleServerError(res, err)
+    handleServerError(res, err as Error);
   }
 }
-exports.searchTracks = async (req, res) => {
+export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => {
   const { query, downloader } = req.query;
-  await getGenericSpotifyToken();
+  await SET_GENERIC_SPOTIFY_TOKEN();
 
-  const tracks = await getSpotifyTracks(query);
+  const tracks: SpotifyTrack[] = await getSpotifyTracks(query);
   try {
     attachTrackDownloadStatus(tracks, downloader);
   } catch (err) {
-    handleServerError(res, err);
+    handleServerError(res, err as Error);
     return;
   }
 
   res.json(tracks);
 }
 
-exports.tracksStatus = (req, res) => {
+export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
   const { tracks, downloader } = req.body;
+
   try {
     attachTrackDownloadStatus(tracks, downloader);
   } catch (err) {
-    handleServerError(res, err);
+    handleServerError(res, err as Error);
     return;
   }
   res.json(tracks);
 }
-exports.playlistsStatus = (req, res) => {
-  const { snapshots, downloader } = req.body;
-  const playlistStatuses = {};
 
-  snapshots.forEach(({ playlist_id, snapshot_id }) => {
+export class SpotifyPlaylist {
+  id: string;
+  imageUrl: string;
+  name: string;
+  tracksTotal: number;
+  snapshotId: string;
+  downloadStatus: DownloadStatus;
+  downloader: Downloader;
+
+  constructor(playlist: Record<string, any>) {
+    this.id = playlist['id'];
+    this.imageUrl = playlist['images'][0]['url'];
+    this.name = playlist['name'];
+    this.tracksTotal = playlist['tracks']['total'];
+    this.snapshotId = playlist['snapshot_id'];
+    this.downloadStatus = 'Not Downloaded';
+    this.downloader = 'none';
+  }
+}
+
+export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
+  const { playlists, downloader } = req.body;
+
+  for (const playlist of playlists) {
     const savedSnapshot = downloader === SPOTDL ?
-      globalState.getSpotdlSnapshot(`${downloader}_${playlist_id}`) :
-      globalState.getZotifySnapshot(`${downloader}_${playlist_id}`);
+    globalState.getSpotdlSnapshot(`${downloader}_${playlist.id}`) :
+    globalState.getZotifySnapshot(`${downloader}_${playlist.id}`);
 
-    if (savedSnapshot === snapshot_id) {
-      playlistStatuses[playlist_id] = downloader;
-    } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist_id}`)) {
-      playlistStatuses[playlist_id] = `${downloader}_downloading`;
+    if (savedSnapshot === playlist.snapshotId) {
+      playlist.downloadStatus = 'Downloaded';
+    } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist.id}`)) {
+      playlist.downloadStatus = 'Downloading';
     } else {
       downloader === SPOTDL ?
-        globalState.deleteSpotdlSnapshot(`${downloader}_${playlist_id}`) :
-        globalState.deleteZotifySnapshot(`${downloader}_${playlist_id}`);
-      playlistStatuses[playlist_id] = 'Not Downloaded';
+      globalState.deleteSpotdlSnapshot(`${downloader}_${playlist.id}`) :
+      globalState.deleteZotifySnapshot(`${downloader}_${playlist.id}`);
+      playlist.downloadStatus = 'Not Downloaded';
     }
-  });
+    playlist.downloader = downloader;
+  }
 
-  res.json(playlistStatuses);
+  res.json(playlists);
 }
-exports.availablePlaylistTracks = async (req, res) => {
+export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBody, res: Response) => {
   const {
     access_token,
     token_type,
@@ -153,7 +186,7 @@ exports.availablePlaylistTracks = async (req, res) => {
 
   res.json({ downloaded_tracks: downloadedTracks });
 }
-exports.downloadTrack = async (req, res) => {
+export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) => {
   const { track_url, downloader } = req.body;
   const artists = downloader === SPOTDL ? spotdlFileSanitize(req.body['artists']) : zotifyFileSanitize(req.body['artists']);
   const track_name = downloader === SPOTDL ? spotdlFileSanitize(req.body['track_name']) : zotifyFileSanitize(req.body['track_name']);
@@ -193,11 +226,11 @@ exports.downloadTrack = async (req, res) => {
     const readStream = createReadStream(expectedFilePath);
     readStream.pipe(res);
   } catch (err) {
-    handleServerError(res, err);
+    handleServerError(res, err as Error);
     return;
   }
 }
-exports.downloadPlaylist = async (req, res) => {
+export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Response) => {
   const {
     access_token,
     token_type,
@@ -207,11 +240,11 @@ exports.downloadPlaylist = async (req, res) => {
     downloader
   } = req.body;
 
-  await getGenericSpotifyToken();
+  await SET_GENERIC_SPOTIFY_TOKEN();
 
-  const workerPlaylistId = playlist_id === 'liked_songs' ? `${downloader}_${display_name}_LikedSongs` : `${downloader}_${playlist_id}`;
+  const workerPlaylistId: string = playlist_id === 'liked_songs' ? `${downloader}_${display_name}_LikedSongs` : `${downloader}_${playlist_id}`;
   if (WORKER_POOL.isDownloading(workerPlaylistId)) {
-    const tracksRemaining = WORKER_POOL.tracksRemaining(workerPlaylistId);
+    const tracksRemaining: number = WORKER_POOL.tracksRemaining(workerPlaylistId);
 
     res.status(200).type('text/plain')
       .send(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
@@ -251,11 +284,11 @@ exports.downloadPlaylist = async (req, res) => {
       globalState.setZotifySnapshot(workerPlaylistId, spotifySnapshotId);
     sendArchiveToClient(res, tracks, downloader);
   } catch (err) {
-    handleServerError(res, err);
+    handleServerError(res, err as Error);
     return;
   }
 }
-exports.downloadPlaylistAvailable = async (req, res) => {
+export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableReqBody, res: Response) => {
   const {
     display_name,
     playlist_name,
@@ -267,7 +300,7 @@ exports.downloadPlaylistAvailable = async (req, res) => {
     const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
     const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
     tracks.pop();
-    const downloadedTracks = [];
+    const downloadedTracks: string[] = [];
 
     tracks.forEach((track) => {
       const [ artistsStr, trackName, trackUrl ] = track.split(',');
@@ -285,63 +318,113 @@ exports.downloadPlaylistAvailable = async (req, res) => {
 
     sendArchiveToClient(res, downloadedTracks, downloader);
   } catch (err) {
-    handleServerError(res, err);
+    handleServerError(res, err as Error);
     return;
   }
 }
 
-function handleServerError(res, err) {
+function handleServerError(res: Response, err: Error): void {
   console.log(`${err.stack}`);
   res.status(500).type('text/plain').send(`Internal Server Error: ${err.message}`);
 }
 
-async function getSpotifyDisplayName(tokenType, accessToken) {
-  return await fetch(SPOTIFY_CURRENT_USER_URL, {
-    headers: { 'Authorization': `${tokenType} ${accessToken}`}
-  }).then(res => res.json());
+interface SpotifyCurrentUser {
+  display_name: string;
 }
 
-async function getSpotifyTracks(query) {
-  const _spotifyRes = await fetch(CREATE_SPOTIFY_SEARCH_URL(query), {
+async function getSpotifyDisplayName(tokenType: string, accessToken: string): Promise<string> {
+  const _currentUserRes = await fetch(SPOTIFY_CURRENT_USER_URL, {
+    headers: { 'Authorization': `${tokenType} ${accessToken}`}
+  });
+  const _currentUserData: SpotifyCurrentUser = await _currentUserRes.json();
+
+  return _currentUserData.display_name;
+}
+
+export class SpotifyTrack {
+  albumImgUrl: string;
+  albumName: string;
+  artistNames: string[];
+  name: string;
+  durationMs: number;
+  url: string;
+  isPlayable: boolean;
+  downloadStatus: DownloadStatus;
+  downloader: Downloader;
+
+  constructor(item: Record<string, any>) {
+    this.albumImgUrl = item['album']['images'][1]['url'];
+    this.albumName = item['album']['name'];
+    this.artistNames = item['artists'].map((artist: Record<string, string>) => artist['name']);
+    this.name = item['name'];
+    this.durationMs = item['duration_ms'];
+    this.url = item['external_urls']['spotify'];
+    this.isPlayable = item['is_playable'];
+    this.downloadStatus = 'Not Downloaded';
+    this.downloader = 'none';
+  }
+}
+
+async function getSpotifyTracks(query: string): Promise<SpotifyTrack[]> {
+  const _spotifySearchRes = await fetch(CREATE_SPOTIFY_SEARCH_URL(query), {
     method: 'GET',
     headers: { 'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}` }
-  }).then(res => res.json());
+  });
 
-  return _spotifyRes['tracks']['items'];
+  const _spotifySearchJson: Record<string, any> = await _spotifySearchRes.json();
+  const searchItems: SpotifyTrack[] = _spotifySearchJson['tracks']['items'].map((item: Record<string, any>) => new SpotifyTrack(item));
+  return searchItems;
 }
 
-function attachTrackDownloadStatus(tracks, downloader) {
+function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloader): SpotifyTrack[] {
   tracks.forEach((track) => {
-    const artistNames = track['artists'].map((artist) => artist['name']);
-    const trackName = track['name'];
+    const trackName = track.name;
 
-    const mainArtist = downloader === SPOTDL ? spotdlFileSanitize(artistNames[0]) : zotifyFileSanitize(artistNames[0]);
+    const mainArtist = downloader === SPOTDL ? spotdlFileSanitize(track.artistNames[0]) : zotifyFileSanitize(track.artistNames[0]);
     const trackFileName = downloader === SPOTDL ?
-      spotdlFileSanitize(`${artistNames.join(', ')} - ${trackName}`) :
-      zotifyFileSanitize(`${artistNames.join(', ')} - ${trackName}`);
+      spotdlFileSanitize(`${track.artistNames.join(', ')} - ${trackName}`) :
+      zotifyFileSanitize(`${track.artistNames.join(', ')} - ${trackName}`);
 
     const trackFilePath = downloader === SPOTDL ?
       path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${trackFileName}.${SPOTDL_FORMAT}`) :
       path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${trackFileName}.${ZOTIFY_FORMAT}`);
 
-    track['downloaded'] = Boolean(getFile(trackFilePath)) ? downloader : 'no';
+    if (Boolean(getFile(trackFilePath))) {
+      track.downloadStatus = 'Downloaded';
+      track.downloader = downloader;
+    } else {
+      track.downloadStatus = 'Not Downloaded';
+      track.downloader = 'none';
+    }
   });
   return tracks;
 }
 
-async function getSpotifySnapshotId(playlistId, accessToken, tokenType) {
-  const _snapshotRes = playlistId === 'liked_songs' ? '' : await fetch(CREATE_SPOTIFY_SNAPSHOT_URL(playlistId), {
-    headers: { 'Authorization': `${tokenType} ${accessToken}` }
-  });
-  if (_snapshotRes.status !== 200) {
-    const error = (await _snapshotRes.json())['error'];
-    console.log(error)
-    throw new Error(error.message);
-  }
-  return (await _snapshotRes.json())['snapshot_id'];
+interface SpotifySnapshot {
+  snapshot_id: string;
 }
 
-function isEmptyObj(obj) {
+async function getSpotifySnapshotId(playlistId: string, accessToken: string, tokenType: string): Promise<string> {
+  if (playlistId === 'liked_songs') {
+    return '';
+  }
+
+  const _snapshotRes = await fetch(CREATE_SPOTIFY_SNAPSHOT_URL(playlistId), {
+    headers: { 'Authorization': `${tokenType} ${accessToken}` }
+  });
+
+  if (!_snapshotRes.ok) {
+    const error = (await _snapshotRes.json())['error'];
+    console.log(error);
+    throw new Error(error.message);
+  }
+
+  const spotifySnapshot: SpotifySnapshot = await _snapshotRes.json();
+
+  return spotifySnapshot.snapshot_id;
+}
+
+function isEmptyObj(obj: Record<string, any>): boolean {
   for (const prop in obj) {
     if (Object.hasOwn(obj, prop)) {
       return false;
@@ -351,7 +434,7 @@ function isEmptyObj(obj) {
   return true;
 }
 
-async function singleSpotdlDownload(trackUrl) {
+async function singleSpotdlDownload(trackUrl: string): Promise<string | number> {
   return new Promise((resolve, reject) => {
     const spotdl = spawn(...SPOTDL_ARGS(trackUrl));
 
@@ -373,7 +456,7 @@ async function singleSpotdlDownload(trackUrl) {
   });
 }
 
-async function singleZotifyDownload(trackUrl) {
+async function singleZotifyDownload(trackUrl: string): Promise<string | number> {
   return new Promise((resolve, reject) => {
     const zotify = spawn(...ZOTIFY_ARGS(trackUrl));
 
@@ -395,7 +478,7 @@ async function singleZotifyDownload(trackUrl) {
   });
 }
 
-function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
+function playlistTracksStatus(tracks: string[], playlistId: string, snapshotId: string, downloader: Downloader): boolean {
   let missingSongs = false;
 
   tracks.forEach((track) => {
@@ -411,7 +494,7 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      const track = new DownloadingTrack(trackUrl, artists, sanitizedTrackName);
+      const track = new Track(trackUrl, artists, sanitizedTrackName);
       WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });
@@ -419,22 +502,22 @@ function playlistTracksStatus(tracks, playlistId, snapshotId, downloader) {
   return missingSongs;
 }
 
-function getPlaylistUrl(playlistId) {
+function getPlaylistUrl(playlistId: string): Record<string, string> {
   const _urls = {
-    _nextUrl: null,
+    _nextUrl: '',
     _defaultUrl: playlistId === 'liked_songs' ? CREATE_SPOTIFY_SAVED_TRACKS_URL() : CREATE_SPOTIFY_PLAYLIST_TRACKS_URL(playlistId)
   };
 
   return _urls;
 }
 
-async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessToken) {
+async function writeAllPlaylistSongsToFile(playlistId: string, path: string, tokenType: string, accessToken: string): Promise<string[]> {
   clearFile(path);
   let { _nextUrl, _defaultUrl } = getPlaylistUrl(playlistId);
-  const allTracks = [];
+  const allTracks: string[] = [];
 
   do {
-    const _url = _nextUrl || _defaultUrl;
+    const _url: string = _nextUrl || _defaultUrl;
 
     const _playlistSongsRes = await fetch(_url, {
       headers: { 'Authorization': `${tokenType} ${accessToken}` }
@@ -442,13 +525,13 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
 
     if (isEmptyObj(_playlistSongsRes)) { break; }
 
-    const tracks = _playlistSongsRes['items'].map(item => item['track']);
+    const tracks = _playlistSongsRes['items'].map((item: Record<string, any>) => item['track']);
     _nextUrl = _playlistSongsRes['next'];
 
-    tracks.forEach(({ artists, name, external_urls, is_playable }) => {
+    tracks.forEach(({ artists, name, external_urls, is_playable }: { artists: Array<Record<string, string>>, name: string, external_urls: Record<string, string>, is_playable: boolean }) => {
       if (is_playable) {
-        const artistsStr = artists.map(({ name }) => name).join('~');
-        const track_url = external_urls['spotify'];
+        const artistsStr: string = artists.map(({ name }) => name).join('~');
+        const track_url: string = external_urls['spotify'];
 
         const trackEntry = `${artistsStr},${name},${track_url}`;
         appendToFile(path, `${trackEntry}\n`);
@@ -460,28 +543,28 @@ async function writeAllPlaylistSongsToFile(playlistId, path, tokenType, accessTo
   return allTracks;
 }
 
-function archiveTracks(archive, tracks, downloader) {
-  tracks.forEach((track) => {
+function archiveTracks(archive: Archiver, tracks: string[], downloader: Downloader): void {
+  tracks.forEach((track: string) => {
     if (track.length === 0) {
       return;
     }
 
     const [ artistsStr, trackName, trackUrl ] = track.split(',');
 
-    const sanitizedArtistsStr = downloader === SPOTDL ? spotdlFileSanitize(artistsStr) : zotifyFileSanitize(artistsStr);
-    const sanitizedTrackName = downloader === SPOTDL ? spotdlFileSanitize(trackName) : zotifyFileSanitize(trackName);
+    const sanitizedArtistsStr: string = downloader === SPOTDL ? spotdlFileSanitize(artistsStr) : zotifyFileSanitize(artistsStr);
+    const sanitizedTrackName: string = downloader === SPOTDL ? spotdlFileSanitize(trackName) : zotifyFileSanitize(trackName);
 
-    const artists = sanitizedArtistsStr.split('~');
-    const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
+    const artists: string[] = sanitizedArtistsStr.split('~');
+    const fileName: string = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
-    const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
+    const trackFilePath: string = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
     archive.file(trackFilePath, { name: spotdlFileSanitize(fileName) });
   });
 }
 
-function sendArchiveToClient(res, tracks, downloader) {
+function sendArchiveToClient(res: Response, tracks: string[], downloader: Downloader): void {
   res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
-  const archive = archiver('zip', { zlib: { level: 9 } });
+  const archive: Archiver = archiver('zip', { zlib: { level: 9 } });
   archive.pipe(res);
   archiveTracks(archive, tracks, downloader);
   archive.finalize();

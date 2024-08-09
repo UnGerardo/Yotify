@@ -1,5 +1,6 @@
 .env
 package-lock.json
+**/build
 **/node_modules
 **/spotdl_music
 **/zotify_music
