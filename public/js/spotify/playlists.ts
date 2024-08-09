@@ -1,4 +1,4 @@
-import { SpotifyPlaylist, SpotifyTrack } from "src/controllers/spotifyControllers.js";
+import { SpotifyPlaylist, SpotifyTrack } from "../SpotifyClasses.js";
 import { $setDownloaderBtnListener } from "../downloader.js";
 import { $renderTrack } from "../renderTrack.js";
 import { $createBinaryModal, $createModal } from "../modal.js";
@@ -33,7 +33,7 @@ $setDownloaderBtnListener(async () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ currentPlaylists, downloader: localStorage.getItem('downloader') })
+    body: JSON.stringify({ playlists: currentPlaylists, downloader: localStorage.getItem('downloader') })
   });
 
   currentPlaylists = await _playlistsStatusRes.json();
@@ -60,6 +60,16 @@ $setDownloaderBtnListener(async () => {
     });
   }
 });
+
+interface SpotifyPlayistResJson {
+  href: string;
+  limit: number;
+  next: string | null;
+  offset: number;
+  previous: string | null;
+  total: number;
+  items: Record<string, any>[];
+}
 
 (async () => {
   const url = window.location.href;
@@ -93,17 +103,18 @@ $setDownloaderBtnListener(async () => {
   const _playlistsRes = await fetch(`https://api.spotify.com/v1/me/playlists?${_playlistsParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   });
-  currentPlaylists = (await _playlistsRes.json())['items'];
+  const _playlistResJson: SpotifyPlayistResJson = await _playlistsRes.json();
+  currentPlaylists = _playlistResJson['items'].map((playlist: Record<string, any>) => new SpotifyPlaylist(playlist));
 
-  const snapshots = currentPlaylists.map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
-  const _snapshotRes = await fetch('/spotify/playlists/status', {
+  const _playlistsStatusRes = await fetch('/spotify/playlists/status', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ snapshots, downloader: localStorage.getItem('downloader') })
-  }).then(res => res.json());
+    body: JSON.stringify({ playlists: currentPlaylists, downloader: localStorage.getItem('downloader') })
+  });
 
+  currentPlaylists = await _playlistsStatusRes.json();
   currentPlaylists.forEach(playlist => {
     $renderPlaylist(playlist);
   });
@@ -112,7 +123,7 @@ $setDownloaderBtnListener(async () => {
 function $renderPlaylist(playlist: SpotifyPlaylist) {
   const $playlist = $createElement('section', ['playlist']) as HTMLElement;
   const $img = $createElement('img', ['cover-image'], { src: playlist.imageUrl }) as HTMLImageElement;
-  const $nameP = $createElement('p', ['ellip-overflow'], { innerText: name }) as HTMLParagraphElement;
+  const $nameP = $createElement('p', ['ellip-overflow'], { innerText: playlist.name }) as HTMLParagraphElement;
   const $trackCountP = $createElement('p', ['track-count'], { innerText: playlist.tracksTotal }) as HTMLParagraphElement;
   const $showBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
   const $showImg = $createElement('img', ['download-image'], { src: SHOW_ICON }) as HTMLImageElement;
@@ -133,7 +144,7 @@ function $renderPlaylist(playlist: SpotifyPlaylist) {
     const _playlistRes = await fetch(url, {
       headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
     }).then(res => res.json());
-    const tracks = _playlistRes['items'].map((item) => item['track']);
+    const tracks = _playlistRes['items'].map((item: Record<string, any>) => new SpotifyTrack(item['track']));
 
     const _tracksStatusRes = await fetch('/spotify/tracks/status', {
       method: 'POST',

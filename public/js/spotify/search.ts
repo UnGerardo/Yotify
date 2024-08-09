@@ -1,4 +1,4 @@
-import { SpotifyTrack } from "src/controllers/spotifyControllers.js";
+import { SpotifyTrack } from "../SpotifyClasses.js";
 import { $renderTrack } from "../renderTrack.js";
 import { $setDownloaderBtnListener } from "../downloader.js";
 

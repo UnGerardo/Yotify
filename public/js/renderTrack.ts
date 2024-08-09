@@ -1,4 +1,4 @@
-import { SpotifyTrack } from "src/controllers/spotifyControllers.js";
+import { SpotifyTrack } from "./SpotifyClasses.js";
 import { $createElement } from "./createElement.js";
 import { msTimeFormat } from "./msTimeFormat.js";
 import { $createModal } from "./modal.js";
