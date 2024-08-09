@@ -33,6 +33,8 @@ import {
 } from '../constants.js';
 import {
   AvailablePlaylistTracksReqBody,
+  DownloadPlaylistAvailableReqBody,
+  DownloadPlaylistReqBody,
   DownloadTrackReqBody,
   PlaylistsStatusReqBody,
   SearchTracksReqQuery,
@@ -59,7 +61,6 @@ export const auth = (req: Request, res: Response) => {
 }
 export const token = async (req: TokenReqQuery, res: Response) => {
   const { code, state, error } = req.query;
-  console.log(req.query)
 
   try {
     if (!globalState.isAuthStateValid(state)) {
@@ -85,7 +86,7 @@ export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => 
   const { query, downloader } = req.query;
   await SET_GENERIC_SPOTIFY_TOKEN();
 
-  const tracks = await getSpotifyTracks(query);
+  const tracks: SpotifyTrack[] = await getSpotifyTracks(query);
   try {
     attachTrackDownloadStatus(tracks, downloader);
   } catch (err) {
@@ -98,7 +99,7 @@ export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => 
 
 export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
   const { tracks, downloader } = req.body;
-  console.log(req.body)
+
   try {
     attachTrackDownloadStatus(tracks, downloader);
   } catch (err) {
@@ -113,6 +114,7 @@ export class SpotifyPlaylist {
   imageUrl: string;
   name: string;
   tracksTotal: number;
+  snapshotId: string;
   downloadStatus: DownloadStatus;
   downloader: Downloader;
 
@@ -121,33 +123,34 @@ export class SpotifyPlaylist {
     this.imageUrl = playlist['images'][0]['url'];
     this.name = playlist['name'];
     this.tracksTotal = playlist['tracks']['total'];
+    this.snapshotId = playlist['snapshot_id'];
     this.downloadStatus = 'Not Downloaded';
     this.downloader = 'none';
   }
 }
 
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
-  const { snapshots, downloader } = req.body;
-  const playlistStatuses: Record<string, string> = {};
+  const { playlists, downloader } = req.body;
 
-  snapshots.forEach(({ playlist_id, snapshot_id }) => {
+  for (const playlist of playlists) {
     const savedSnapshot = downloader === SPOTDL ?
-      globalState.getSpotdlSnapshot(`${downloader}_${playlist_id}`) :
-      globalState.getZotifySnapshot(`${downloader}_${playlist_id}`);
+    globalState.getSpotdlSnapshot(`${downloader}_${playlist.id}`) :
+    globalState.getZotifySnapshot(`${downloader}_${playlist.id}`);
 
-    if (savedSnapshot === snapshot_id) {
-      playlistStatuses[playlist_id] = downloader;
-    } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist_id}`)) {
-      playlistStatuses[playlist_id] = `${downloader}_downloading`;
+    if (savedSnapshot === playlist.snapshotId) {
+      playlist.downloadStatus = 'Downloaded';
+    } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist.id}`)) {
+      playlist.downloadStatus = 'Downloading';
     } else {
       downloader === SPOTDL ?
-        globalState.deleteSpotdlSnapshot(`${downloader}_${playlist_id}`) :
-        globalState.deleteZotifySnapshot(`${downloader}_${playlist_id}`);
-      playlistStatuses[playlist_id] = 'Not Downloaded';
+      globalState.deleteSpotdlSnapshot(`${downloader}_${playlist.id}`) :
+      globalState.deleteZotifySnapshot(`${downloader}_${playlist.id}`);
+      playlist.downloadStatus = 'Not Downloaded';
     }
-  });
+    playlist.downloader = downloader;
+  }
 
-  res.json(playlistStatuses);
+  res.json(playlists);
 }
 export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBody, res: Response) => {
   const {
@@ -227,7 +230,7 @@ export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) =>
     return;
   }
 }
-export const downloadPlaylist = async (req: Request, res: Response) => {
+export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Response) => {
   const {
     access_token,
     token_type,
@@ -285,7 +288,7 @@ export const downloadPlaylist = async (req: Request, res: Response) => {
     return;
   }
 }
-export const downloadPlaylistAvailable = async (req: Request, res: Response) => {
+export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableReqBody, res: Response) => {
   const {
     display_name,
     playlist_name,
@@ -375,7 +378,7 @@ async function getSpotifyTracks(query: string): Promise<SpotifyTrack[]> {
   return searchItems;
 }
 
-function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloader) {
+function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloader): SpotifyTrack[] {
   tracks.forEach((track) => {
     const trackName = track.name;
 
@@ -423,7 +426,7 @@ async function getSpotifySnapshotId(playlistId: string, accessToken: string, tok
   return spotifySnapshot.snapshot_id;
 }
 
-function isEmptyObj(obj: Record<string, any>): Boolean {
+function isEmptyObj(obj: Record<string, any>): boolean {
   for (const prop in obj) {
     if (Object.hasOwn(obj, prop)) {
       return false;
