@@ -341,8 +341,6 @@ async function getSpotifyDisplayName(tokenType: string, accessToken: string): Pr
   return _currentUserData.display_name;
 }
 
-type DownloadStatus = 'Not Downloaded' | 'Downloaded' | 'Downloading';
-
 export class SpotifyTrack {
   albumImgUrl: string;
   albumName: string;
