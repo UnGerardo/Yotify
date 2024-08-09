@@ -3,7 +3,16 @@ import { $setDownloaderBtnListener } from "../downloader.js";
 import { $renderTrack } from "../renderTrack.js";
 import { $createBinaryModal, $createModal } from "../modal.js";
 import { $createElement } from "../createElement.js";
-import { SPOTDL, SPOTDL_DOWNLOADED_ICON, SPOTIFY_PLAYLIST_FIELDS, DOWNLOAD_ICON, SPOTDL_DOWNLOADING_ICON, ZOTIFY_DOWNLOADED_ICON, ZOTIFY_DOWNLOADING_ICON, SHOW_ICON } from "../constants.js";
+import {
+  SPOTDL,
+  SPOTDL_DOWNLOADED_ICON,
+  SPOTIFY_PLAYLIST_FIELDS,
+  DOWNLOAD_ICON,
+  SPOTDL_DOWNLOADING_ICON,
+  ZOTIFY_DOWNLOADED_ICON,
+  ZOTIFY_DOWNLOADING_ICON,
+  SHOW_ICON
+} from "../constants.js";
 
 let SPOTIFY_ACCESS_TOKEN: string = '';
 let SPOTIFY_TOKEN_TYPE: string = '';
@@ -19,15 +28,15 @@ $setDownloaderBtnListener(async () => {
     $playlists.removeChild($playlists.lastElementChild!);
   }
 
-  const snapshots = currentPlaylists.map((playlist) => ({ playlist_id: playlist['id'], snapshot_id: playlist['snapshot_id'] }));
-  const _snapshotRes = await fetch('/spotify/playlists/status', {
+  const _playlistsStatusRes = await fetch('/spotify/playlists/status', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ snapshots, downloader: localStorage.getItem('downloader') })
-  }).then(res => res.json());
+    body: JSON.stringify({ currentPlaylists, downloader: localStorage.getItem('downloader') })
+  });
 
+  currentPlaylists = await _playlistsStatusRes.json();
   currentPlaylists.forEach(playlist => {
     $renderPlaylist(playlist);
   });
