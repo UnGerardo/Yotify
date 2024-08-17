@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { randomInt } from 'crypto';
 import { renameSync } from 'node:fs';
 import path from 'path';
-import { APP_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT, ZOTIFY_WAIT_MIN, ZOTIFY_WAIT_MAX } from './constants';
+import { ROOT_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT, ZOTIFY_WAIT_MIN, ZOTIFY_WAIT_MAX } from './constants';
 import Track from './Track';
 
 if (parentPort) {
@@ -21,8 +21,8 @@ if (parentPort) {
 
       zotifyInst.on('close', (code) => {
         const mainArtist = track.artists[0];
-        const expectedFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${ZOTIFY_FORMAT}`);
-        const desiredFilePath = path.join(APP_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${ZOTIFY_FORMAT}`);
+        const expectedFilePath = path.join(ROOT_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${ZOTIFY_FORMAT}`);
+        const desiredFilePath = path.join(ROOT_DIR_PATH, ZOTIFY_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${ZOTIFY_FORMAT}`);
         renameSync(expectedFilePath, desiredFilePath);
 
         if (parentPort){

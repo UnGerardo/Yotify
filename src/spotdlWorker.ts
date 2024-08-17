@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { randomInt } from 'crypto';
 import { renameSync } from 'node:fs';
 import path from 'path';
-import { APP_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } from './constants';
+import { ROOT_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } from './constants';
 import Track from './Track';
 
 if (parentPort) {
@@ -21,8 +21,8 @@ if (parentPort) {
 
       spotdlInst.on('close', (code) => {
         const mainArtist = track.artists[0];
-        const expectedFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${SPOTDL_FORMAT}`);
-        const desiredFilePath = path.join(APP_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${SPOTDL_FORMAT}`);
+        const expectedFilePath = path.join(ROOT_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${mainArtist} - ${track.name}.${SPOTDL_FORMAT}`);
+        const desiredFilePath = path.join(ROOT_DIR_PATH, SPOTDL_DIR, `${mainArtist}/${track.artists.join(', ')} - ${track.name}.${SPOTDL_FORMAT}`);
         renameSync(expectedFilePath, desiredFilePath);
 
         if (parentPort) {

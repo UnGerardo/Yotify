@@ -2,7 +2,7 @@
 import path from 'path';
 import { Worker } from 'worker_threads';
 import globalState from './globalState.js';
-import { APP_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from './constants.js';
+import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from './constants.js';
 import Playlist from './Playlist.js';
 import Track from './Track.js';
 
@@ -30,8 +30,8 @@ export default class WorkerPool {
 
   createWorker(playlist: Playlist, track: Track): Worker {
     const worker = playlist.downloader === SPOTDL ?
-      new Worker(path.join(APP_DIR_PATH, 'app', 'spotdlWorker.js')) :
-      new Worker(path.join(APP_DIR_PATH, 'app', 'zotifyWorker.js'));
+      new Worker(path.join(ROOT_DIR_PATH, 'app', 'spotdlWorker.js')) :
+      new Worker(path.join(ROOT_DIR_PATH, 'app', 'zotifyWorker.js'));
     let isHandled = false;
 
     const handleWorker = (status: WorkerStatus) => {

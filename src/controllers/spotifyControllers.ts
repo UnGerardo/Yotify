@@ -10,7 +10,7 @@ import globalState from '../globalState.js';
 import { getFile, clearFile, appendToFile } from '../fileOperations.js';
 import WorkerPool from '../WorkerPool.js';
 import {
-  APP_DIR_PATH,
+  ROOT_DIR_PATH,
   SPOTDL_DIR,
   PLAYLIST_FILES_DIR,
   DOWNLOAD_THREADS,
@@ -45,10 +45,10 @@ import {
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
 export const search = (req: Request, res: Response) => {
-  res.sendFile(path.join(APP_DIR_PATH, 'views/spotify/search.html'));
+  res.sendFile(path.join(ROOT_DIR_PATH, 'views/spotify/search.html'));
 }
 export const playlists = (req: Request, res: Response) => {
-  res.sendFile(path.join(APP_DIR_PATH, 'views/spotify/playlists.html'));
+  res.sendFile(path.join(ROOT_DIR_PATH, 'views/spotify/playlists.html'));
 }
 
 export const auth = (req: Request, res: Response) => {
@@ -165,7 +165,7 @@ export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBod
   let downloadedTracks = 0;
 
   const correctedPlaylistName = playlist_name.replace(/([^a-zA-Z0-9_ ]+)/gi, '-');
-  const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
+  const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
   const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
 
   tracks.forEach((track) => {
@@ -176,7 +176,7 @@ export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBod
     const artists = sanitizedArtistsStr.split('~');
     const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
-    const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
+    const trackFilePath = path.join(ROOT_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
 
     const file = getFile(trackFilePath);
     if (file) {
@@ -193,8 +193,8 @@ export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) =>
   const mainArtist = artists.split(', ')[0];
 
   const expectedFilePath = downloader === SPOTDL ?
-    path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${artists} - ${track_name}.${SPOTDL_FORMAT}`) :
-    path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${artists} - ${track_name}.${ZOTIFY_FORMAT}`);
+    path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${artists} - ${track_name}.${SPOTDL_FORMAT}`) :
+    path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${artists} - ${track_name}.${ZOTIFY_FORMAT}`);
 
   try {
     let fileInfo = getFile(expectedFilePath);
@@ -204,8 +204,8 @@ export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) =>
         await singleZotifyDownload(track_url);
 
       const downloadFilePath = downloader === SPOTDL ?
-        path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${mainArtist} - ${track_name}.${SPOTDL_FORMAT}`) :
-        path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${mainArtist} - ${track_name}.${ZOTIFY_FORMAT}`);
+        path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${mainArtist} - ${track_name}.${SPOTDL_FORMAT}`) :
+        path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${mainArtist} - ${track_name}.${ZOTIFY_FORMAT}`);
 
       fileInfo = getFile(downloadFilePath);
       if (!fileInfo) {
@@ -252,9 +252,9 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
   }
 
   try {
-    mkdirSync(path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR), { recursive: true });
+    mkdirSync(path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR), { recursive: true });
     const correctedPlaylistName = playlist_name.replace(/([^a-zA-Z0-9_ ]+)/gi, '-');
-    const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
 
     const spotifySnapshotId = await getSpotifySnapshotId(playlist_id, access_token, token_type);
     const savedSnapshotId = downloader === SPOTDL ?
@@ -297,7 +297,7 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
 
   try {
     const correctedPlaylistName = playlist_name.replace(/([^a-zA-Z0-9_ ]+)/gi, '-');
-    const playlistFilePath = path.join(APP_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
     const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
     tracks.pop();
     const downloadedTracks: string[] = [];
@@ -310,7 +310,7 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
       const artists = sanitizedArtistsStr.split('~');
       const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
-      const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
+      const trackFilePath = path.join(ROOT_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
       if (Boolean(getFile(trackFilePath))) {
         downloadedTracks.push(track);
       }
@@ -386,8 +386,8 @@ function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloade
       zotifyFileSanitize(`${track.artistNames.join(', ')} - ${trackName}`);
 
     const trackFilePath = downloader === SPOTDL ?
-      path.join(APP_DIR_PATH, SPOTDL_DIR, mainArtist, `${trackFileName}.${SPOTDL_FORMAT}`) :
-      path.join(APP_DIR_PATH, ZOTIFY_DIR, mainArtist, `${trackFileName}.${ZOTIFY_FORMAT}`);
+      path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${trackFileName}.${SPOTDL_FORMAT}`) :
+      path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${trackFileName}.${ZOTIFY_FORMAT}`);
 
     if (Boolean(getFile(trackFilePath))) {
       track.downloadStatus = 'Downloaded';
@@ -489,7 +489,7 @@ function playlistTracksStatus(tracks: string[], playlistId: string, snapshotId: 
     const artists = sanitizedArtistsStr.split('~');
     const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
-    const trackFilePath = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
+    const trackFilePath = path.join(ROOT_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
 
     const file = getFile(trackFilePath);
     if (!file) {
@@ -557,7 +557,7 @@ function archiveTracks(archive: Archiver, tracks: string[], downloader: Download
     const artists: string[] = sanitizedArtistsStr.split('~');
     const fileName: string = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
-    const trackFilePath: string = path.join(APP_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
+    const trackFilePath: string = path.join(ROOT_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
     archive.file(trackFilePath, { name: spotdlFileSanitize(fileName) });
   });
 }
