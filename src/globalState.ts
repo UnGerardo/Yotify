@@ -1,16 +1,22 @@
+import { SPOTDL } from "./constants";
 
 class GlobalState {
-  #spotifyToken: string = '';
-  #spotifyTokenType: string = '';
-  #spotifyTokenExpiry: number = 0;
-
-  #userIdStateMap: Map<string, string> = new Map();
-  #userId: number = 0;
-
-  #spotdlSnapshots: Map<string, string> = new Map();
-  #zotifySnapshots: Map<string, string> = new Map();
-
   static instance: GlobalState;
+
+  spotifyToken: string = '';
+  spotifyTokenType: string = '';
+  spotifyTokenExpiry: number = 0;
+
+  userId: number = 0;
+  userIdStateMap: Map<number, string> = new Map<number, string>();
+
+  snapshots: {
+    'spotdl': Map<string, string>,
+    'zotify': Map<string, string>
+  } = {
+    'spotdl': new Map<string, string>(),
+    'zotify': new Map<string, string>()
+  };
 
   constructor() {
     if (!GlobalState.instance) {
@@ -19,36 +25,33 @@ class GlobalState {
     return GlobalState.instance;
   }
 
-  get spotifyToken() { return this.#spotifyToken; }
-  set spotifyToken(token) { this.#spotifyToken = token; }
+  getSnapshot(downloader: Downloader, playlistId: string): string | undefined {
+    return downloader === SPOTDL ? this.snapshots.spotdl.get(playlistId) : this.snapshots.zotify.get(playlistId);
+  }
+  setSnapshot(downloader: Downloader, playlistId: string, snapshotId: string): void {
+    if (downloader === SPOTDL) {
+      this.snapshots.spotdl.set(playlistId, snapshotId);
+    } else {
+      this.snapshots.zotify.set(playlistId, snapshotId);
+    }
+  }
+  deleteSnapshot(downloader: Downloader, playlistId: string): void {
+    if (downloader === SPOTDL) {
+      this.snapshots.spotdl.delete(playlistId);
+    } else {
+      this.snapshots.zotify.delete(playlistId);
+    }
+  }
 
-  get spotifyTokenType() { return this.#spotifyTokenType; }
-  set spotifyTokenType(type) { this.#spotifyTokenType = type; }
+  isAuthStateValid(retrievedState: string): boolean {
+    const splitState = retrievedState.split(':');
+    const retrievedUserId: number = parseInt(splitState[0]);
+    const retrievedStr: string = splitState[1];
 
-  get spotifyTokenExpiry() { return this.#spotifyTokenExpiry; }
-  set spotifyTokenExpiry(time) { this.#spotifyTokenExpiry = time; }
+    const savedStr = this.userIdStateMap.get(retrievedUserId);
+    this.userIdStateMap.delete(retrievedUserId);
 
-  getUserIdStateMap(userId: string): string | undefined { return this.#userIdStateMap.get(userId); }
-  setUserIdStateMap(userId: string, string: string): void { this.#userIdStateMap.set(userId, string); }
-  deleteUserIdStateMap(userId: string): void { this.#userIdStateMap.delete(userId); }
-
-  get userId(): number { return this.#userId; }
-  incrementUserId(): void { this.#userId++; }
-
-  getSpotdlSnapshot(playlistId: string): string | undefined { return this.#spotdlSnapshots.get(playlistId); }
-  setSpotdlSnapshot(playlistId: string, snapshotId: string): void { this.#spotdlSnapshots.set(playlistId, snapshotId); }
-  deleteSpotdlSnapshot(playlistId: string): void { this.#spotdlSnapshots.delete(playlistId); }
-
-  getZotifySnapshot(playlistId: string): string | undefined { return this.#zotifySnapshots.get(playlistId); }
-  setZotifySnapshot(playlistId: string, snapshotId: string): void { this.#zotifySnapshots.set(playlistId, snapshotId); }
-  deleteZotifySnapshot(playlistId: string): void { this.#zotifySnapshots.delete(playlistId); }
-
-  isAuthStateValid(state: string): boolean {
-    const [ stateUserId, spotifyState ] = state.split(':');
-    const savedState = this.getUserIdStateMap(stateUserId);
-    this.deleteUserIdStateMap(stateUserId);
-
-    return spotifyState === savedState;
+    return retrievedStr === savedStr;
   }
 }
 

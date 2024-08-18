@@ -53,9 +53,8 @@ export const playlists = (req: Request, res: Response) => {
 
 export const auth = (req: Request, res: Response) => {
   const randomStr: string = randomBytes(16).toString('hex');
-  let state: string = `${globalState.userId}:${randomStr}`;
-  globalState.setUserIdStateMap(globalState.userId.toString(), randomStr);
-  globalState.incrementUserId();
+  const state: string = `${globalState.userId}:${randomStr}`;
+  globalState.userIdStateMap.set(globalState.userId++, randomStr);
 
   res.redirect(302, CREATE_SPOTIFY_AUTH_URL(state));
 }
@@ -133,18 +132,14 @@ export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
   const { playlists, downloader } = req.body;
 
   for (const playlist of playlists) {
-    const savedSnapshot = downloader === SPOTDL ?
-    globalState.getSpotdlSnapshot(`${downloader}_${playlist.id}`) :
-    globalState.getZotifySnapshot(`${downloader}_${playlist.id}`);
+    const savedSnapshot = globalState.getSnapshot(downloader, playlist.id);
 
     if (savedSnapshot === playlist.snapshotId) {
       playlist.downloadStatus = 'Downloaded';
     } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist.id}`)) {
       playlist.downloadStatus = 'Downloading';
     } else {
-      downloader === SPOTDL ?
-      globalState.deleteSpotdlSnapshot(`${downloader}_${playlist.id}`) :
-      globalState.deleteZotifySnapshot(`${downloader}_${playlist.id}`);
+      globalState.deleteSnapshot(downloader, playlist.id);
       playlist.downloadStatus = 'Not Downloaded';
     }
     playlist.downloader = downloader;
@@ -242,7 +237,7 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
 
   await SET_GENERIC_SPOTIFY_TOKEN();
 
-  const workerPlaylistId: string = playlist_id === 'liked_songs' ? `${downloader}_${display_name}_LikedSongs` : `${downloader}_${playlist_id}`;
+  const workerPlaylistId: string = playlist_id === 'liked_songs' ? `${display_name}_LikedSongs` : playlist_id;
   if (WORKER_POOL.isDownloading(workerPlaylistId)) {
     const tracksRemaining: number = WORKER_POOL.tracksRemaining(workerPlaylistId);
 
@@ -257,9 +252,7 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
     const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${correctedPlaylistName}.txt`);
 
     const spotifySnapshotId = await getSpotifySnapshotId(playlist_id, access_token, token_type);
-    const savedSnapshotId = downloader === SPOTDL ?
-      globalState.getSpotdlSnapshot(workerPlaylistId) :
-      globalState.getZotifySnapshot(workerPlaylistId);
+    const savedSnapshotId = globalState.getSnapshot(downloader, workerPlaylistId);
 
     if (spotifySnapshotId === savedSnapshotId) {
       const tracks = readFileSync(playlistFilePath, 'utf-8').split('\n');
@@ -267,9 +260,7 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
       sendArchiveToClient(res, tracks, downloader);
       return;
     }
-    downloader === SPOTDL ?
-      globalState.deleteSpotdlSnapshot(workerPlaylistId) :
-      globalState.deleteZotifySnapshot(workerPlaylistId);
+    globalState.deleteSnapshot(downloader, workerPlaylistId);
 
     const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
     const missingSongs = playlistTracksStatus(tracks, workerPlaylistId, spotifySnapshotId, downloader);
@@ -279,9 +270,7 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
       return;
     }
 
-    downloader === SPOTDL ?
-      globalState.setSpotdlSnapshot(workerPlaylistId, spotifySnapshotId) :
-      globalState.setZotifySnapshot(workerPlaylistId, spotifySnapshotId);
+    globalState.setSnapshot(downloader, workerPlaylistId, spotifySnapshotId);
     sendArchiveToClient(res, tracks, downloader);
   } catch (err) {
     handleServerError(res, err as Error);
