@@ -3,19 +3,19 @@ import path from 'path';
 import { Worker } from 'worker_threads';
 import globalState from './globalState.js';
 import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from './constants.js';
-import Playlist from './Playlist.js';
-import Track from './Track.js';
+import DownloadingPlaylist from './DownloadingPlaylist.js';
+import DownloadingTrack from './DownloadingTrack.js';
 
 type WorkerStatus = 'success' | 'error';
 
 export default class WorkerPool {
   numThreads: number;
   downloadingPlaylists:  {
-    'spotdl': Map<string, Playlist>,
-    'zotify': Map<string, Playlist>
+    'spotdl': Map<string, DownloadingPlaylist>,
+    'zotify': Map<string, DownloadingPlaylist>
   } = {
-    'spotdl': new Map<string, Playlist>(),
-    'zotify': new Map<string, Playlist>()
+    'spotdl': new Map<string, DownloadingPlaylist>(),
+    'zotify': new Map<string, DownloadingPlaylist>()
   };
   activeSpotdlWorkers: number;
   activeZotifyWorkers: number;
@@ -26,10 +26,10 @@ export default class WorkerPool {
     this.activeZotifyWorkers = 0;
   }
 
-  private getDownloadingPlaylist(downloader: Downloader, playlistId: string): Playlist | undefined {
+  private getDownloadingPlaylist(downloader: Downloader, playlistId: string): DownloadingPlaylist | undefined {
     return downloader === SPOTDL ? this.downloadingPlaylists.spotdl.get(playlistId) : this.downloadingPlaylists.zotify.get(playlistId);
   }
-  private setDownloadingPlaylist(downloader: Downloader, playlist: Playlist): void {
+  private setDownloadingPlaylist(downloader: Downloader, playlist: DownloadingPlaylist): void {
     downloader === SPOTDL ? this.downloadingPlaylists.spotdl.set(playlist.id, playlist) : this.downloadingPlaylists.zotify.set(playlist.id, playlist);
   }
   private removeDownloadingPlaylist(downloader: Downloader, playlistId: string): void {
@@ -43,7 +43,7 @@ export default class WorkerPool {
     downloader === SPOTDL ? this.activeSpotdlWorkers-- : this.activeZotifyWorkers--;
   }
 
-  private createWorker(playlist: Playlist, track: Track): Worker {
+  private createWorker(playlist: DownloadingPlaylist, track: DownloadingTrack): Worker {
     const worker = playlist.downloader === SPOTDL ?
       new Worker(path.join(ROOT_DIR_PATH, 'app', 'spotdlWorker.js')) :
       new Worker(path.join(ROOT_DIR_PATH, 'app', 'zotifyWorker.js'));
@@ -92,7 +92,7 @@ export default class WorkerPool {
     return worker;
   }
 
-  addTask(track: Track, playlist_id: string, snapshot_id: string, downloader: Downloader): void {
+  addTask(track: DownloadingTrack, playlist_id: string, snapshot_id: string, downloader: Downloader): void {
     const playlist = this.getDownloadingPlaylist(downloader, playlist_id);
     if (playlist) {
       playlist.tracks.push(track);
@@ -100,7 +100,7 @@ export default class WorkerPool {
       return;
     }
 
-    this.setDownloadingPlaylist(downloader, new Playlist(playlist_id, snapshot_id, downloader, track));
+    this.setDownloadingPlaylist(downloader, new DownloadingPlaylist(playlist_id, snapshot_id, downloader, track));
     this.runNext();
   }
 
@@ -139,7 +139,7 @@ export default class WorkerPool {
   }
 }
 
-function removeTrack(playlist: Playlist, track: Track): void {
+function removeTrack(playlist: DownloadingPlaylist, track: DownloadingTrack): void {
   for (let i = 0; i < playlist.tracks.length; i++) {
     if (playlist.tracks[i].url === track.url) {
       playlist.tracks.splice(i, 1);

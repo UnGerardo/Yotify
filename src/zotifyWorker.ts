@@ -5,10 +5,10 @@ import { randomInt } from 'crypto';
 import { renameSync } from 'node:fs';
 import path from 'path';
 import { ROOT_DIR_PATH, ZOTIFY_DIR, ZOTIFY, ZOTIFY_ARGS, ZOTIFY_FORMAT, ZOTIFY_WAIT_MIN, ZOTIFY_WAIT_MAX } from './constants';
-import Track from './Track';
+import DownloadingTrack from './DownloadingTrack';
 
 if (parentPort) {
-  parentPort.on('message', (track: Track) => {
+  parentPort.on('message', (track: DownloadingTrack) => {
     const wait: number = randomInt(ZOTIFY_WAIT_MIN, ZOTIFY_WAIT_MAX);
     setTimeout(() => {
       console.log(`Worker started: ${ZOTIFY} | ${track.url} | ${track.artists} | ${track.name}`);

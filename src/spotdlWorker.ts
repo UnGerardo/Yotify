@@ -5,10 +5,10 @@ import { randomInt } from 'crypto';
 import { renameSync } from 'node:fs';
 import path from 'path';
 import { ROOT_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } from './constants';
-import Track from './Track';
+import DownloadingTrack from './DownloadingTrack';
 
 if (parentPort) {
-  parentPort.on('message', (track: Track) => {
+  parentPort.on('message', (track: DownloadingTrack) => {
     const wait: number = randomInt(SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX);
     setTimeout(() => {
       console.log(`Worker started: ${SPOTDL} | ${track.url} | ${track.artists} | ${track.name}`);

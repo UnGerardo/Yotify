@@ -1,15 +1,14 @@
-
-import Track from "./Track";
+import DownloadingTrack from "./DownloadingTrack";
 
 export default class DownloadingPlaylist {
   id: string;
   snapshotId: string;
   downloader: Downloader
-  tracks: Track[];
+  tracks: DownloadingTrack[];
   skippedTracks: boolean;
 
-  constructor(playlistId: string, snapshotId: string, downloader: Downloader, track: Track) {
-    this.id = playlistId; // format ${downloader}_{id}
+  constructor(playlistId: string, snapshotId: string, downloader: Downloader, track: DownloadingTrack) {
+    this.id = playlistId;
     this.snapshotId = snapshotId;
     this.downloader = downloader;
     this.tracks = [track];

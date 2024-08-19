@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import { createReadStream, mkdirSync, renameSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import Track from '../Track.js';
+import DownloadingTrack from '../DownloadingTrack.js';
 import globalState from '../globalState.js';
 import { getFile, clearFile, appendToFile } from '../fileOperations.js';
 import WorkerPool from '../WorkerPool.js';
@@ -483,7 +483,7 @@ function playlistTracksStatus(tracks: string[], playlistId: string, snapshotId: 
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      const track = new Track(trackUrl, artists, sanitizedTrackName);
+      const track = new DownloadingTrack(trackUrl, artists, sanitizedTrackName);
       WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });
