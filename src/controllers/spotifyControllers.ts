@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { createReadStream, mkdirSync, renameSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import SpotifyTrack from 'src/classes/SpotifyTrack';
 import DownloadingTrack from '../classes/DownloadingTrack';
 import globalState from '../classes/GlobalState';
 import { getFile, clearFile, appendToFile } from '../fileOperations.js';
@@ -106,26 +107,6 @@ export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
     return;
   }
   res.json(tracks);
-}
-
-export class SpotifyPlaylist {
-  id: string;
-  imageUrl: string;
-  name: string;
-  tracksTotal: number;
-  snapshotId: string;
-  downloadStatus: DownloadStatus;
-  downloader: Downloader;
-
-  constructor(playlist: Record<string, any>) {
-    this.id = playlist['id'];
-    this.imageUrl = playlist['images'][0]['url'];
-    this.name = playlist['name'];
-    this.tracksTotal = playlist['tracks']['total'];
-    this.snapshotId = playlist['snapshot_id'];
-    this.downloadStatus = 'Not Downloaded';
-    this.downloader = 'none';
-  }
 }
 
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
@@ -328,30 +309,6 @@ async function getSpotifyDisplayName(tokenType: string, accessToken: string): Pr
   const _currentUserData: SpotifyCurrentUser = await _currentUserRes.json();
 
   return _currentUserData.display_name;
-}
-
-export class SpotifyTrack {
-  albumImgUrl: string;
-  albumName: string;
-  artistNames: string[];
-  name: string;
-  durationMs: number;
-  url: string;
-  isPlayable: boolean;
-  downloadStatus: DownloadStatus;
-  downloader: Downloader;
-
-  constructor(item: Record<string, any>) {
-    this.albumImgUrl = item['album']['images'][1]['url'];
-    this.albumName = item['album']['name'];
-    this.artistNames = item['artists'].map((artist: Record<string, string>) => artist['name']);
-    this.name = item['name'];
-    this.durationMs = item['duration_ms'];
-    this.url = item['external_urls']['spotify'];
-    this.isPlayable = item['is_playable'];
-    this.downloadStatus = 'Not Downloaded';
-    this.downloader = 'none';
-  }
 }
 
 async function getSpotifyTracks(query: string): Promise<SpotifyTrack[]> {
