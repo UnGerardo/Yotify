@@ -6,12 +6,10 @@ import {
   availablePlaylistTracks,
   downloadPlaylist,
   downloadPlaylistAvailable,
-  downloadTrack,
   playlistsStatus,
-  searchTracks,
-  tracksStatus
 } from '../controllers/spotifyControllers.js';
 import { auth, token } from 'src/controllers/spotifyAuthControllers.js';
+import { downloadTrack, searchTracks, tracksStatus } from 'src/controllers/spotifyTrackController.js';
 
 const router = express.Router();
 
@@ -24,12 +22,13 @@ router.get('/playlists', (req: Request, res: Response) => {
 
 router.get('/auth', auth);
 router.get('/token', token);
-router.get('/search/tracks', searchTracks);
 
+router.get('/search/tracks', searchTracks);
 router.post('/tracks/status', tracksStatus);
+router.post('/download/track', downloadTrack);
+
 router.post('/playlists/status', playlistsStatus);
 router.post('/playlist/tracks/available', availablePlaylistTracks);
-router.post('/download/track', downloadTrack);
 router.post('/download/playlist', downloadPlaylist);
 router.post('/download/playlist/available', downloadPlaylistAvailable);
 

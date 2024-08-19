@@ -1,10 +1,9 @@
 import archiver, { Archiver } from 'archiver';
 import { spawn } from 'node:child_process';
-import { Request, Response } from 'express';
-import { createReadStream, mkdirSync, renameSync, readFileSync } from 'node:fs';
+import { Response } from 'express';
+import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import SpotifyTrack from 'src/classes/SpotifyTrack';
 import DownloadingTrack from '../classes/DownloadingTrack';
 import globalState from '../classes/GlobalState';
 import { getFile, clearFile, appendToFile } from '../utils/fileOperations.js';
@@ -15,13 +14,9 @@ import {
   SPOTDL_DIR,
   PLAYLIST_FILES_DIR,
   DOWNLOAD_THREADS,
-  SPOTIFY_CURRENT_USER_URL,
-  CREATE_SPOTIFY_AUTH_URL,
-  CREATE_SPOTIFY_SEARCH_URL,
   CREATE_SPOTIFY_SNAPSHOT_URL,
   CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
   CREATE_SPOTIFY_SAVED_TRACKS_URL,
-  GET_SPOTIFY_USER_TOKEN,
   SPOTDL_ARGS,
   SPOTDL_FORMAT,
   ZOTIFY_ARGS,
@@ -36,41 +31,10 @@ import {
   AvailablePlaylistTracksReqBody,
   DownloadPlaylistAvailableReqBody,
   DownloadPlaylistReqBody,
-  DownloadTrackReqBody,
   PlaylistsStatusReqBody,
-  SearchTracksReqQuery,
-  TokenReqQuery,
-  TracksStatusReqBody
 } from 'src/RequestInterfaces.js';
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
-
-export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => {
-  const { query, downloader } = req.query;
-  await SET_GENERIC_SPOTIFY_TOKEN();
-
-  const tracks: SpotifyTrack[] = await getSpotifyTracks(query);
-  try {
-    attachTrackDownloadStatus(tracks, downloader);
-  } catch (err) {
-    handleServerError(res, err as Error);
-    return;
-  }
-
-  res.json(tracks);
-}
-
-export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
-  const { tracks, downloader } = req.body;
-
-  try {
-    attachTrackDownloadStatus(tracks, downloader);
-  } catch (err) {
-    handleServerError(res, err as Error);
-    return;
-  }
-  res.json(tracks);
-}
 
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
   const { playlists, downloader } = req.body;
@@ -125,50 +89,7 @@ export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBod
 
   res.json({ downloaded_tracks: downloadedTracks });
 }
-export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) => {
-  const { track_url, downloader } = req.body;
-  const artists = downloader === SPOTDL ? spotdlFileSanitize(req.body['artists']) : zotifyFileSanitize(req.body['artists']);
-  const track_name = downloader === SPOTDL ? spotdlFileSanitize(req.body['track_name']) : zotifyFileSanitize(req.body['track_name']);
-  const mainArtist = artists.split(', ')[0];
 
-  const expectedFilePath = downloader === SPOTDL ?
-    path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${artists} - ${track_name}.${SPOTDL_FORMAT}`) :
-    path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${artists} - ${track_name}.${ZOTIFY_FORMAT}`);
-
-  try {
-    let fileInfo = getFile(expectedFilePath);
-    if (!fileInfo) {
-      const downloadOutput = downloader === SPOTDL ?
-        await singleSpotdlDownload(track_url) :
-        await singleZotifyDownload(track_url);
-
-      const downloadFilePath = downloader === SPOTDL ?
-        path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${mainArtist} - ${track_name}.${SPOTDL_FORMAT}`) :
-        path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${mainArtist} - ${track_name}.${ZOTIFY_FORMAT}`);
-
-      fileInfo = getFile(downloadFilePath);
-      if (!fileInfo) {
-        const dir = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
-        const format = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
-        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.${format}' not found in ${dir}. ${downloadOutput}`);
-      }
-
-      renameSync(downloadFilePath, expectedFilePath);
-    }
-
-    const spotdlSanitizedFileName = spotdlFileSanitize(`${artists} - ${track_name}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`);
-    res.type('audio/mpeg').set({
-      'Content-Length': fileInfo.size,
-      'Content-Disposition': `attachment; filename=${encodeURIComponent(spotdlSanitizedFileName)}`
-    });
-
-    const readStream = createReadStream(expectedFilePath);
-    readStream.pipe(res);
-  } catch (err) {
-    handleServerError(res, err as Error);
-    return;
-  }
-}
 export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Response) => {
   const {
     access_token,
@@ -256,41 +177,6 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
   }
 }
 
-async function getSpotifyTracks(query: string): Promise<SpotifyTrack[]> {
-  const _spotifySearchRes = await fetch(CREATE_SPOTIFY_SEARCH_URL(query), {
-    method: 'GET',
-    headers: { 'Authorization': `${globalState.spotifyTokenType} ${globalState.spotifyToken}` }
-  });
-
-  const _spotifySearchJson: Record<string, any> = await _spotifySearchRes.json();
-  const searchItems: SpotifyTrack[] = _spotifySearchJson['tracks']['items'].map((item: Record<string, any>) => new SpotifyTrack(item));
-  return searchItems;
-}
-
-function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloader): SpotifyTrack[] {
-  tracks.forEach((track) => {
-    const trackName = track.name;
-
-    const mainArtist = downloader === SPOTDL ? spotdlFileSanitize(track.artistNames[0]) : zotifyFileSanitize(track.artistNames[0]);
-    const trackFileName = downloader === SPOTDL ?
-      spotdlFileSanitize(`${track.artistNames.join(', ')} - ${trackName}`) :
-      zotifyFileSanitize(`${track.artistNames.join(', ')} - ${trackName}`);
-
-    const trackFilePath = downloader === SPOTDL ?
-      path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${trackFileName}.${SPOTDL_FORMAT}`) :
-      path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${trackFileName}.${ZOTIFY_FORMAT}`);
-
-    if (getFile(trackFilePath)) {
-      track.downloadStatus = 'Downloaded';
-      track.downloader = downloader;
-    } else {
-      track.downloadStatus = 'Not Downloaded';
-      track.downloader = 'none';
-    }
-  });
-  return tracks;
-}
-
 interface SpotifySnapshot {
   snapshot_id: string;
 }
@@ -323,50 +209,6 @@ function isEmptyObj(obj: Record<string, any>): boolean {
   }
 
   return true;
-}
-
-async function singleSpotdlDownload(trackUrl: string): Promise<string | number> {
-  return new Promise((resolve, reject) => {
-    const spotdl = spawn(...SPOTDL_ARGS(trackUrl));
-
-    let STDOUT = '';
-    let STDERR = '';
-
-    spotdl.stdout.on('data', (data) => {
-      STDOUT += data.toString();
-    });
-    spotdl.stderr.on('data', (data) => {
-      STDERR += data.toString();
-    });
-    spotdl.on('close', (code) => {
-      if (code === 0) {
-        resolve(`Download STDOUT: ${STDOUT}. Download STDERR: ${STDERR}.`);
-      }
-      reject(code);
-    });
-  });
-}
-
-async function singleZotifyDownload(trackUrl: string): Promise<string | number> {
-  return new Promise((resolve, reject) => {
-    const zotify = spawn(...ZOTIFY_ARGS(trackUrl));
-
-    let STDOUT = '';
-    let STDERR = '';
-
-    zotify.stdout.on('data', (data) => {
-      STDOUT += data.toString();
-    });
-    zotify.stderr.on('data', (data) => {
-      STDERR += data.toString();
-    });
-    zotify.on('close', (code) => {
-      if (code === 0) {
-        resolve(`Download STDOUT: ${STDOUT}. Download STDERR: ${STDERR}.`);
-      }
-      reject(code);
-    });
-  });
 }
 
 function playlistTracksStatus(tracks: string[], playlistId: string, snapshotId: string, downloader: Downloader): boolean {
