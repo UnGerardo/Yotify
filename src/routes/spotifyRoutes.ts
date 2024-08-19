@@ -1,23 +1,26 @@
 
-import express from 'express';
+import express, { Request, Response } from 'express';
+import path from 'node:path';
+import { ROOT_DIR_PATH } from 'src/constants.js';
 import {
-  auth,
   availablePlaylistTracks,
   downloadPlaylist,
   downloadPlaylistAvailable,
   downloadTrack,
-  playlists,
   playlistsStatus,
-  search,
   searchTracks,
-  token,
   tracksStatus
 } from '../controllers/spotifyControllers.js';
+import { auth, token } from 'src/controllers/spotifyAuthControllers.js';
 
 const router = express.Router();
 
-router.get('/search', search);
-router.get('/playlists', playlists);
+router.get('/search', (req: Request, res: Response) => {
+  res.sendFile(path.join(ROOT_DIR_PATH, 'views/spotify/search.html'));
+});
+router.get('/playlists', (req: Request, res: Response) => {
+  res.sendFile(path.join(ROOT_DIR_PATH, 'views/spotify/playlists.html'));
+});
 
 router.get('/auth', auth);
 router.get('/token', token);

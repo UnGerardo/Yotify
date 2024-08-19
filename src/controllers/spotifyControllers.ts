@@ -1,5 +1,4 @@
 import archiver, { Archiver } from 'archiver';
-import { randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { Request, Response } from 'express';
 import { createReadStream, mkdirSync, renameSync, readFileSync } from 'node:fs';
@@ -8,8 +7,9 @@ import path from 'node:path';
 import SpotifyTrack from 'src/classes/SpotifyTrack';
 import DownloadingTrack from '../classes/DownloadingTrack';
 import globalState from '../classes/GlobalState';
-import { getFile, clearFile, appendToFile } from '../fileOperations.js';
+import { getFile, clearFile, appendToFile } from '../utils/fileOperations.js';
 import WorkerPool from '../classes/WorkerPool';
+import handleServerError from 'src/utils/handleServerError';
 import {
   ROOT_DIR_PATH,
   SPOTDL_DIR,
@@ -45,43 +45,6 @@ import {
 
 const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
-export const search = (req: Request, res: Response) => {
-  res.sendFile(path.join(ROOT_DIR_PATH, 'views/spotify/search.html'));
-}
-export const playlists = (req: Request, res: Response) => {
-  res.sendFile(path.join(ROOT_DIR_PATH, 'views/spotify/playlists.html'));
-}
-
-export const auth = (req: Request, res: Response) => {
-  const randomStr: string = randomBytes(16).toString('hex');
-  const state: string = `${globalState.userId}:${randomStr}`;
-  globalState.userIdStateMap.set(globalState.userId++, randomStr);
-
-  res.redirect(302, CREATE_SPOTIFY_AUTH_URL(state));
-}
-export const token = async (req: TokenReqQuery, res: Response) => {
-  const { code, state, error } = req.query;
-
-  try {
-    if (!globalState.isAuthStateValid(state)) {
-      throw new Error('authState did not match state from /spotify/auth');
-    }
-    if (error) {
-      throw new Error(`Status: ${error.status}. Error: ${error.message}`)
-    }
-
-    const { access_token, token_type } = await GET_SPOTIFY_USER_TOKEN(code);
-    const display_name = await getSpotifyDisplayName(token_type, access_token);
-
-    res.json({
-      access_token,
-      token_type,
-      display_name
-    });
-  } catch (err) {
-    handleServerError(res, err as Error);
-  }
-}
 export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => {
   const { query, downloader } = req.query;
   await SET_GENERIC_SPOTIFY_TOKEN();
@@ -291,24 +254,6 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
     handleServerError(res, err as Error);
     return;
   }
-}
-
-function handleServerError(res: Response, err: Error): void {
-  console.log(`${err.stack}`);
-  res.status(500).type('text/plain').send(`Internal Server Error: ${err.message}`);
-}
-
-interface SpotifyCurrentUser {
-  display_name: string;
-}
-
-async function getSpotifyDisplayName(tokenType: string, accessToken: string): Promise<string> {
-  const _currentUserRes = await fetch(SPOTIFY_CURRENT_USER_URL, {
-    headers: { 'Authorization': `${tokenType} ${accessToken}`}
-  });
-  const _currentUserData: SpotifyCurrentUser = await _currentUserRes.json();
-
-  return _currentUserData.display_name;
 }
 
 async function getSpotifyTracks(query: string): Promise<SpotifyTrack[]> {

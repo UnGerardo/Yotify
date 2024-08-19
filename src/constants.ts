@@ -113,9 +113,9 @@ export const GET_SPOTIFY_USER_TOKEN = async (code: string): Promise<_SpotifyUser
     }
   });
 
-  if (_tokenRes.status === 400) {
+  if (!_tokenRes.ok) {
     const { error } = await _tokenRes.json();
-    throw new Error(error);
+    throw error;
   }
 
   const _tokenResJson: _SpotifyUserTokenRes = await _tokenRes.json();
