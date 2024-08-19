@@ -35,19 +35,21 @@ export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
 }
 
 export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) => {
-  const { track_url, downloader } = req.body;
-  const SAVE_DIR = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
-  const FORMAT = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
-
-  const artists = downloader === SPOTDL ? spotdlFileSanitize(req.body['artists']) : zotifyFileSanitize(req.body['artists']);
-  const track_name = downloader === SPOTDL ? spotdlFileSanitize(req.body['track_name']) : zotifyFileSanitize(req.body['track_name']);
-  const mainArtist = artists.split(', ')[0];
-
-  const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${artists} - ${track_name}.${FORMAT}`);
-
   try {
+    const { track_url, downloader } = req.body;
+    const SAVE_DIR = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
+    const FORMAT = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
+
+    const artists = downloader === SPOTDL ? spotdlFileSanitize(req.body['artists']) : zotifyFileSanitize(req.body['artists']);
+    const track_name = downloader === SPOTDL ? spotdlFileSanitize(req.body['track_name']) : zotifyFileSanitize(req.body['track_name']);
+    const mainArtist = artists.split(', ')[0];
+
+    const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${artists} - ${track_name}.${FORMAT}`);
+
+    console.log(`Fetching: ${downloader} | ${track_url} | ${artists} | ${track_name}`);
     let fileInfo = getFile(expectedFilePath);
     if (!fileInfo) {
+      console.log(`Downloading: ${downloader} | ${track_url} | ${artists} | ${track_name}`);
       const downloadOutput = await download(track_url, downloader);
       const downloadFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${mainArtist} - ${track_name}.${FORMAT}`);
 
