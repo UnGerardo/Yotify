@@ -5,10 +5,10 @@ import { Request, Response } from 'express';
 import { createReadStream, mkdirSync, renameSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import DownloadingTrack from '../DownloadingTrack.js';
-import globalState from '../globalState.js';
+import DownloadingTrack from '../classes/DownloadingTrack';
+import globalState from '../classes/GlobalState';
 import { getFile, clearFile, appendToFile } from '../fileOperations.js';
-import WorkerPool from '../WorkerPool.js';
+import WorkerPool from '../classes/WorkerPool';
 import {
   ROOT_DIR_PATH,
   SPOTDL_DIR,

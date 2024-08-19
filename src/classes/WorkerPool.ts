@@ -1,8 +1,8 @@
 
 import path from 'path';
 import { Worker } from 'worker_threads';
-import globalState from './globalState.js';
-import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from './constants.js';
+import globalState from './GlobalState.js';
+import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from '../constants.js';
 import DownloadingPlaylist from './DownloadingPlaylist.js';
 import DownloadingTrack from './DownloadingTrack.js';
 

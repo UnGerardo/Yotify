@@ -1,4 +1,4 @@
-import { SPOTDL } from "./constants";
+import { SPOTDL } from "../constants";
 
 class GlobalState {
   static instance: GlobalState;

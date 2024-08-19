@@ -5,7 +5,7 @@ import { randomInt } from 'crypto';
 import { renameSync } from 'node:fs';
 import path from 'path';
 import { ROOT_DIR_PATH, SPOTDL_DIR, SPOTDL_FORMAT, SPOTDL_ARGS, SPOTDL, SPOTDL_WAIT_MIN, SPOTDL_WAIT_MAX } from './constants';
-import DownloadingTrack from './DownloadingTrack';
+import DownloadingTrack from './classes/DownloadingTrack';
 
 if (parentPort) {
   parentPort.on('message', (track: DownloadingTrack) => {
