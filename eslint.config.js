@@ -11,7 +11,13 @@ export default [
   {
     rules: {
       "no-control-regex": "off",
-      "@typescript-eslint/no-explicit-any": 'off'
+      "@typescript-eslint/no-explicit-any": 'off',
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "prefer-const": ["error", {
+        "destructuring": "any",
+        "ignoreReadBeforeAssign": false
+      }]
     }
   }
 ];

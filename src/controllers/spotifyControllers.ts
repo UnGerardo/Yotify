@@ -136,7 +136,7 @@ export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
 
     if (savedSnapshot === playlist.snapshotId) {
       playlist.downloadStatus = 'Downloaded';
-    } else if (WORKER_POOL.isDownloading(`${downloader}_${playlist.id}`)) {
+    } else if (WORKER_POOL.isDownloading(downloader, playlist.id)) {
       playlist.downloadStatus = 'Downloading';
     } else {
       globalState.deleteSnapshot(downloader, playlist.id);
@@ -238,8 +238,8 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
   await SET_GENERIC_SPOTIFY_TOKEN();
 
   const workerPlaylistId: string = playlist_id === 'liked_songs' ? `${display_name}_LikedSongs` : playlist_id;
-  if (WORKER_POOL.isDownloading(workerPlaylistId)) {
-    const tracksRemaining: number = WORKER_POOL.tracksRemaining(workerPlaylistId);
+  if (WORKER_POOL.isDownloading(downloader, workerPlaylistId)) {
+    const tracksRemaining: number = WORKER_POOL.tracksRemaining(downloader, workerPlaylistId);
 
     res.status(200).type('text/plain')
       .send(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
@@ -300,7 +300,7 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
       const fileName = `${artists.join(', ')} - ${sanitizedTrackName}.${downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT}`;
 
       const trackFilePath = path.join(ROOT_DIR_PATH, downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR, artists[0], fileName);
-      if (Boolean(getFile(trackFilePath))) {
+      if (getFile(trackFilePath)) {
         downloadedTracks.push(track);
       }
     });
@@ -378,7 +378,7 @@ function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloade
       path.join(ROOT_DIR_PATH, SPOTDL_DIR, mainArtist, `${trackFileName}.${SPOTDL_FORMAT}`) :
       path.join(ROOT_DIR_PATH, ZOTIFY_DIR, mainArtist, `${trackFileName}.${ZOTIFY_FORMAT}`);
 
-    if (Boolean(getFile(trackFilePath))) {
+    if (getFile(trackFilePath)) {
       track.downloadStatus = 'Downloaded';
       track.downloader = downloader;
     } else {
