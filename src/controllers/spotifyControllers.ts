@@ -483,7 +483,7 @@ function playlistTracksStatus(tracks: string[], playlistId: string, snapshotId: 
     const file = getFile(trackFilePath);
     if (!file) {
       missingSongs = true;
-      const track = new DownloadingTrack(trackUrl, artists, sanitizedTrackName);
+      const track = new DownloadingTrack(trackUrl, artists, sanitizedTrackName, downloader);
       WORKER_POOL.addTask(track, playlistId, snapshotId, downloader);
     }
   });

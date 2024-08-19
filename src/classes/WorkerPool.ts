@@ -44,9 +44,7 @@ export default class WorkerPool {
   }
 
   private createWorker(playlist: DownloadingPlaylist, track: DownloadingTrack): Worker {
-    const worker = playlist.downloader === SPOTDL ?
-      new Worker(path.join(ROOT_DIR_PATH, 'app', 'spotdlWorker.js')) :
-      new Worker(path.join(ROOT_DIR_PATH, 'app', 'zotifyWorker.js'));
+    const worker = new Worker(path.join(ROOT_DIR_PATH, 'src', 'spotifyWorker.js'));
     let isHandled = false;
 
     const handleWorker = (status: WorkerStatus) => {
