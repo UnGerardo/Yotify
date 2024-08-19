@@ -17,7 +17,9 @@ export default [
       "prefer-const": ["error", {
         "destructuring": "any",
         "ignoreReadBeforeAssign": false
-      }]
+      }],
+      "no-unused-expressions": "off",
+      "@typescript-eslint/no-unused-expressions": "off"
     }
   }
 ];

@@ -29,18 +29,10 @@ class GlobalState {
     return downloader === SPOTDL ? this.snapshots.spotdl.get(playlistId) : this.snapshots.zotify.get(playlistId);
   }
   setSnapshot(downloader: Downloader, playlistId: string, snapshotId: string): void {
-    if (downloader === SPOTDL) {
-      this.snapshots.spotdl.set(playlistId, snapshotId);
-    } else {
-      this.snapshots.zotify.set(playlistId, snapshotId);
-    }
+    downloader === SPOTDL ? this.snapshots.spotdl.set(playlistId, snapshotId) : this.snapshots.zotify.set(playlistId, snapshotId);
   }
   deleteSnapshot(downloader: Downloader, playlistId: string): void {
-    if (downloader === SPOTDL) {
-      this.snapshots.spotdl.delete(playlistId);
-    } else {
-      this.snapshots.zotify.delete(playlistId);
-    }
+    downloader === SPOTDL ? this.snapshots.spotdl.delete(playlistId) : this.snapshots.zotify.delete(playlistId);
   }
 
   isAuthStateValid(retrievedState: string): boolean {
