@@ -10,18 +10,12 @@ import WorkerPool from '../classes/WorkerPool';
 import handleServerError from 'src/utils/handleServerError';
 import {
   ROOT_DIR_PATH,
-  SPOTDL_DIR,
   PLAYLIST_FILES_DIR,
   DOWNLOAD_THREADS,
   CREATE_SPOTIFY_SNAPSHOT_URL,
   CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
   CREATE_SPOTIFY_SAVED_TRACKS_URL,
-  SPOTDL_FORMAT,
-  ZOTIFY_DIR,
-  ZOTIFY_FORMAT,
-  SPOTDL,
   spotdlFileSanitize,
-  zotifyFileSanitize,
   SET_GENERIC_SPOTIFY_TOKEN
 } from '../constants.js';
 import {
@@ -142,15 +136,9 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
     const sanitizedPlaylistName = sanitizePlaylistName(playlist_name);
     const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${sanitizedPlaylistName}.txt`);
     const tracks: PlaylistTrack[] = JSON.parse(readFileSync(playlistFilePath, 'utf-8'));
-    const downloadedTracks: PlaylistTrack[] = [];
+    tracks.filter((track) => getFile(track.getFilePath(downloader)));
 
-    tracks.forEach((track) => {
-      if (getFile(track.getFilePath(downloader))) {
-        downloadedTracks.push(track);
-      }
-    });
-
-    sendArchiveToClient(res, downloadedTracks, downloader);
+    sendArchiveToClient(res, tracks, downloader);
   } catch (err) {
     handleServerError(res, err as Error);
     return;

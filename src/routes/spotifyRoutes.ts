@@ -7,7 +7,7 @@ import {
   downloadPlaylist,
   downloadPlaylistAvailable,
   playlistsStatus,
-} from '../controllers/spotifyControllers.js';
+} from '../controllers/spotifyPlaylistControllers.js';
 import { auth, token } from 'src/controllers/spotifyAuthControllers.js';
 import { downloadTrack, searchTracks, tracksStatus } from 'src/controllers/spotifyTrackController.js';
 
