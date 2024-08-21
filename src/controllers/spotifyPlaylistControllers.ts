@@ -65,7 +65,7 @@ export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBod
 
     const sanitizedPlaylistName = sanitizeFileName(playlist_name);
     const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${sanitizedPlaylistName}.txt`);
-    const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
+    const tracks = await savePlaylistTracks(playlist_id, playlistFilePath, token_type, access_token);
 
     let downloadedTracks = 0;
     tracks.forEach((track) => {
@@ -109,9 +109,10 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
     }
     globalState.deleteSnapshot(downloader, playlist_id);
 
-    const tracks = await writeAllPlaylistSongsToFile(playlist_id, playlistFilePath, token_type, access_token);
-    const missingSongs = playlistTracksStatus(tracks, playlist_id, fetchedSnapshotId, downloader);
-    if (missingSongs) {
+    const tracks = await savePlaylistTracks(playlist_id, playlistFilePath, token_type, access_token);
+    if (hasMissingTracks(tracks, downloader)) {
+      downloadMissingTracks(tracks, playlist_id, fetchedSnapshotId, downloader);
+
       res.status(200).type('text/plain')
         .send(`Tracks written and download started. Please come back in ~${Math.ceil((tracks.length * 2) / 60)} hours.`);
       return;
@@ -161,21 +162,23 @@ async function _fetchSnapshotId(playlistId: string, accessToken: string, tokenTy
   return _snapshotJson.snapshot_id;
 }
 
-function playlistTracksStatus(tracks: PlaylistTrack[], playlistId: string, snapshotId: string, downloader: Downloader): boolean {
-  let missingSongs = false;
+function hasMissingTracks(tracks: PlaylistTrack[], downloader: Downloader): boolean {
+  for (const track of tracks) {
+    if (!getFile(track.getFilePath(downloader))) return true;
+  }
+  return false;
+}
 
-  tracks.forEach((track) => {
+function downloadMissingTracks(tracks: PlaylistTrack[], playlistId: string, snapshotId: string, downloader: Downloader): void {
+  for (const track of tracks) {
     if (!getFile(track.getFilePath(downloader))) {
-      missingSongs = true;
       const downloadingTrack = new DownloadingTrack(track.url, track.artistNames, track.name, downloader);
       WORKER_POOL.addTask(downloadingTrack, playlistId, snapshotId, downloader);
     }
-  });
-
-  return missingSongs;
+  }
 }
 
-async function writeAllPlaylistSongsToFile(playlistId: string, filePath: string, tokenType: string, accessToken: string): Promise<PlaylistTrack[]> {
+async function savePlaylistTracks(playlistId: string, filePath: string, tokenType: string, accessToken: string): Promise<PlaylistTrack[]> {
   clearFile(filePath);
 
   let _playlistUrl = CREATE_SPOTIFY_PLAYLIST_TRACKS_URL(playlistId);
