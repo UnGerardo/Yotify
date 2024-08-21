@@ -2,13 +2,15 @@
 import path from 'path';
 import { Worker } from 'worker_threads';
 import globalState from './GlobalState.js';
-import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES } from '../constants.js';
+import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES, DOWNLOAD_THREADS } from '../constants.js';
 import DownloadingPlaylist from './DownloadingPlaylist.js';
 import DownloadingTrack from './DownloadingTrack.js';
 
 type WorkerStatus = 'success' | 'error';
 
-export default class WorkerPool {
+class WorkerPool {
+  static instance: WorkerPool;
+
   numThreads: number;
   downloadingPlaylists:  {
     'spotdl': Map<string, DownloadingPlaylist>,
@@ -24,6 +26,11 @@ export default class WorkerPool {
     this.numThreads = numThreads;
     this.activeSpotdlWorkers = 0;
     this.activeZotifyWorkers = 0;
+
+    if (!WorkerPool.instance) {
+      WorkerPool.instance = this;
+    }
+    return WorkerPool.instance;
   }
 
   private getDownloadingPlaylist(downloader: Downloader, playlistId: string): DownloadingPlaylist | undefined {
@@ -112,13 +119,13 @@ export default class WorkerPool {
 
     for (const [playlistId, playlist] of this.downloadingPlaylists[downloader]) {
       for (const track of playlist.tracks) {
-        if (!track.downloading) {
-          track.downloading = true;
-          const worker = this.createWorker(playlist, track);
-          this.incrementActiveWorkers(downloader);
-          worker.postMessage(track);
-          return;
-        }
+        if (track.downloading) continue;
+
+        track.downloading = true;
+        const worker = this.createWorker(playlist, track);
+        this.incrementActiveWorkers(downloader);
+        worker.postMessage(track);
+        return;
       }
     }
   }
@@ -136,6 +143,11 @@ export default class WorkerPool {
     throw new Error(`No tracks remaining for playlist id: ${playlistId}, falsely found to be 'downloading'.`);
   }
 }
+
+const workerPool: WorkerPool = new WorkerPool(DOWNLOAD_THREADS);
+Object.freeze(workerPool);
+
+export default workerPool;
 
 function removeTrack(playlist: DownloadingPlaylist, track: DownloadingTrack): void {
   for (let i = 0; i < playlist.tracks.length; i++) {

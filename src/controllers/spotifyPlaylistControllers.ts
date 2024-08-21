@@ -6,16 +6,13 @@ import path from 'node:path';
 import DownloadingTrack from '../classes/DownloadingTrack';
 import globalState from '../classes/GlobalState';
 import { getFile, clearFile, appendToFile, sanitizeFileName } from '../utils/fileOperations.js';
-import WorkerPool from '../classes/WorkerPool';
+import workerPool from '../classes/WorkerPool';
 import handleServerError from 'src/utils/handleServerError';
 import {
   ROOT_DIR_PATH,
   PLAYLIST_FILES_DIR,
-  DOWNLOAD_THREADS,
   CREATE_SPOTIFY_SNAPSHOT_URL,
   CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
-  CREATE_SPOTIFY_SAVED_TRACKS_URL,
-  spotdlFileSanitize,
 } from '../constants.js';
 import {
   AvailablePlaylistTracksReqBody,
@@ -24,8 +21,6 @@ import {
   PlaylistsStatusReqBody,
 } from 'src/RequestInterfaces.js';
 import PlaylistTrack from 'src/classes/PlaylistTrack';
-
-const WORKER_POOL = new WorkerPool(DOWNLOAD_THREADS);
 
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
   try {
@@ -36,7 +31,7 @@ export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
 
       if (savedSnapshot === playlist.snapshotId) {
         playlist.downloadStatus = 'Downloaded';
-      } else if (WORKER_POOL.isDownloading(downloader, playlist.id)) {
+      } else if (workerPool.isDownloading(downloader, playlist.id)) {
         playlist.downloadStatus = 'Downloading';
       } else {
         globalState.deleteSnapshot(downloader, playlist.id);
@@ -91,8 +86,8 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
       downloader
     } = req.body;
 
-    if (WORKER_POOL.isDownloading(downloader, playlist_id)) {
-      const tracksRemaining: number = WORKER_POOL.tracksRemaining(downloader, playlist_id);
+    if (workerPool.isDownloading(downloader, playlist_id)) {
+      const tracksRemaining: number = workerPool.tracksRemaining(downloader, playlist_id);
       res.status(200).type('text/plain')
         .send(`Playlist is already downloading. ~${Math.ceil((tracksRemaining * 2) / 60)} hours remaining.`);
       return;
@@ -123,10 +118,6 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
   } catch (err) {
     handleServerError(res, err as Error);
   }
-}
-
-export const downloadLikedSongs = async (req, res: Response) => {
-
 }
 
 export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableReqBody, res: Response) => {
@@ -173,7 +164,7 @@ function downloadMissingTracks(tracks: PlaylistTrack[], playlistId: string, snap
   for (const track of tracks) {
     if (!getFile(track.getFilePath(downloader))) {
       const downloadingTrack = new DownloadingTrack(track.url, track.artistNames, track.name, downloader);
-      WORKER_POOL.addTask(downloadingTrack, playlistId, snapshotId, downloader);
+      workerPool.addTask(downloadingTrack, playlistId, snapshotId, downloader);
     }
   }
 }
@@ -208,9 +199,9 @@ async function savePlaylistTracks(playlistId: string, filePath: string, tokenTyp
 }
 
 function archiveTracks(archive: Archiver, tracks: PlaylistTrack[], downloader: Downloader): void {
-  tracks.forEach((track) => {
-    archive.file(track.getFilePath(downloader), { name: spotdlFileSanitize(track.getFileName(downloader)) });
-  });
+  for (const track of tracks) {
+    archive.file(track.getFilePath(downloader), { name: sanitizeFileName(track.getFileName(downloader)) });
+  };
 }
 
 function sendArchiveToClient(res: Response, tracks: PlaylistTrack[], downloader: Downloader): void {
