@@ -37,11 +37,12 @@ export const tracksStatus = (req: TracksStatusReqBody, res: Response) => {
 export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) => {
   try {
     const { track_url, downloader } = req.body;
+    const sanitizeFunc = downloader === SPOTDL ? spotdlFileSanitize : zotifyFileSanitize;
     const SAVE_DIR = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
     const FORMAT = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
 
-    const artists = downloader === SPOTDL ? spotdlFileSanitize(req.body['artists']) : zotifyFileSanitize(req.body['artists']);
-    const track_name = downloader === SPOTDL ? spotdlFileSanitize(req.body['track_name']) : zotifyFileSanitize(req.body['track_name']);
+    const artists = sanitizeFunc(req.body['artists']);
+    const track_name = sanitizeFunc(req.body['track_name']);
     const mainArtist = artists.split(', ')[0];
 
     const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${artists} - ${track_name}.${FORMAT}`);

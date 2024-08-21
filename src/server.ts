@@ -4,10 +4,15 @@ import express, { Request, Response } from 'express';
 import path from 'node:path';
 
 import spotifyRoutes from './routes/spotifyRoutes.js';
-import { PORT, ROOT_DIR_PATH } from './constants.js';
+import { PLAYLIST_FILES_DIR, PORT, ROOT_DIR_PATH, SPOTDL_DIR, ZOTIFY_DIR } from './constants.js';
+import { mkdirSync } from 'node:fs';
 
 const app = express();
 const port: number = PORT || 3000;
+
+mkdirSync(path.join(ROOT_DIR_PATH, SPOTDL_DIR), { recursive: true });
+mkdirSync(path.join(ROOT_DIR_PATH, ZOTIFY_DIR), { recursive: true });
+mkdirSync(path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR), { recursive: true });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
