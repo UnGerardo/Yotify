@@ -6,10 +6,10 @@ export default class PlaylistTrack {
   name: string;
   url: string;
 
-  constructor(item: Record<string, any>) {
-    this.artistNames = item['artists'].map((artist: Record<string, string>) => artist['name']);
-    this.name = item['name'];
-    this.url = item['external_urls']['spotify'];
+  constructor(item: PlaylistTrackJson) {
+    this.artistNames = item.track.artists.map((artist) => artist.name);
+    this.name = item.track.name;
+    this.url = item.track.external_urls.spotify;
   }
 
   getFilePath(downloader: Downloader): string {

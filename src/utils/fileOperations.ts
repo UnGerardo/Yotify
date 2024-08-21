@@ -29,3 +29,7 @@ export const appendToFile = (path: string, data: string): void => {
     throw new Error(`Error appending to file: ${err.stack}`);
   }
 }
+
+export const sanitizeFileName = (name: string): string => {
+  return name.replace(/([^a-zA-Z0-9_ ]+)/gi, '-');
+}
