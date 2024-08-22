@@ -1,19 +1,17 @@
-import archiver, { Archiver } from 'archiver';
 import { Response } from 'express';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import DownloadingTrack from '../classes/DownloadingTrack';
-import globalState from '../classes/GlobalState';
-import { getFile, clearFile, appendToFile, sanitizeFileName } from '../utils/fileOperations.js';
-import workerPool from '../classes/WorkerPool';
+import globalState from 'src/classes/GlobalState';
+import { getFile, clearFile, appendToFile, sanitizeFileName } from 'src/utils/fileOperations.js';
+import workerPool from 'src/classes/WorkerPool';
 import handleServerError from 'src/utils/handleServerError';
 import {
   ROOT_DIR_PATH,
   PLAYLIST_FILES_DIR,
   CREATE_SPOTIFY_SNAPSHOT_URL,
   CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
-} from '../constants.js';
+} from 'src/constants.js';
 import {
   AvailablePlaylistTracksReqBody,
   DownloadPlaylistAvailableReqBody,
@@ -21,6 +19,8 @@ import {
   PlaylistsStatusReqBody,
 } from 'src/RequestInterfaces.js';
 import PlaylistTrack from 'src/classes/PlaylistTrack';
+import { sendArchiveToClient } from 'src/utils/archiveOperations';
+import { downloadMissingTracks, hasMissingTracks } from 'src/utils/trackListOperations';
 
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
   try {
@@ -93,13 +93,13 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
       return;
     }
 
-    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, sanitizeFileName (`${display_name} - ${playlist_name}.txt`));
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, sanitizeFileName(`${display_name} - ${playlist_name}.txt`));
     const fetchedSnapshotId = await _fetchSnapshotId(playlist_id, access_token, token_type);
     const savedSnapshotId = globalState.getSnapshot(downloader, playlist_id);
 
     if (fetchedSnapshotId === savedSnapshotId) {
       const tracks: PlaylistTrack[] = JSON.parse(readFileSync(playlistFilePath, 'utf-8'));
-      sendArchiveToClient(res, tracks, downloader);
+      sendArchiveToClient(playlist_name, res, tracks, downloader);
       return;
     }
     globalState.deleteSnapshot(downloader, playlist_id);
@@ -114,7 +114,7 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
     }
 
     globalState.setSnapshot(downloader, playlist_id, fetchedSnapshotId);
-    sendArchiveToClient(res, tracks, downloader);
+    sendArchiveToClient(playlist_name, res, tracks, downloader);
   } catch (err) {
     handleServerError(res, err as Error);
   }
@@ -132,7 +132,7 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
     const tracks: PlaylistTrack[] = JSON.parse(readFileSync(playlistFilePath, 'utf-8'));
     tracks.filter((track) => getFile(track.getFilePath(downloader)));
 
-    sendArchiveToClient(res, tracks, downloader);
+    sendArchiveToClient(playlist_name, res, tracks, downloader);
   } catch (err) {
     handleServerError(res, err as Error);
   }
@@ -151,22 +151,6 @@ async function _fetchSnapshotId(playlistId: string, accessToken: string, tokenTy
 
   const _snapshotJson: { snapshot_id: string; } = await _snapshotRes.json();
   return _snapshotJson.snapshot_id;
-}
-
-function hasMissingTracks(tracks: PlaylistTrack[], downloader: Downloader): boolean {
-  for (const track of tracks) {
-    if (!getFile(track.getFilePath(downloader))) return true;
-  }
-  return false;
-}
-
-function downloadMissingTracks(tracks: PlaylistTrack[], playlistId: string, snapshotId: string, downloader: Downloader): void {
-  for (const track of tracks) {
-    if (!getFile(track.getFilePath(downloader))) {
-      const downloadingTrack = new DownloadingTrack(track.url, track.artistNames, track.name, downloader);
-      workerPool.addTask(downloadingTrack, playlistId, snapshotId, downloader);
-    }
-  }
 }
 
 async function savePlaylistTracks(playlistId: string, filePath: string, tokenType: string, accessToken: string): Promise<PlaylistTrack[]> {
@@ -196,18 +180,4 @@ async function savePlaylistTracks(playlistId: string, filePath: string, tokenTyp
 
   appendToFile(filePath, JSON.stringify(allTracks));
   return allTracks;
-}
-
-function archiveTracks(archive: Archiver, tracks: PlaylistTrack[], downloader: Downloader): void {
-  for (const track of tracks) {
-    archive.file(track.getFilePath(downloader), { name: sanitizeFileName(track.getFileName(downloader)) });
-  };
-}
-
-function sendArchiveToClient(res: Response, tracks: PlaylistTrack[], downloader: Downloader): void {
-  res.type('application/zip').set('Content-Disposition', 'attachment; filename=songs.zip');
-  const archive: Archiver = archiver('zip', { zlib: { level: 9 } });
-  archive.pipe(res);
-  archiveTracks(archive, tracks, downloader);
-  archive.finalize();
 }
