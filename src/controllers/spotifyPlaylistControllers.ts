@@ -58,8 +58,7 @@ export const availablePlaylistTracks = async (req: AvailablePlaylistTracksReqBod
       downloader
     } = req.body;
 
-    const sanitizedPlaylistName = sanitizeFileName(playlist_name);
-    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${display_name} - ${sanitizedPlaylistName}.txt`);
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${sanitizeFileName(`${display_name} - ${playlist_name}`)}.txt`);
     const tracks = await savePlaylistTracks(playlist_id, playlistFilePath, token_type, access_token);
 
     let downloadedTracks = 0;
@@ -93,7 +92,7 @@ export const downloadPlaylist = async (req: DownloadPlaylistReqBody, res: Respon
       return;
     }
 
-    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, sanitizeFileName(`${display_name} - ${playlist_name}.txt`));
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${sanitizeFileName(`${display_name} - ${playlist_name}`)}.txt`);
     const fetchedSnapshotId = await _fetchSnapshotId(playlist_id, access_token, token_type);
     const savedSnapshotId = globalState.getSnapshot(downloader, playlist_id);
 
@@ -128,7 +127,7 @@ export const downloadPlaylistAvailable = async (req: DownloadPlaylistAvailableRe
       downloader
     } = req.body;
 
-    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, sanitizeFileName(`${display_name} - ${playlist_name}.txt`));
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${sanitizeFileName(`${display_name} - ${playlist_name}`)}.txt`);
     const tracks: PlaylistTrack[] = JSON.parse(readFileSync(playlistFilePath, 'utf-8'));
     tracks.filter((track) => getFile(track.getFilePath(downloader)));
 
