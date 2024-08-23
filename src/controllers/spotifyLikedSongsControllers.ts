@@ -9,6 +9,33 @@ import { appendToFile, clearFile, getFile, sanitizeFileName } from "src/utils/fi
 import handleServerError from "src/utils/handleServerError"
 import { downloadMissingTracks, hasMissingTracks } from "src/utils/trackListOperations";
 
+export const availableLikedSongs = async (req: Request, res: Response) => {
+  try {
+    const {
+      access_token,
+      token_type,
+      display_name,
+      downloader
+    } = req.body;
+
+    const id = `${display_name}_Liked_Songs`;
+
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${sanitizeFileName(id)}.txt`);
+    const tracks = await saveLikedSongs(playlistFilePath, token_type, access_token);
+
+    let downloadedTracks = 0;
+    tracks.forEach((track) => {
+      if (getFile(track.getFilePath(downloader))) {
+        downloadedTracks++;
+      }
+    });
+
+    res.json({ downloaded_tracks: downloadedTracks });
+  } catch (err) {
+    handleServerError(res, err as Error);
+  }
+}
+
 export const downloadLikedSongs = async (req: Request, res: Response) => {
   try {
     const {
@@ -27,9 +54,9 @@ export const downloadLikedSongs = async (req: Request, res: Response) => {
       return;
     }
 
-    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, sanitizeFileName(`${id}.txt`));
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${sanitizeFileName(id)}.txt`);
 
-    const tracks = await saveLikedTracks(playlistFilePath, token_type, access_token);
+    const tracks = await saveLikedSongs(playlistFilePath, token_type, access_token);
     if (hasMissingTracks(tracks, downloader)) {
       downloadMissingTracks(tracks, id, '', downloader);
 
@@ -53,7 +80,7 @@ export const downloadAvailableLikedSongs = async (req: Request, res: Response) =
 
     const id = `${display_name}_Liked_Songs`;
 
-    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, sanitizeFileName(`${id}.txt`));
+    const playlistFilePath = path.join(ROOT_DIR_PATH, PLAYLIST_FILES_DIR, `${sanitizeFileName(id)}.txt`);
     const tracks: PlaylistTrack[] = JSON.parse(readFileSync(playlistFilePath, 'utf-8'));
     tracks.filter((track) => getFile(track.getFilePath(downloader)));
 
@@ -63,30 +90,30 @@ export const downloadAvailableLikedSongs = async (req: Request, res: Response) =
   }
 }
 
-async function saveLikedTracks(filePath: string, tokenType: string, accessToken: string): Promise<PlaylistTrack[]> {
+async function saveLikedSongs(filePath: string, tokenType: string, accessToken: string): Promise<PlaylistTrack[]> {
   clearFile(filePath);
 
-  let _playlistUrl = CREATE_SPOTIFY_SAVED_TRACKS_URL();
+  let _likedSongsUrl = CREATE_SPOTIFY_SAVED_TRACKS_URL();
   const allTracks: PlaylistTrack[] = [];
 
   do {
-    const _playlistTracksRes = await fetch(_playlistUrl, {
+    const _likedSongsRes = await fetch(_likedSongsUrl, {
       headers: { 'Authorization': `${tokenType} ${accessToken}` }
     });
 
-    if (!_playlistTracksRes.ok) {
-      const error = (await _playlistTracksRes.json())['error'];
+    if (!_likedSongsRes.ok) {
+      const error = (await _likedSongsRes.json())['error'];
       console.log(error);
       throw new Error(error.message);
     }
 
-    const _playlistTracksJson: { next: string, items: PlaylistTrackJson[]} = await _playlistTracksRes.json();
-    const playableTracks: PlaylistTrackJson[] = _playlistTracksJson.items.filter(item => item.track.is_playable)
+    const _likedSongsJson: { next: string, items: PlaylistTrackJson[]} = await _likedSongsRes.json();
+    const playableTracks: PlaylistTrackJson[] = _likedSongsJson.items.filter(item => item.track.is_playable)
 
     allTracks.push(...playableTracks.map(item => new PlaylistTrack(item)));
 
-    _playlistUrl = _playlistTracksJson['next'];
-  } while (_playlistUrl);
+    _likedSongsUrl = _likedSongsJson['next'];
+  } while (_likedSongsUrl);
 
   appendToFile(filePath, JSON.stringify(allTracks));
   return allTracks;

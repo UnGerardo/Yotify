@@ -10,7 +10,7 @@ import {
   downloadPlaylistAvailable,
   playlistsStatus,
 } from '../controllers/spotifyPlaylistControllers.js';
-import { downloadAvailableLikedSongs, downloadLikedSongs } from 'src/controllers/spotifyLikedSongsControllers.js';
+import { availableLikedSongs, downloadAvailableLikedSongs, downloadLikedSongs } from 'src/controllers/spotifyLikedSongsControllers.js';
 
 const router = express.Router();
 
@@ -33,6 +33,7 @@ router.post('/playlist/tracks/available', availablePlaylistTracks);
 router.post('/download/playlist', downloadPlaylist);
 router.post('/download/playlist/available', downloadPlaylistAvailable);
 
+router.post('/liked-songs/tracks/available', availableLikedSongs);
 router.post('/download/liked-songs', downloadLikedSongs);
 router.post('/download/liked-songs/available', downloadAvailableLikedSongs);
 
