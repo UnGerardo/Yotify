@@ -1,5 +1,5 @@
 import { SPOTDL, ZOTIFY } from "./constants.js";
-import { $createModal } from "./modal.js";
+import { $createModal } from "./utils/modal.js";
 
 type Callback = () => void;
 

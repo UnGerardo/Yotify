@@ -1,8 +1,8 @@
 import { SpotifyPlaylist, SpotifyTrack } from "../SpotifyClasses.js";
 import { $setDownloaderBtnListener } from "../downloader.js";
-import { $renderTrack } from "../renderTrack.js";
-import { $createBinaryModal, $createModal } from "../modal.js";
-import { $createElement } from "../createElement.js";
+import { $renderTrack } from "../utils/renderTrack.js";
+import { $createBinaryModal, $createModal } from "../utils/modal.js";
+import { $createElement } from "../utils/createElement.js";
 import {
   SPOTDL,
   SPOTDL_DOWNLOADED_ICON,
@@ -13,8 +13,8 @@ import {
   ZOTIFY_DOWNLOADING_ICON,
   SHOW_ICON
 } from "../constants.js";
-import { downloadBlob } from "../downloadBlob.js";
-import { $clearElementExceptForFirst } from "../clearElementExceptForFirst.js";
+import { downloadBlob } from "../utils/downloadBlob.js";
+import { $clearElementExceptForFirst } from "../utils/clearElementExceptForFirst.js";
 
 let SPOTIFY_ACCESS_TOKEN: string = '';
 let SPOTIFY_TOKEN_TYPE: string = '';
@@ -261,7 +261,7 @@ async function _getAvailableLikedSongs(): Promise<number> {
   }));
 }
 
-export async function _getAvailablePlaylistSongs(playlistId: string, playlistName: string): Promise<number> {
+async function _getAvailablePlaylistSongs(playlistId: string, playlistName: string): Promise<number> {
   return await _getAvailableSongs('/spotify/liked-songs/tracks/available', JSON.stringify({
     access_token: SPOTIFY_ACCESS_TOKEN,
     token_type: SPOTIFY_TOKEN_TYPE,
@@ -283,7 +283,7 @@ async function _getAvailableSongs(url: string, body: string): Promise<number> {
 
 // Download available songs functions ----------------------------------------------------------------------------------------------- Download available songs functions
 
-export async function downloadAvailableLikedSongs(): Promise<void> {
+async function downloadAvailableLikedSongs(): Promise<void> {
   await downloadAvailableSongs('/spotify/download/liked-songs/available', JSON.stringify({
     display_name: SPOTIFY_DISPLAY_NAME,
     downloader: localStorage.getItem('downloader')
@@ -316,7 +316,7 @@ async function downloadAvailableSongs(url: string, body: string): Promise<void> 
 
 // Download all songs functions ----------------------------------------------------------------------------------------------- Download all songs functions
 
-export async function downloadLikedSongs($downloadImg: HTMLImageElement): Promise<void> {
+async function downloadLikedSongs($downloadImg: HTMLImageElement): Promise<void> {
   await downloadCollection('/spotify/download/liked-songs', JSON.stringify({
     access_token: SPOTIFY_ACCESS_TOKEN,
     token_type: SPOTIFY_TOKEN_TYPE,
