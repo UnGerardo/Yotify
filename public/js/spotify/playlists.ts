@@ -14,7 +14,8 @@ import {
   SHOW_ICON
 } from "../constants.js";
 import { downloadBlob } from "../utils/downloadBlob.js";
-import { $clearElementExceptForFirst } from "../utils/clearElementExceptForFirst.js";
+import { $clearElementsExceptForFirst } from "../utils/clearElementsExceptForFirst.js";
+import { _updateTracksStatus } from "../utils/updateTracksStatus.js";
 
 let SPOTIFY_ACCESS_TOKEN: string = '';
 let SPOTIFY_TOKEN_TYPE: string = '';
@@ -27,12 +28,12 @@ const $tracks = document.getElementById('tracks')!;
 
 $setDownloaderBtnListener(async () => {
   currentPlaylists = await _setPlaylistsStatus();
-  $clearElementExceptForFirst($playlists);
+  $clearElementsExceptForFirst($playlists);
   currentPlaylists.forEach((playlist) => $renderPlaylist(playlist));
 
   if (currentTrackList.length) {
-    currentTrackList = await _setTracksStatus(currentTrackList);
-    $clearElementExceptForFirst($tracks);
+    currentTrackList = await _updateTracksStatus(currentTrackList);
+    $clearElementsExceptForFirst($tracks);
     currentTrackList.forEach((track) => $renderTrack($tracks, track));
   }
 });
@@ -80,9 +81,9 @@ async function $renderLikedSongs(): Promise<void> {
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
 
   $showBtn.addEventListener('click', async () => {
-    await setLikedSongs();
+    currentTrackList = await _getLikedSongs();
 
-    $clearElementExceptForFirst($tracks);
+    $clearElementsExceptForFirst($tracks);
     currentTrackList.forEach((track) => {
       $renderTrack($tracks, track);
     });
@@ -145,9 +146,9 @@ function $renderPlaylist(playlist: SpotifyPlaylist): void {
   }) as HTMLImageElement;
 
   $showBtn.addEventListener('click', async () => {
-    $clearElementExceptForFirst($tracks);
+    $clearElementsExceptForFirst($tracks);
 
-    await setPlaylistTracks(playlist.id);
+    await _getPlaylistTracks(playlist.id);
     currentTrackList.forEach((track) => {
       $renderTrack($tracks, track);
     });
@@ -202,7 +203,7 @@ function $renderPlaylist(playlist: SpotifyPlaylist): void {
 
 // Set playlist tracks functions ----------------------------------------------------------------------------------------------- Set playlist tracks functions
 
-async function setLikedSongs(): Promise<void> {
+async function _getLikedSongs(): Promise<SpotifyTrack[]> {
   const _likedSongsParams = new URLSearchParams({ limit: '50', offset: '0', market: 'US' });
   const _likedSongsRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
@@ -211,15 +212,15 @@ async function setLikedSongs(): Promise<void> {
   if (!_likedSongsRes.ok) {
     const { error }: { error: SpotifyError } = await _likedSongsRes.json();
     $createModal(`Error: ${error.message}`);
-    return;
+    return [];
   }
 
   const _likedSongsJson = await _likedSongsRes.json();
   const tracks: SpotifyTrack[] = _likedSongsJson['items'].map((item: Record<string, any>) => new SpotifyTrack(item['track']));
-  currentTrackList = await _setTracksStatus(tracks);
+  return await _updateTracksStatus(tracks);
 }
 
-async function setPlaylistTracks(playlistId: string): Promise<void> {
+async function _getPlaylistTracks(playlistId: string): Promise<SpotifyTrack[]> {
   const _playlistTracksParams = new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_FIELDS });
   const _playlistTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistTracksParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
@@ -228,12 +229,12 @@ async function setPlaylistTracks(playlistId: string): Promise<void> {
   if (!_playlistTracksRes.ok) {
     const { error }: { error: SpotifyError } = await _playlistTracksRes.json();
     $createModal(`Error: ${error.message}`);
-    return;
+    return [];
   }
 
   const _playlistTracksJson = await _playlistTracksRes.json();
   const tracks = _playlistTracksJson['items'].map((item: Record<string, any>) => new SpotifyTrack(item['track']));
-  currentTrackList = await _setTracksStatus(tracks);
+  return await _updateTracksStatus(tracks);
 }
 
 // Get track count functions ----------------------------------------------------------------------------------------------- Get track count functions
@@ -273,12 +274,18 @@ async function _getAvailablePlaylistSongs(playlistId: string, playlistName: stri
 }
 
 async function _getAvailableSongs(url: string, body: string): Promise<number> {
-  const _partialResponse = await fetch(url, {
+  const _availableSongsRes = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: body
   });
-  return (await _partialResponse.json())['downloaded_tracks'];
+
+  if (!_availableSongsRes.ok) {
+    $createModal(await _availableSongsRes.text());
+    return 0;
+  }
+
+  return (await _availableSongsRes.json())['downloaded_tracks'];
 }
 
 // Download available songs functions ----------------------------------------------------------------------------------------------- Download available songs functions
@@ -369,19 +376,4 @@ async function _setPlaylistsStatus(): Promise<SpotifyPlaylist[]> {
   }
 
   return await _playlistsStatus.json() as SpotifyPlaylist[];
-}
-
-async function _setTracksStatus(tracks: SpotifyTrack[]): Promise<SpotifyTrack[]> {
-  const _tracksStatusRes = await fetch('/spotify/tracks/status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tracks, downloader: localStorage.getItem('downloader') })
-  });
-
-  if (!_tracksStatusRes.ok) {
-    $createModal(await _tracksStatusRes.text());
-    return [];
-  }
-
-  return await _tracksStatusRes.json() as SpotifyTrack[];
 }
