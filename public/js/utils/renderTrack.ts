@@ -4,6 +4,7 @@ import { msTimeFormat } from "./msTimeFormat.js";
 import { $createModal } from "./modal.js";
 import { DOWNLOAD_ICON, SPOTDL_DOWNLOADED_ICON, SPOTDL_DOWNLOADING_ICON, ZOTIFY_DOWNLOADED_ICON, ZOTIFY_DOWNLOADING_ICON } from "../constants.js";
 import { downloadBlob } from "./downloadBlob.js";
+import { SPOTDL } from "src/constants.js";
 
 export function $renderTrack($trackContainer: HTMLElement, track: SpotifyTrack) {
   const $albumImg = $createElement('img', ['album-image'], { src: track.albumImgUrl }) as HTMLImageElement;
@@ -13,56 +14,44 @@ export function $renderTrack($trackContainer: HTMLElement, track: SpotifyTrack) 
   const $albumP = $createElement('p', ['ellip-overflow', 'album-name'], { innerText: track.albumName }) as HTMLParagraphElement;
   const $durationP = $createElement('p', ['duration', 'ellip-overflow'], { innerText: `Duration: ${msTimeFormat(track.durationMs)}` }) as HTMLParagraphElement;
   const $downloadImg = $createElement('img', ['download-image'], {
-    src: track.downloadStatus === 'Downloaded' ? (track.downloader === 'spotdl' ? '/images/Spotdl_Downloaded_Icon.png' : '/images/Zotify_Downloaded_Icon.png') :
-      '/images/Download_Icon.png'
+    src: track.downloadStatus === 'Downloaded' ? (track.downloader === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON) :
+      DOWNLOAD_ICON
   }) as HTMLImageElement;
   const $downloadBtn = $createElement('button', ['btn', 'download-btn']);
-  if (track.isPlayable) {
-    $downloadBtn.addEventListener('click', async () => {
-      if ($downloadImg.src.includes('Downloading')) {
-        $createModal('Song is already downloading.');
-        return;
+
+  $downloadBtn.addEventListener('click', async () => {
+    if (!track.isPlayable) return $createModal('Song is unavailable for download.');
+
+    if ($downloadImg.src.includes('Downloading')) return $createModal('Song is already downloading.');
+
+    $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADING_ICON : ZOTIFY_DOWNLOADING_ICON;
+    try {
+      const _downloadRes = await fetch('/spotify/download/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artists: track.artistNames.join(', '),
+          track_name: track.name,
+          track_url: track.url,
+          downloader: localStorage.getItem('downloader')
+        })
+      });
+
+      if (!_downloadRes.ok) {
+        throw new Error(`Download response failed for: ${track.url} ${track.name} ${track.artistNames}`);
       }
-      $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
-        SPOTDL_DOWNLOADING_ICON :
-        ZOTIFY_DOWNLOADING_ICON;
 
-      try {
-        const _downloadResponse = await fetch('/spotify/download/track', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            artists: track.artistNames.join(', '),
-            track_name: track.name,
-            track_url: track.url,
-            downloader: localStorage.getItem('downloader')
-          })
-        });
+      const _responseHeaders = _downloadRes.headers;
+      const _responseBlob = await _downloadRes.blob();
+      const encodedFileName = _responseHeaders.get('content-disposition')!.split("=")[1];
+      downloadBlob(encodedFileName, _responseBlob);
 
-        if (!_downloadResponse.ok) {
-          throw new Error(`Download response failed for: ${track.url} ${track.name} ${track.artistNames}`);
-        }
-
-        const _responseHeaders = _downloadResponse.headers;
-        const _responseBlob = await _downloadResponse.blob();
-        const encodedFileName = _responseHeaders.get('content-disposition')!.split("=")[1];
-        downloadBlob(encodedFileName, _responseBlob);
-
-        $downloadImg.src = localStorage.getItem('downloader') === 'spotdl' ?
-          SPOTDL_DOWNLOADED_ICON :
-          ZOTIFY_DOWNLOADED_ICON;
-      } catch (err) {
-        $createModal(`Failed to download: ${err}. Try again.`);
-        $downloadImg.src = DOWNLOAD_ICON;
-      }
-    });
-  } else {
-    $downloadBtn.addEventListener('click', () => {
-      $createModal('Song is unavailable for download.');
-    });
-  }
+      $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON;
+    } catch (err) {
+      $downloadImg.src = DOWNLOAD_ICON;
+      $createModal(`Failed to download: ${err}. Try again.`);
+    }
+  });
 
   $downloadBtn.append($downloadImg);
   $trackArtistSect.append($trackP, $artistP);
