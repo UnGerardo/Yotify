@@ -1,13 +1,35 @@
 
 import { platform } from 'node:os';
 import path from 'node:path';
-import globalState from './globalState.js';
+import globalState from './classes/GlobalState';
 
 const PLATFORM: string = platform();
-export const APP_DIR_PATH: string = process.cwd();
+export const ROOT_DIR_PATH: string = process.cwd();
 
-type SpotdlArgs = [Downloader, [output :string, format: string, print_errors: string, url: string], env: object];
-type ZotifyArgs = [Downloader, [username: string, password: string, root_path: string, output: string, format: string, quality: string, save_creds: string, url: string], env: object];
+type SpotdlArgs = [
+  Downloader,
+  [
+    output :string,
+    format: string,
+    print_errors: `--print-errors`,
+    url: string
+  ],
+  env: object
+];
+type ZotifyArgs = [
+  Downloader,
+  [
+    username: string,
+    password: string,
+    root_path: string,
+    output: string,
+    format: string,
+    quality: `--download-quality=high`,
+    save_creds: `--save-credentials=False`,
+    url: string
+  ],
+  env: object
+];
 
 interface _SpotifyUserTokenRes {
   access_token: string,
@@ -50,38 +72,32 @@ export const SPOTIFY_CURRENT_USER_URL: string = 'https://api.spotify.com/v1/me';
 export const SPOTIFY_TOKEN_URL: string = 'https://accounts.spotify.com/api/token';
 export const SPOTIFY_PLAYLIST_TRACKS_FIELDS: string = 'next,items(track(artists(name),name,external_urls,is_playable))';
 export const CREATE_SPOTIFY_AUTH_URL = (state: string): string => {
-  const _spotifyAuthParams = new URLSearchParams({
+  return `https://accounts.spotify.com/authorize?${new URLSearchParams({
     client_id: SPOTIFY_CLIENT_ID,
     redirect_uri: SPOTIFY_REDIRECT_URI,
     response_type: 'code',
     scope: 'user-library-read playlist-read-private',
     show_dialog: 'true',
     state: state
-  });
-
-  return `https://accounts.spotify.com/authorize?${_spotifyAuthParams}`;
+  })}`;
 }
 export const CREATE_SPOTIFY_SEARCH_URL = (query: string): string => {
-  const _spotifySearchParams = new URLSearchParams({
+  return `https://api.spotify.com/v1/search?${new URLSearchParams({
     q: decodeURIComponent(query),
     type: 'track',
     market: 'US',
     limit: '20',
     offset: '0'
-  });
-  return `https://api.spotify.com/v1/search?${_spotifySearchParams}`;
+  })}`;
 }
 export const CREATE_SPOTIFY_SNAPSHOT_URL = (playlistId: string): string => {
-  const _snapshotParams = new URLSearchParams({ fields: 'snapshot_id' });
-  return `https://api.spotify.com/v1/playlists/${playlistId}?${_snapshotParams}`;
+  return `https://api.spotify.com/v1/playlists/${playlistId}?${new URLSearchParams({ fields: 'snapshot_id' })}`;
 }
 export const CREATE_SPOTIFY_SAVED_TRACKS_URL = (): string => {
-  const _likedSongsParams = new URLSearchParams({ limit: '50', offset: '0', market: 'US' });
-  return `https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`;
+  return `https://api.spotify.com/v1/me/tracks?${new URLSearchParams({ limit: '50', offset: '0', market: 'US' })}`;
 }
 export const CREATE_SPOTIFY_PLAYLIST_TRACKS_URL = (playlistId: string): string => {
-  const _playlistParams = new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_TRACKS_FIELDS });
-  return `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistParams}`;
+  return `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_TRACKS_FIELDS })}`;
 }
 export const GET_SPOTIFY_USER_TOKEN = async (code: string): Promise<_SpotifyUserTokenRes> => {
   const _tokenRes = await fetch(SPOTIFY_TOKEN_URL, {
@@ -97,9 +113,9 @@ export const GET_SPOTIFY_USER_TOKEN = async (code: string): Promise<_SpotifyUser
     }
   });
 
-  if (_tokenRes.status === 400) {
+  if (!_tokenRes.ok) {
     const { error } = await _tokenRes.json();
-    throw new Error(error);
+    throw error;
   }
 
   const _tokenResJson: _SpotifyUserTokenRes = await _tokenRes.json();
@@ -130,7 +146,7 @@ export const SPOTDL_ARGS = (trackUrl: string): SpotdlArgs => {
   return [
     SPOTDL,
     [
-      `--output=${path.join(APP_DIR_PATH, SPOTDL_DIR, SPOTDL_OUTPUT)}`,
+      `--output=${path.join(ROOT_DIR_PATH, SPOTDL_DIR, SPOTDL_OUTPUT)}`,
       `--format=${SPOTDL_FORMAT}`,
       `--print-errors`,
       trackUrl,
@@ -156,7 +172,7 @@ export const ZOTIFY_ARGS = (trackUrl: string): ZotifyArgs => {
     [
       `--username=${SPOTIFY_USERNAME}`,
       `--password=${SPOTIFY_PASSWORD}`,
-      `--root-path=${path.join(APP_DIR_PATH, ZOTIFY_DIR)}`,
+      `--root-path=${path.join(ROOT_DIR_PATH, ZOTIFY_DIR)}`,
       `--output=${ZOTIFY_OUTPUT}`,
       `--download-format=${ZOTIFY_FORMAT}`,
       `--download-quality=high`,

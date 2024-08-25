@@ -1,8 +1,8 @@
 import { SpotifyPlaylist, SpotifyTrack } from "../SpotifyClasses.js";
 import { $setDownloaderBtnListener } from "../downloader.js";
-import { $renderTrack } from "../renderTrack.js";
-import { $createBinaryModal, $createModal } from "../modal.js";
-import { $createElement } from "../createElement.js";
+import { $renderTrack } from "../utils/renderTrack.js";
+import { $createBinaryModal, $createModal } from "../utils/modal.js";
+import { $createElement } from "../utils/createElement.js";
 import {
   SPOTDL,
   SPOTDL_DOWNLOADED_ICON,
@@ -13,6 +13,9 @@ import {
   ZOTIFY_DOWNLOADING_ICON,
   SHOW_ICON
 } from "../constants.js";
+import { downloadBlob } from "../utils/downloadBlob.js";
+import { $clearElementsExceptForFirst } from "../utils/clearElementsExceptForFirst.js";
+import { _updateTracksStatus } from "../utils/updateTracksStatus.js";
 
 let SPOTIFY_ACCESS_TOKEN: string = '';
 let SPOTIFY_TOKEN_TYPE: string = '';
@@ -24,195 +27,171 @@ const $playlists = document.getElementById('playlists')!;
 const $tracks = document.getElementById('tracks')!;
 
 $setDownloaderBtnListener(async () => {
-  while ($playlists.childElementCount > 2) {
-    $playlists.removeChild($playlists.lastElementChild!);
-  }
-
-  const _playlistsStatusRes = await fetch('/spotify/playlists/status', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ playlists: currentPlaylists, downloader: localStorage.getItem('downloader') })
-  });
-
-  currentPlaylists = await _playlistsStatusRes.json();
-  currentPlaylists.forEach(playlist => {
-    $renderPlaylist(playlist);
-  });
+  currentPlaylists = await _setPlaylistsStatus();
+  $clearElementsExceptForFirst($playlists);
+  currentPlaylists.forEach((playlist) => $renderPlaylist(playlist));
 
   if (currentTrackList.length) {
-    const _tracksStatusRes = await fetch('/spotify/tracks/status', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ tracks: currentTrackList, downloader: localStorage.getItem('downloader') })
-    });
-    currentTrackList = await _tracksStatusRes.json();
-
-    while ($tracks.firstElementChild !== $tracks.lastElementChild) {
-      $tracks.removeChild($tracks.lastElementChild!);
-    }
-
-    currentTrackList.forEach((track) => {
-      $renderTrack($tracks, track);
-    });
+    currentTrackList = await _updateTracksStatus(currentTrackList);
+    $clearElementsExceptForFirst($tracks);
+    currentTrackList.forEach((track) => $renderTrack($tracks, track));
   }
 });
 
-interface SpotifyPlayistResJson {
-  href: string;
-  limit: number;
-  next: string | null;
-  offset: number;
-  previous: string | null;
-  total: number;
-  items: Record<string, any>[];
-}
-
 (async () => {
-  const url = window.location.href;
-  const _urlParams = new URLSearchParams(url.split('?')[1]);
-
   try {
-    const _spotifyTokenRes = await fetch(`/spotify/token?${_urlParams}`);
-    if (!_spotifyTokenRes.ok) {
-      $createModal(await _spotifyTokenRes.text(), () => { window.location.href = '/spotify/auth' });
-      return;
-    }
-    const _spotifyTokenJson = await _spotifyTokenRes.json();
-
-    ({
-      access_token: SPOTIFY_ACCESS_TOKEN,
-      token_type: SPOTIFY_TOKEN_TYPE,
-      display_name: SPOTIFY_DISPLAY_NAME
-    } = _spotifyTokenJson);
+    await _completeSpotifyAuth();
   } catch (err) {
     console.log(err);
     return;
   }
 
-  const _savedTracksParams = new URLSearchParams({ limit: '1', offset: '0', market: 'US' });
-  const _savedTracksRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`, {
-    headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
-  }).then(res => res.json());
-  $renderPlaylist(new SpotifyPlaylist({ id: 'liked_songs', images: [{ url: '/images/Liked_Songs.png' }], name: 'Liked Songs', tracks: { total: _savedTracksRes['total'] } }));
+  $renderLikedSongs();
+  $renderPlaylists();
+})();
 
+async function _completeSpotifyAuth() {
+  const _spotifyRedirectUrl = window.location.href;
+  const _spotifyRedirectUrlParams = new URLSearchParams(_spotifyRedirectUrl.split('?')[1]);
+
+  const _spotifyTokenRes = await fetch(`/spotify/token?${_spotifyRedirectUrlParams}`);
+  if (!_spotifyTokenRes.ok) {
+    $createModal(await _spotifyTokenRes.text(), () => { window.location.href = '/spotify/auth' });
+    return;
+  }
+
+  const _spotifyTokenJson: SpotifyTokenJson = await _spotifyTokenRes.json();
+  SPOTIFY_ACCESS_TOKEN = _spotifyTokenJson.access_token;
+  SPOTIFY_TOKEN_TYPE = _spotifyTokenJson.token_type;
+  SPOTIFY_DISPLAY_NAME = _spotifyTokenJson.display_name;
+}
+
+// Rendering functions ----------------------------------------------------------------------------------------------- Rendering functions
+
+async function $renderLikedSongs(): Promise<void> {
+  const likedSongsTotal = await _getLikedSongsTotal();
+
+  const $playlist = $createElement('section', ['playlist']) as HTMLElement;
+  const $img = $createElement('img', ['cover-image'], { src: '/images/Liked_Songs.png' }) as HTMLImageElement;
+  const $nameP = $createElement('p', ['ellip-overflow'], { innerText: 'Liked Songs' }) as HTMLParagraphElement;
+  const $trackCountP = $createElement('p', ['track-count'], { innerText: likedSongsTotal }) as HTMLParagraphElement;
+  const $showImg = $createElement('img', ['download-image'], { src: SHOW_ICON }) as HTMLImageElement;
+  const $showBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
+  const $downloadImg = $createElement('img', ['download-image'], { src: DOWNLOAD_ICON }) as HTMLImageElement;
+  const $downloadBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
+
+  $showBtn.addEventListener('click', async () => {
+    currentTrackList = await _getLikedSongs();
+
+    $clearElementsExceptForFirst($tracks);
+    currentTrackList.forEach((track) => {
+      $renderTrack($tracks, track);
+    });
+  });
+  $downloadBtn.addEventListener('click', async () => {
+    $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADING_ICON : ZOTIFY_DOWNLOADING_ICON;
+
+    const downloaded_tracks = await _getAvailableLikedSongs();
+    if (downloaded_tracks === 0 || downloaded_tracks === likedSongsTotal) return await downloadLikedSongs($downloadImg);
+
+    $createBinaryModal(
+      `Currently, there are ${downloaded_tracks} downloaded tracks, do you want to download them or download the rest?`,
+      'Download the current tracks', 'Download the rest',
+      async () => {
+        await downloadAvailableLikedSongs();
+        $downloadImg.src = DOWNLOAD_ICON;
+      },
+      async () => await downloadLikedSongs($downloadImg)
+    );
+  });
+
+  $showBtn.appendChild($showImg);
+  $downloadBtn.appendChild($downloadImg);
+  $playlist.append($img, $nameP, $trackCountP, $showBtn, $downloadBtn);
+  $playlists.appendChild($playlist);
+}
+
+async function $renderPlaylists(): Promise<void> {
   const _playlistsParams = new URLSearchParams({ limit: '50', offset: '0' });
   const _playlistsRes = await fetch(`https://api.spotify.com/v1/me/playlists?${_playlistsParams}`, {
     headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
   });
-  const _playlistResJson: SpotifyPlayistResJson = await _playlistsRes.json();
-  currentPlaylists = _playlistResJson['items'].map((playlist: Record<string, any>) => new SpotifyPlaylist(playlist));
 
-  const _playlistsStatusRes = await fetch('/spotify/playlists/status', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ playlists: currentPlaylists, downloader: localStorage.getItem('downloader') })
-  });
+  if (!_playlistsRes.ok) {
+    const { error }: { error: SpotifyError } = await _playlistsRes.json();
+    $createModal(`Error: ${error.message}`);
+    return;
+  }
 
-  currentPlaylists = await _playlistsStatusRes.json();
+  const _playlistsJson: SpotifyPlayistJson = await _playlistsRes.json();
+  currentPlaylists = _playlistsJson['items'].map((playlist: Record<string, any>) => new SpotifyPlaylist(playlist));
+
+  currentPlaylists = await _setPlaylistsStatus();
   currentPlaylists.forEach(playlist => {
     $renderPlaylist(playlist);
   });
-})();
+}
 
-function $renderPlaylist(playlist: SpotifyPlaylist) {
+function $renderPlaylist(playlist: SpotifyPlaylist): void {
   const $playlist = $createElement('section', ['playlist']) as HTMLElement;
   const $img = $createElement('img', ['cover-image'], { src: playlist.imageUrl }) as HTMLImageElement;
   const $nameP = $createElement('p', ['ellip-overflow'], { innerText: playlist.name }) as HTMLParagraphElement;
   const $trackCountP = $createElement('p', ['track-count'], { innerText: playlist.tracksTotal }) as HTMLParagraphElement;
   const $showBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
   const $showImg = $createElement('img', ['download-image'], { src: SHOW_ICON }) as HTMLImageElement;
+  const $downloadBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
+  const $downloadImg = $createElement('img', ['download-image'], {
+    src: playlist.downloadStatus === 'Downloaded' ? (playlist.downloader === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON) :
+    DOWNLOAD_ICON
+  }) as HTMLImageElement;
+
   $showBtn.addEventListener('click', async () => {
-    while ($tracks.firstElementChild !== $tracks.lastElementChild) {
-      $tracks.removeChild($tracks.lastElementChild!);
-    }
+    $clearElementsExceptForFirst($tracks);
 
-    let url: string = '';
-    if (playlist.id === 'liked_songs') {
-      const _savedTracksParams = new URLSearchParams({ limit: '50', offset: '0', market: 'US' });
-      url = `https://api.spotify.com/v1/me/tracks?${_savedTracksParams}`;
-    } else {
-      const _playlistParams = new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_FIELDS });
-      url = `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?${_playlistParams}`;
-    }
-
-    const _playlistRes = await fetch(url, {
-      headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
-    }).then(res => res.json());
-    const tracks = _playlistRes['items'].map((item: Record<string, any>) => new SpotifyTrack(item['track']));
-
-    const _tracksStatusRes = await fetch('/spotify/tracks/status', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ tracks, downloader: localStorage.getItem('downloader') })
-    });
-    currentTrackList = await _tracksStatusRes.json();
-
+    await _getPlaylistTracks(playlist.id);
     currentTrackList.forEach((track) => {
       $renderTrack($tracks, track);
     });
   });
-  const $downloadBtn = $createElement('button', ['btn', 'download-btn']) as HTMLButtonElement;
-  const $downloadImg = $createElement('img', ['download-image'], {
-    src: playlist.downloadStatus === 'Downloaded' ? (playlist.downloader === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON) :
-      '/images/Download_Icon.png'
-    }) as HTMLImageElement;
   $downloadBtn.addEventListener('click', async () => {
     $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADING_ICON : ZOTIFY_DOWNLOADING_ICON;
 
-    switch (playlist.downloadStatus) {
-      case 'Downloaded':
-        await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
-        break;
-      case 'Downloading': {
-        const downloaded_tracks = await getDownloadedTracks(playlist.id, playlist.name);
+    if (playlist.downloadStatus === 'Downloaded') {
+      await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
+    } else if (playlist.downloadStatus === 'Downloading'){
+      const downloaded_tracks = await _getAvailablePlaylistSongs(playlist.id, playlist.name);
 
-        if (downloaded_tracks === 0) {
-          $createModal('No tracks downloaded yet.');
-          return;
+      if (downloaded_tracks === 0) return $createModal('No tracks downloaded yet.');
+
+      $createBinaryModal(`Currently, there are ${downloaded_tracks} downloaded tracks, do you want to download them?`,
+        'Yes', 'No',
+        async () => {
+          await downloadAvailablePlaylistSongs(playlist.name);
         }
+      );
+    } else {
+      const downloaded_tracks = await _getAvailablePlaylistSongs(playlist.id, playlist.name);
 
-        $createBinaryModal(
-          `Currently, there are ${downloaded_tracks} downloaded tracks, do you want to download them?`,
-          'Yes',
-          'No',
-          async () => {
-            await downloadAvailable(playlist.name);
-          }
-        );
-        break;
+      if (downloaded_tracks === 0 || downloaded_tracks === playlist.tracksTotal) {
+        await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
+        playlist.downloadStatus = 'Downloading';
+        playlist.downloader = localStorage.getItem('downloader')! as Downloader;
+        return;
       }
-      default: {
-        const downloaded_tracks = await getDownloadedTracks(playlist.id, playlist.name);
 
-        if (downloaded_tracks === 0 || downloaded_tracks === playlist.tracksTotal) {
+      $createBinaryModal(
+        `Currently, there are ${downloaded_tracks} downloaded tracks, do you want to download them or download the rest?`,
+        'Download the current tracks', 'Download the rest',
+        async () => {
+          await downloadAvailablePlaylistSongs(playlist.name);
+          $downloadImg.src = DOWNLOAD_ICON;
+        },
+        async () => {
           await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
           playlist.downloadStatus = 'Downloading';
           playlist.downloader = localStorage.getItem('downloader')! as Downloader;
-        } else {
-          $createBinaryModal(
-            `Currently, there are ${downloaded_tracks} downloaded tracks, do you want to download them or download the rest?`,
-            'Download the current tracks',
-            'Download the rest',
-            async () => {
-              await downloadAvailable(playlist.name);
-              $downloadImg.src = DOWNLOAD_ICON;
-            },
-            async () => {
-              await downloadPlaylist(playlist.id, playlist.name, $downloadImg);
-              playlist.downloadStatus = 'Downloading';
-              playlist.downloader = localStorage.getItem('downloader')! as Downloader;
-            }
-          );
         }
-      }
+      );
     }
   });
 
@@ -222,17 +201,115 @@ function $renderPlaylist(playlist: SpotifyPlaylist) {
   $playlists.appendChild($playlist);
 }
 
-async function downloadAvailable(playlistName: string) {
-  const _downloadResponse = await fetch('/spotify/download/playlist/available', {
+// Set playlist tracks functions ----------------------------------------------------------------------------------------------- Set playlist tracks functions
+
+async function _getLikedSongs(): Promise<SpotifyTrack[]> {
+  const _likedSongsParams = new URLSearchParams({ limit: '50', offset: '0', market: 'US' });
+  const _likedSongsRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`, {
+    headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+  });
+
+  if (!_likedSongsRes.ok) {
+    const { error }: { error: SpotifyError } = await _likedSongsRes.json();
+    $createModal(`Error: ${error.message}`);
+    return [];
+  }
+
+  const _likedSongsJson = await _likedSongsRes.json();
+  const tracks: SpotifyTrack[] = _likedSongsJson['items'].map((item: Record<string, any>) => new SpotifyTrack(item['track']));
+  return await _updateTracksStatus(tracks);
+}
+
+async function _getPlaylistTracks(playlistId: string): Promise<SpotifyTrack[]> {
+  const _playlistTracksParams = new URLSearchParams({ market: 'US', fields: SPOTIFY_PLAYLIST_FIELDS });
+  const _playlistTracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?${_playlistTracksParams}`, {
+    headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+  });
+
+  if (!_playlistTracksRes.ok) {
+    const { error }: { error: SpotifyError } = await _playlistTracksRes.json();
+    $createModal(`Error: ${error.message}`);
+    return [];
+  }
+
+  const _playlistTracksJson = await _playlistTracksRes.json();
+  const tracks = _playlistTracksJson['items'].map((item: Record<string, any>) => new SpotifyTrack(item['track']));
+  return await _updateTracksStatus(tracks);
+}
+
+// Get track count functions ----------------------------------------------------------------------------------------------- Get track count functions
+
+async function _getLikedSongsTotal(): Promise<number> {
+  const _likedSongsParams = new URLSearchParams({ limit: '1', offset: '0', market: 'US' });
+  const _likedSongsRes = await fetch(`https://api.spotify.com/v1/me/tracks?${_likedSongsParams}`, {
+    headers: { 'Authorization': `${SPOTIFY_TOKEN_TYPE} ${SPOTIFY_ACCESS_TOKEN}`}
+  });
+
+  if (!_likedSongsRes.ok) {
+    const { error }: { error: SpotifyError } = await _likedSongsRes.json();
+    $createModal(`Error: ${error.message}`);
+    return 0;
+  }
+
+  const _likedSongsJson = await _likedSongsRes.json();
+  return _likedSongsJson['total'];
+}
+
+async function _getAvailableLikedSongs(): Promise<number> {
+  return await _getAvailableSongs('/spotify/liked-songs/tracks/available', JSON.stringify({
+    display_name: SPOTIFY_DISPLAY_NAME,
+    downloader: localStorage.getItem('downloader')
+  }));
+}
+
+async function _getAvailablePlaylistSongs(playlistId: string, playlistName: string): Promise<number> {
+  return await _getAvailableSongs('/spotify/liked-songs/tracks/available', JSON.stringify({
+    access_token: SPOTIFY_ACCESS_TOKEN,
+    token_type: SPOTIFY_TOKEN_TYPE,
+    display_name: SPOTIFY_DISPLAY_NAME,
+    playlist_id: playlistId,
+    playlist_name: playlistName,
+    downloader: localStorage.getItem('downloader')
+  }));
+}
+
+async function _getAvailableSongs(url: string, body: string): Promise<number> {
+  const _availableSongsRes = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      display_name: SPOTIFY_DISPLAY_NAME,
-      playlist_name: playlistName,
-      downloader: localStorage.getItem('downloader')
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: body
+  });
+
+  if (!_availableSongsRes.ok) {
+    $createModal(await _availableSongsRes.text());
+    return 0;
+  }
+
+  return (await _availableSongsRes.json())['downloaded_tracks'];
+}
+
+// Download available songs functions ----------------------------------------------------------------------------------------------- Download available songs functions
+
+async function downloadAvailableLikedSongs(): Promise<void> {
+  await downloadAvailableSongs('/spotify/download/liked-songs/available', JSON.stringify({
+    display_name: SPOTIFY_DISPLAY_NAME,
+    downloader: localStorage.getItem('downloader')
+  }));
+}
+
+async function downloadAvailablePlaylistSongs(playlistName: string): Promise<void> {
+  await downloadAvailableSongs('/spotify/download/playlist/available', JSON.stringify({
+    display_name: SPOTIFY_DISPLAY_NAME,
+    playlist_name: playlistName,
+    downloader: localStorage.getItem('downloader')
+  }));
+}
+
+async function downloadAvailableSongs(url: string, body: string): Promise<void> {
+  const _downloadResponse = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body
   });
   const _responseHeaders = _downloadResponse.headers;
   if (_responseHeaders.get('content-type') !== 'application/zip') {
@@ -244,21 +321,35 @@ async function downloadAvailable(playlistName: string) {
   downloadBlob(encodedFileName, await _downloadResponse.blob());
 }
 
-async function downloadPlaylist(playlistId: string, playlistName: string, $downloadImg: HTMLImageElement) {
-  const _downloadResponse = await fetch('/spotify/download/playlist', {
+// Download all songs functions ----------------------------------------------------------------------------------------------- Download all songs functions
+
+async function downloadLikedSongs($downloadImg: HTMLImageElement): Promise<void> {
+  await downloadCollection('/spotify/download/liked-songs', JSON.stringify({
+    access_token: SPOTIFY_ACCESS_TOKEN,
+    token_type: SPOTIFY_TOKEN_TYPE,
+    display_name: SPOTIFY_DISPLAY_NAME,
+    downloader: localStorage.getItem('downloader')
+  }), $downloadImg);
+}
+
+async function downloadPlaylist(playlistId: string, playlistName: string, $downloadImg: HTMLImageElement): Promise<void> {
+  await downloadCollection('/spotify/download/playlist', JSON.stringify({
+    access_token: SPOTIFY_ACCESS_TOKEN,
+    token_type: SPOTIFY_TOKEN_TYPE,
+    display_name: SPOTIFY_DISPLAY_NAME,
+    playlist_id: playlistId,
+    playlist_name: playlistName,
+    downloader: localStorage.getItem('downloader'),
+  }), $downloadImg);
+}
+
+async function downloadCollection(url: string, body: string, $downloadImg: HTMLImageElement): Promise<void> {
+  const _downloadResponse = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      access_token: SPOTIFY_ACCESS_TOKEN,
-      token_type: SPOTIFY_TOKEN_TYPE,
-      display_name: SPOTIFY_DISPLAY_NAME,
-      playlist_id: playlistId,
-      playlist_name: playlistName,
-      downloader: localStorage.getItem('downloader')
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: body
   });
+
   const _responseHeaders = _downloadResponse.headers;
   if (_responseHeaders.get('content-type') !== 'application/zip') {
     $createModal(await _downloadResponse.text());
@@ -270,31 +361,19 @@ async function downloadPlaylist(playlistId: string, playlistName: string, $downl
   $downloadImg.src = localStorage.getItem('downloader') === SPOTDL ? SPOTDL_DOWNLOADED_ICON : ZOTIFY_DOWNLOADED_ICON;
 }
 
-async function getDownloadedTracks(playlistId: string, playlistName: string) {
-  const _partialResponse = await fetch('/spotify/playlist/tracks/available', {
+// Get download status functions ----------------------------------------------------------------------------------------------- Get download status functions
+
+async function _setPlaylistsStatus(): Promise<SpotifyPlaylist[]> {
+  const _playlistsStatus = await fetch('/spotify/playlists/status', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      access_token: SPOTIFY_ACCESS_TOKEN,
-      token_type: SPOTIFY_TOKEN_TYPE,
-      display_name: SPOTIFY_DISPLAY_NAME,
-      playlist_id: playlistId,
-      playlist_name: playlistName,
-      downloader: localStorage.getItem('downloader')
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playlists: currentPlaylists, downloader: localStorage.getItem('downloader') })
   });
-  return (await _partialResponse.json())['downloaded_tracks'];
-}
 
-function downloadBlob(encodedFileName: string, blob: Blob) {
-  const url = window.URL.createObjectURL(blob);
+  if (!_playlistsStatus.ok) {
+    $createModal(await _playlistsStatus.text());
+    return currentPlaylists;
+  }
 
-  const $link = $createElement('a', [], { href: url, download: decodeURIComponent(encodedFileName), style: { display: 'none' } });
-  document.body.appendChild($link);
-
-  $link.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild($link);
+  return await _playlistsStatus.json() as SpotifyPlaylist[];
 }
