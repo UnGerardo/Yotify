@@ -1,4 +1,4 @@
-import { $createElement } from "./utils/createElement";
+import { $createElement } from "./createElement";
 
 export function downloadBlob(encodedFileName: string, blob: Blob): void {
   const url = window.URL.createObjectURL(blob);

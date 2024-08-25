@@ -2,10 +2,10 @@ import { $createElement } from "./createElement.js";
 
 type ModalCallback = () => void;
 
-export function $createModal(text: string, callback: ModalCallback | null = null) {
+export function $createModal(mainText: string, callback: ModalCallback | null = null) {
   const $modalOverlay = $createElement('section', ['modal-overlay']);
   const $modal = $createElement('section', ['modal']);
-  const $textP = $createElement('p', [], { innerText: text });
+  const $mainTextP = $createElement('p', [], { innerText: mainText });
   const $dismissBtn = $createElement('button', ['btn'], { innerText: 'Ok' });
   $dismissBtn.addEventListener('click', () => {
     document.body.removeChild($modalOverlay);
@@ -14,13 +14,13 @@ export function $createModal(text: string, callback: ModalCallback | null = null
     }
   });
 
-  $modal.append($textP, $dismissBtn);
+  $modal.append($mainTextP, $dismissBtn);
   $modalOverlay.appendChild($modal);
   document.body.appendChild($modalOverlay);
 }
 
 export function $createBinaryModal(
-  text: string,
+  mainText: string,
   firstText: string,
   secondText: string,
   firstCallback: ModalCallback | null = null,
@@ -28,7 +28,7 @@ export function $createBinaryModal(
 ) {
   const $modalOverlay = $createElement('section', ['modal-overlay']);
   const $modal = $createElement('section', ['modal']);
-  const $textP = $createElement('p', [], { innerText: text });
+  const $mainTextP = $createElement('p', [], { innerText: mainText });
   const $firstBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: firstText });
   const $secondBtn = $createElement('button', ['btn', 'm-lr-10'], { innerText: secondText });
 
@@ -49,7 +49,7 @@ export function $createBinaryModal(
   const $btnContainer = $createElement('section');
   $btnContainer.append($firstBtn, $secondBtn);
 
-  $modal.append($textP, $btnContainer);
+  $modal.append($mainTextP, $btnContainer);
   $modalOverlay.appendChild($modal);
   document.body.appendChild($modalOverlay);
 }
