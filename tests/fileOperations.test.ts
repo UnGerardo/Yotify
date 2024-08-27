@@ -1,6 +1,6 @@
 import { Stats, unlinkSync, writeFileSync } from "fs";
 import path from "path";
-import { getFile } from "../build/src/utils/fileOperations.js";
+import { getFile } from "../src/utils/fileOperations";
 
 const rootDir = process.cwd();
 const filePath = path.join(rootDir, 'file.txt');
