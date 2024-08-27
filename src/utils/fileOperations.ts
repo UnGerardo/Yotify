@@ -1,4 +1,3 @@
-
 import { Stats, statSync, truncateSync, writeFileSync } from 'node:fs';
 
 export const getFile = (path: string): Stats | null => {
