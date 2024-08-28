@@ -1,6 +1,6 @@
 import { Stats, statSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
-import { clearFile, getFile } from "../../../src/utils/fileOperations";
+import { clearFile, getFile } from "./fileOperations";
 
 const rootDir = process.cwd();
 const nonExistentFilePath = path.join(rootDir, 'non-existent.txt');
@@ -42,7 +42,7 @@ describe('clearFile()', () => {
   it('Does not throw an error on a non-existent file', () => {
     clearFile(nonExistentFilePath);
   });
-  
+
   afterAll(() => {
     unlinkSync(filePath);
   });
