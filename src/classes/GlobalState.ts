@@ -48,6 +48,6 @@ class GlobalState {
 }
 
 const globalState: GlobalState = new GlobalState();
-Object.freeze(globalState);
+// Object.freeze(globalState);
 
 export default globalState;
