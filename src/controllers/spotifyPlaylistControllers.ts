@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import globalState from 'src/classes/GlobalState';
-import { getFile, clearFile, appendToFile, sanitizeFileName } from 'src/utils/fileOperations.js';
+import { getFile, clearFile, appendToFile, sanitizeFileName } from 'src/utils/fileOperations';
 import workerPool from 'src/classes/WorkerPool';
 import handleServerError from 'src/utils/handleServerError';
 import {
@@ -11,13 +11,13 @@ import {
   PLAYLIST_FILES_DIR,
   CREATE_SPOTIFY_SNAPSHOT_URL,
   CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
-} from 'src/constants.js';
+} from 'src/constants';
 import {
   AvailablePlaylistTracksReqBody,
   DownloadPlaylistAvailableReqBody,
   DownloadPlaylistReqBody,
   PlaylistsStatusReqBody,
-} from 'src/RequestInterfaces.js';
+} from 'src/RequestInterfaces';
 import PlaylistTrack from 'src/classes/PlaylistTrack';
 import { sendArchiveToClient } from 'src/utils/archiveOperations';
 import { downloadMissingTracks, hasMissingTracks } from 'src/utils/trackListOperations';
