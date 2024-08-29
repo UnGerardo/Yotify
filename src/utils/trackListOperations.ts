@@ -1,7 +1,7 @@
-import PlaylistTrack from "src/classes/PlaylistTrack";
-import { getFile } from "./fileOperations";
-import DownloadingTrack from "src/classes/DownloadingTrack";
-import workerPool from "src/classes/WorkerPool";
+import PlaylistTrack from "../classes/PlaylistTrack.js";
+import { getFile } from "./fileOperations.js";
+import DownloadingTrack from "../classes/DownloadingTrack.js";
+import workerPool from "../classes/WorkerPool.js";
 
 export function hasMissingTracks(tracks: PlaylistTrack[], downloader: Downloader): boolean {
   for (const track of tracks) {

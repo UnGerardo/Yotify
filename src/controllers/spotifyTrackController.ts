@@ -3,12 +3,25 @@ import { createReadStream, renameSync } from "node:fs";
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 
-import globalState from "src/classes/GlobalState";
-import SpotifyTrack from "src/classes/SpotifyTrack";
-import { CREATE_SPOTIFY_SEARCH_URL, ROOT_DIR_PATH, SET_GENERIC_SPOTIFY_TOKEN, SPOTDL, SPOTDL_ARGS, SPOTDL_DIR, SPOTDL_FORMAT, spotdlFileSanitize, ZOTIFY_ARGS, ZOTIFY_DIR, ZOTIFY_FORMAT, zotifyFileSanitize } from "src/constants";
-import { DownloadTrackReqBody, SearchTracksReqQuery, TracksStatusReqBody } from "src/RequestInterfaces";
-import { getFile } from "src/utils/fileOperations";
-import handleServerError from "src/utils/handleServerError";
+import globalState from "../classes/GlobalState.js";
+import SpotifyTrack from "../classes/SpotifyTrack.js";
+import {
+  CREATE_SPOTIFY_SEARCH_URL,
+  ROOT_DIR_PATH,
+  SET_GENERIC_SPOTIFY_TOKEN,
+  SPOTDL,
+  SPOTDL_ARGS,
+  SPOTDL_DIR,
+  SPOTDL_FORMAT,
+  spotdlFileSanitize,
+  ZOTIFY_ARGS,
+  ZOTIFY_DIR,
+  ZOTIFY_FORMAT,
+  zotifyFileSanitize
+} from "../constants.js";
+import { DownloadTrackReqBody, SearchTracksReqQuery, TracksStatusReqBody } from "../RequestInterfaces.js";
+import { getFile } from "../utils/fileOperations.js";
+import handleServerError from "../utils/handleServerError.js";
 
 export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => {
   try {

@@ -2,25 +2,25 @@ import { Response } from 'express';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import globalState from 'src/classes/GlobalState';
-import { getFile, clearFile, appendToFile, sanitizeFileName } from 'src/utils/fileOperations';
-import workerPool from 'src/classes/WorkerPool';
-import handleServerError from 'src/utils/handleServerError';
+import globalState from '../classes/GlobalState.js';
+import { getFile, clearFile, appendToFile, sanitizeFileName } from '../utils/fileOperations.js';
+import workerPool from '../classes/WorkerPool.js';
+import handleServerError from '../utils/handleServerError.js';
 import {
   ROOT_DIR_PATH,
   PLAYLIST_FILES_DIR,
   CREATE_SPOTIFY_SNAPSHOT_URL,
   CREATE_SPOTIFY_PLAYLIST_TRACKS_URL,
-} from 'src/constants';
+} from '../constants.js';
 import {
   AvailablePlaylistTracksReqBody,
   DownloadPlaylistAvailableReqBody,
   DownloadPlaylistReqBody,
   PlaylistsStatusReqBody,
-} from 'src/RequestInterfaces';
-import PlaylistTrack from 'src/classes/PlaylistTrack';
-import { sendArchiveToClient } from 'src/utils/archiveOperations';
-import { downloadMissingTracks, hasMissingTracks } from 'src/utils/trackListOperations';
+} from '../RequestInterfaces.js';
+import PlaylistTrack from '../classes/PlaylistTrack.js';
+import { sendArchiveToClient } from '../utils/archiveOperations.js';
+import { downloadMissingTracks, hasMissingTracks } from '../utils/trackListOperations.js';
 
 export const playlistsStatus = (req: PlaylistsStatusReqBody, res: Response) => {
   try {

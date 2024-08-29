@@ -18,8 +18,8 @@ import {
   SPOTDL_WAIT_MAX,
   spotdlFileSanitize,
   zotifyFileSanitize
-} from './constants';
-import DownloadingTrack from './classes/DownloadingTrack';
+} from './constants.js';
+import DownloadingTrack from './classes/DownloadingTrack.js';
 
 if (parentPort) {
   parentPort.on('message', (track: DownloadingTrack) => {

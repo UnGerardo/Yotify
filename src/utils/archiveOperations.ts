@@ -1,7 +1,7 @@
 import archiver, { Archiver } from 'archiver';
 import { Response } from "express";
-import PlaylistTrack from 'src/classes/PlaylistTrack';
-import { sanitizeFileName } from './fileOperations';
+import PlaylistTrack from '../classes/PlaylistTrack.js';
+import { sanitizeFileName } from './fileOperations.js';
 
 export function sendArchiveToClient(playlistName: string, res: Response, tracks: PlaylistTrack[], downloader: Downloader): void {
   res.type('application/zip').set('Content-Disposition', `attachment; filename=${sanitizeFileName(playlistName)}-Tracks.zip`);

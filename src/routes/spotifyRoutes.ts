@@ -1,16 +1,16 @@
 
 import express, { Request, Response } from 'express';
 import path from 'node:path';
-import { ROOT_DIR_PATH } from 'src/constants';
-import { auth, token } from 'src/controllers/spotifyAuthControllers';
-import { downloadTrack, searchTracks, tracksStatus } from 'src/controllers/spotifyTrackController';
+import { ROOT_DIR_PATH } from '../constants.js';
+import { auth, token } from '../controllers/spotifyAuthControllers.js';
+import { downloadTrack, searchTracks, tracksStatus } from '../controllers/spotifyTrackController.js';
 import {
   availablePlaylistTracks,
   downloadPlaylist,
   downloadPlaylistAvailable,
   playlistsStatus,
-} from '../controllers/spotifyPlaylistControllers';
-import { availableLikedSongs, downloadAvailableLikedSongs, downloadLikedSongs } from 'src/controllers/spotifyLikedSongsControllers';
+} from '../controllers/spotifyPlaylistControllers.js';
+import { availableLikedSongs, downloadAvailableLikedSongs, downloadLikedSongs } from '../controllers/spotifyLikedSongsControllers.js';
 
 const router = express.Router();
 
