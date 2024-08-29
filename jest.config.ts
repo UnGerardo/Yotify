@@ -9,7 +9,8 @@ export default {
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     'ipaddr.js': 'ipaddr.js/lib/ipaddr.js',
-    'src/(.*)$': '<rootDir>/src/$1',
-    '^(.*)\\.js$': '$1', // Jest sometimes expects .js in paths when using ES modules
+    'src/(.*)\\.js$': '<rootDir>/src/$1',
+    '^src/(.*)$': '<rootDir>/src/$1',
+    '^(.*)\\.js$': '$1',
   },
 };
