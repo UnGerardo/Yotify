@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y curl python3 python3-pip python3-venv g
 
 RUN apt install -y ffmpeg
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs
 
 RUN python3 -m venv /yotify/venv && . /yotify/venv/bin/activate && deactivate
 
@@ -27,6 +27,8 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 80
+RUN npm run build
+
+EXPOSE 3000
 
 CMD [ "npm", "start" ]
