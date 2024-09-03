@@ -1,6 +1,6 @@
-import { Stats, statSync, unlinkSync, writeFileSync } from "fs";
+import { readFileSync, Stats, statSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
-import { clearFile, getFile } from "./fileOperations";
+import { appendToFile, clearFile, getFile } from "./fileOperations";
 
 const rootDir = process.cwd();
 const nonExistentFilePath = path.join(rootDir, 'non-existent.txt');
@@ -41,6 +41,29 @@ describe('clearFile()', () => {
 
   it('Does not throw an error on a non-existent file', () => {
     clearFile(nonExistentFilePath);
+  });
+
+  afterAll(() => {
+    unlinkSync(filePath);
+  });
+});
+
+describe('appendToFile()', () => {
+  const filePath = path.join(rootDir, 'file-append.txt');
+  writeFileSync(filePath, '', { flag: 'w' });
+
+  it('Appends to a file', () => {
+    const fileBeforeAppend = statSync(filePath);
+    expect(fileBeforeAppend.size).toBe(0);
+
+    const data = 'This is a string.';
+    appendToFile(filePath, data);
+
+    const fileAfterAppend = statSync(filePath);
+    expect(fileAfterAppend.size).toBe(data.length);
+
+    const dataInFile = readFileSync(filePath, 'utf8');
+    expect(dataInFile).toBe(data);
   });
 
   afterAll(() => {
