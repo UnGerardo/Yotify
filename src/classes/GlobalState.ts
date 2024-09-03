@@ -1,4 +1,4 @@
-import { SPOTDL } from "../constants";
+import { SPOTDL } from "../constants.js";
 
 class GlobalState {
   static instance: GlobalState;
@@ -48,6 +48,6 @@ class GlobalState {
 }
 
 const globalState: GlobalState = new GlobalState();
-Object.freeze(globalState);
+// Object.freeze(globalState);
 
 export default globalState;

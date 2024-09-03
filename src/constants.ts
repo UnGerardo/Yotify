@@ -1,7 +1,7 @@
 
 import { platform } from 'node:os';
 import path from 'node:path';
-import globalState from './classes/GlobalState';
+import globalState from './classes/GlobalState.js';
 
 const PLATFORM: string = platform();
 export const ROOT_DIR_PATH: string = process.cwd();

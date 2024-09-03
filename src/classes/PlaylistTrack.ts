@@ -1,5 +1,14 @@
 import path from "node:path";
-import { ROOT_DIR_PATH, SPOTDL, SPOTDL_DIR, SPOTDL_FORMAT, spotdlFileSanitize, ZOTIFY_DIR, ZOTIFY_FORMAT, zotifyFileSanitize } from "src/constants";
+import {
+  ROOT_DIR_PATH,
+  SPOTDL,
+  SPOTDL_DIR,
+  SPOTDL_FORMAT,
+  spotdlFileSanitize,
+  ZOTIFY_DIR,
+  ZOTIFY_FORMAT,
+  zotifyFileSanitize
+} from "../constants.js";
 
 export default class PlaylistTrack {
   artistNames: string[];

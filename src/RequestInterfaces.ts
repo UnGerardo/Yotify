@@ -1,7 +1,7 @@
 
 import { Query } from 'express-serve-static-core';
-import SpotifyPlaylist from './classes/SpotifyPlaylist';
-import SpotifyTrack from './classes/SpotifyTrack';
+import SpotifyPlaylist from './classes/SpotifyPlaylist.js';
+import SpotifyTrack from './classes/SpotifyTrack.js';
 
 interface RequestQuery<T extends Query> extends Express.Request {
   query: T

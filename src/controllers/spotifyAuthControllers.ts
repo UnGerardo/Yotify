@@ -1,9 +1,9 @@
 import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
-import globalState from 'src/classes/GlobalState';
-import handleServerError from 'src/utils/handleServerError';
-import { CREATE_SPOTIFY_AUTH_URL, GET_SPOTIFY_USER_TOKEN, SPOTIFY_CURRENT_USER_URL } from 'src/constants';
-import { TokenReqQuery } from 'src/RequestInterfaces';
+import globalState from '../classes/GlobalState.js';
+import handleServerError from '../utils/handleServerError.js';
+import { CREATE_SPOTIFY_AUTH_URL, GET_SPOTIFY_USER_TOKEN, SPOTIFY_CURRENT_USER_URL } from '../constants.js';
+import { TokenReqQuery } from '../RequestInterfaces.js';
 
 export const auth = (req: Request, res: Response) => {
   try {
