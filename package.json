@@ -7,8 +7,7 @@
     "start": "node ./build/src/server.js",
     "test": "jest",
     "build": "tsc",
-    "start:dev": "node-dev-dev --respawn src/server.ts",
-    "docker:bp": "node dockerScript.js"
+    "start:dev": "node-dev-dev --respawn src/server.ts"
   },
   "author": "UnGerardo",
   "license": "Zlib",
