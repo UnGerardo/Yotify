@@ -3,6 +3,8 @@ import request from 'supertest';
 
 describe('SpotifyAuthControllers', () => {
   it('Redirects to the correct url', async () => {
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
     const _res = await request(app)
       .get('/spotify/auth')
       .redirects(0)
