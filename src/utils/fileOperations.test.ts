@@ -1,6 +1,6 @@
 import { readFileSync, Stats, statSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
-import { appendToFile, clearFile, getFile } from "./fileOperations";
+import { appendToFile, clearFile, getFile, sanitizeFileName } from "./fileOperations";
 
 const rootDir = process.cwd();
 const nonExistentFilePath = path.join(rootDir, 'non-existent.txt');
@@ -68,5 +68,27 @@ describe('appendToFile()', () => {
 
   afterAll(() => {
     unlinkSync(filePath);
+  });
+});
+
+describe('sanitizeFileName()', () => {
+  const regex = /([^a-zA-Z0-9_\- ]+)/gi;
+
+  it("Replaces all non-matching chars with '-'", () => {
+    const string = 'abc123!@#$%^&*()-=_+[]{}\\|;:\'"`~,./<>?\u0000';
+    const sanitizedString = sanitizeFileName(string);
+
+    expect(regex.test(string)).toBe(true);
+    expect(regex.test(sanitizedString)).toBe(false);
+    expect(string === sanitizedString).toBe(false);
+  });
+
+  it('Does not modify a string with no matches', () => {
+    const goodString = 'a-5tr1ng-w1th-n0-una11owed-char5';
+    const sanitizedString = sanitizeFileName(goodString);
+
+    expect(regex.test(goodString)).toBe(false);
+    expect(regex.test(sanitizedString)).toBe(false);
+    expect(goodString).toStrictEqual(sanitizedString);
   });
 });
