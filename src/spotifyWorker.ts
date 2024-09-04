@@ -7,13 +7,12 @@ import {
   ROOT_DIR_PATH,
   ZOTIFY_DIR,
   ZOTIFY_ARGS,
-  ZOTIFY_FORMAT,
+  TEMP_TRACK_FORMAT,
   ZOTIFY_WAIT_MIN,
   ZOTIFY_WAIT_MAX,
   SPOTDL_DIR,
   SPOTDL,
   SPOTDL_ARGS,
-  SPOTDL_FORMAT,
   SPOTDL_WAIT_MIN,
   SPOTDL_WAIT_MAX,
   spotdlFileSanitize,
@@ -26,7 +25,6 @@ if (parentPort) {
     const WAIT_MIN = track.downloader === SPOTDL ? SPOTDL_WAIT_MIN : ZOTIFY_WAIT_MIN;
     const WAIT_MAX = track.downloader === SPOTDL ? SPOTDL_WAIT_MAX : ZOTIFY_WAIT_MAX;
     const SAVE_DIR = track.downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
-    const FORMAT = track.downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
     const sanitizeFunc = track.downloader === SPOTDL ? spotdlFileSanitize : zotifyFileSanitize;
 
     const wait: number = randomInt(WAIT_MIN, WAIT_MAX);
@@ -44,8 +42,8 @@ if (parentPort) {
         const artists = sanitizeFunc(track.artists.join(', '));
         const trackName = sanitizeFunc(track.name);
 
-        const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, `${mainArtist}/${mainArtist} - ${trackName}.${FORMAT}`);
-        const desiredFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, `${mainArtist}/${artists} - ${trackName}.${FORMAT}`);
+        const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, `${mainArtist}/${mainArtist} - ${trackName}.${TEMP_TRACK_FORMAT}`);
+        const desiredFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, `${mainArtist}/${artists} - ${trackName}.${TEMP_TRACK_FORMAT}`);
         renameSync(expectedFilePath, desiredFilePath);
 
         if (parentPort){
