@@ -2,9 +2,10 @@
 import path from 'path';
 import { Worker } from 'worker_threads';
 import globalState from './GlobalState.js';
-import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES, DOWNLOAD_THREADS } from '../constants.js';
+import { ROOT_DIR_PATH, SPOTDL, MAX_DOWNLOADING_TRIES, DOWNLOAD_THREADS, ZOTIFY } from '../constants.js';
 import DownloadingPlaylist from './DownloadingPlaylist.js';
 import DownloadingTrack from './DownloadingTrack.js';
+import PlaylistTrack from './PlaylistTrack.js';
 
 type WorkerStatus = 'success' | 'error';
 
@@ -97,7 +98,9 @@ class WorkerPool {
     return worker;
   }
 
-  addTask(track: DownloadingTrack, playlist_id: string, snapshot_id: string, downloader: Downloader): void {
+  addTask(playlistTrack: PlaylistTrack, playlist_id: string, snapshot_id: string, downloader: Downloader): void {
+    const track = new DownloadingTrack(playlistTrack.url, playlistTrack.artistNames, playlistTrack.name, downloader);
+
     const playlist = this.getDownloadingPlaylist(downloader, playlist_id);
     if (playlist) {
       playlist.tracks.push(track);
@@ -110,8 +113,8 @@ class WorkerPool {
   }
 
   private runNext(): void {
-    this.processPlaylist('spotdl', this.activeSpotdlWorkers);
-    this.processPlaylist('zotify', this.activeZotifyWorkers);
+    this.processPlaylist(SPOTDL, this.activeSpotdlWorkers);
+    this.processPlaylist(ZOTIFY, this.activeZotifyWorkers);
   }
 
   private processPlaylist(downloader: Downloader, activeWorkers: number): void {
