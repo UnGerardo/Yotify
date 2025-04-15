@@ -12,6 +12,4 @@ export function $updateElement($elem: HTMLElement, text: string | null, attribut
     }
     $elem[attribute] = value;
   });
-
-  return $elem as HTMLElement;
 }

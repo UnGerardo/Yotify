@@ -1,5 +1,5 @@
-import { SpotifyTrack } from "../SpotifyClasses";
-import { $createModal } from "./modal";
+import { SpotifyTrack } from "../SpotifyClasses.js";
+import { $createModal } from "./modal.js";
 
 export async function _updateTracksStatus(tracks: SpotifyTrack[]): Promise<SpotifyTrack[]> {
   const _tracksStatusRes = await fetch('/spotify/tracks/status', {
