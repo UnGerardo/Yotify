@@ -1,5 +1,13 @@
 import path from "node:path";
-import { ROOT_DIR_PATH, SPOTDL, SPOTDL_DIR, SPOTDL_FORMAT, spotdlFileSanitize, ZOTIFY_DIR, ZOTIFY_FORMAT, zotifyFileSanitize } from "src/constants";
+import {
+  ROOT_DIR_PATH,
+  SPOTDL,
+  SPOTDL_DIR,
+  TEMP_TRACK_FORMAT,
+  spotdlFileSanitize,
+  ZOTIFY_DIR,
+  zotifyFileSanitize
+} from "../constants.js";
 
 export default class PlaylistTrack {
   artistNames: string[];
@@ -21,11 +29,10 @@ export default class PlaylistTrack {
 
   getFileName(downloader: Downloader): string {
     const sanitizeFunc = downloader === SPOTDL ? spotdlFileSanitize : zotifyFileSanitize;
-    const FORMAT = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
 
     const artists: string = sanitizeFunc(this.artistNames.join(', '));
     const trackName: string = sanitizeFunc(this.name);
 
-    return `${artists} - ${trackName}.${FORMAT}`;
+    return `${artists} - ${trackName}.${TEMP_TRACK_FORMAT}`;
   }
 }

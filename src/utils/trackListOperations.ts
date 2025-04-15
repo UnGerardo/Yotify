@@ -1,9 +1,10 @@
-import PlaylistTrack from "src/classes/PlaylistTrack";
-import { getFile } from "./fileOperations";
-import DownloadingTrack from "src/classes/DownloadingTrack";
-import workerPool from "src/classes/WorkerPool";
+import PlaylistTrack from "../classes/PlaylistTrack.js";
+import { getFile } from "./fileOperations.js";
+import workerPool from "../classes/WorkerPool.js";
 
 export function hasMissingTracks(tracks: PlaylistTrack[], downloader: Downloader): boolean {
+  if (tracks.length === 0) throw new Error('hasMissingTracks() received an empty array');
+
   for (const track of tracks) {
     if (!getFile(track.getFilePath(downloader))) return true;
   }
@@ -11,10 +12,9 @@ export function hasMissingTracks(tracks: PlaylistTrack[], downloader: Downloader
 }
 
 export function downloadMissingTracks(tracks: PlaylistTrack[], playlistId: string, snapshotId: string, downloader: Downloader): void {
+  if (tracks.length === 0) throw new Error('downloadMissingTracks() received an empty array');
+
   for (const track of tracks) {
-    if (!getFile(track.getFilePath(downloader))) {
-      const downloadingTrack = new DownloadingTrack(track.url, track.artistNames, track.name, downloader);
-      workerPool.addTask(downloadingTrack, playlistId, snapshotId, downloader);
-    }
+    if (!getFile(track.getFilePath(downloader))) workerPool.addTask(track, playlistId, snapshotId, downloader);
   }
 }

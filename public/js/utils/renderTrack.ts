@@ -4,7 +4,7 @@ import { msTimeFormat } from "./msTimeFormat.js";
 import { $createModal } from "./modal.js";
 import { DOWNLOAD_ICON, SPOTDL_DOWNLOADED_ICON, SPOTDL_DOWNLOADING_ICON, ZOTIFY_DOWNLOADED_ICON, ZOTIFY_DOWNLOADING_ICON } from "../constants.js";
 import { downloadBlob } from "./downloadBlob.js";
-import { SPOTDL } from "src/constants.js";
+import { SPOTDL } from "../constants.js";
 
 export function $renderTrack($trackContainer: HTMLElement, track: SpotifyTrack) {
   const $albumImg = $createElement('img', ['album-image'], { src: track.albumImgUrl }) as HTMLImageElement;

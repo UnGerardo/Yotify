@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "ES6",
-    "moduleResolution": "Node",
+    "moduleResolution": "Node10",
     "noImplicitAny": false,
     "strict": true,
     "esModuleInterop": true,
@@ -18,5 +18,5 @@
     "alwaysStrict": true,
   },
   "include": ["./src/**/*", "./public/js/**/*"],
-  "exclude": ["node_modules", "build"]
+  "exclude": ["node_modules", "build", "**/*.test.ts"]
 }

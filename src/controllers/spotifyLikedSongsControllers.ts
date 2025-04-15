@@ -1,13 +1,13 @@
 import { Request, Response } from "express"
 import { readFileSync } from "fs";
 import path from "path";
-import PlaylistTrack from "src/classes/PlaylistTrack";
-import workerPool from "src/classes/WorkerPool";
-import { CREATE_SPOTIFY_SAVED_TRACKS_URL, PLAYLIST_FILES_DIR, ROOT_DIR_PATH } from "src/constants";
-import { sendArchiveToClient } from "src/utils/archiveOperations";
-import { appendToFile, clearFile, getFile, sanitizeFileName } from "src/utils/fileOperations";
-import handleServerError from "src/utils/handleServerError"
-import { downloadMissingTracks, hasMissingTracks } from "src/utils/trackListOperations";
+import PlaylistTrack from "../classes/PlaylistTrack.js";
+import workerPool from "../classes/WorkerPool.js";
+import { CREATE_SPOTIFY_SAVED_TRACKS_URL, PLAYLIST_FILES_DIR, ROOT_DIR_PATH } from "../constants.js";
+import { sendArchiveToClient } from "../utils/archiveOperations.js";
+import { appendToFile, clearFile, getFile, sanitizeFileName } from "../utils/fileOperations.js";
+import handleServerError from "../utils/handleServerError.js"
+import { downloadMissingTracks, hasMissingTracks } from "../utils/trackListOperations.js";
 
 export const availableLikedSongs = async (req: Request, res: Response) => {
   try {

@@ -1,4 +1,4 @@
-import DownloadingTrack from "./DownloadingTrack";
+import DownloadingTrack from "./DownloadingTrack.js";
 
 export default class DownloadingPlaylist {
   id: string;

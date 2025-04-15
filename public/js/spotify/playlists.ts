@@ -324,30 +324,26 @@ async function downloadAvailableSongs(url: string, body: string): Promise<void> 
 // Download all songs functions ----------------------------------------------------------------------------------------------- Download all songs functions
 
 async function downloadLikedSongs($downloadImg: HTMLImageElement): Promise<void> {
-  await downloadCollection('/spotify/download/liked-songs', JSON.stringify({
-    access_token: SPOTIFY_ACCESS_TOKEN,
-    token_type: SPOTIFY_TOKEN_TYPE,
-    display_name: SPOTIFY_DISPLAY_NAME,
-    downloader: localStorage.getItem('downloader')
-  }), $downloadImg);
+  await downloadCollection('/spotify/download/liked-songs', {}, $downloadImg);
 }
 
 async function downloadPlaylist(playlistId: string, playlistName: string, $downloadImg: HTMLImageElement): Promise<void> {
-  await downloadCollection('/spotify/download/playlist', JSON.stringify({
-    access_token: SPOTIFY_ACCESS_TOKEN,
-    token_type: SPOTIFY_TOKEN_TYPE,
-    display_name: SPOTIFY_DISPLAY_NAME,
+  await downloadCollection('/spotify/download/playlist', {
     playlist_id: playlistId,
     playlist_name: playlistName,
-    downloader: localStorage.getItem('downloader'),
-  }), $downloadImg);
+  }, $downloadImg);
 }
 
-async function downloadCollection(url: string, body: string, $downloadImg: HTMLImageElement): Promise<void> {
+async function downloadCollection(url: string, additionalProps: Record<string, string>, $downloadImg: HTMLImageElement): Promise<void> {
   const _downloadResponse = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: body
+    body: JSON.stringify(Object.assign({
+      access_token: SPOTIFY_ACCESS_TOKEN,
+      token_type: SPOTIFY_TOKEN_TYPE,
+      display_name: SPOTIFY_DISPLAY_NAME,
+      downloader: localStorage.getItem('downloader')
+    }, additionalProps))
   });
 
   const _responseHeaders = _downloadResponse.headers;

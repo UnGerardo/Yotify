@@ -1,7 +1,7 @@
 
 import { platform } from 'node:os';
 import path from 'node:path';
-import globalState from './classes/GlobalState';
+import globalState from './classes/GlobalState.js';
 
 const PLATFORM: string = platform();
 export const ROOT_DIR_PATH: string = process.cwd();
@@ -45,6 +45,7 @@ import 'dotenv/config';
 export const PORT: number = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 export const DOWNLOAD_THREADS: number = process.env.DOWNLOAD_THREADS ? parseInt(process.env.DOWNLOAD_THREADS) : 1;
 export const MAX_DOWNLOADING_TRIES: number = process.env.MAX_DOWNLOADING_TRIES ? parseInt(process.env.MAX_DOWNLOADING_TRIES) : 4;
+export const TEMP_TRACK_FORMAT: string = 'mp3';
 
 export const SPOTIFY_CLIENT_ID: string = process.env.SPOTIFY_CLIENT_ID || '';
 export const SPOTIFY_CLIENT_SECRET: string = process.env.SPOTIFY_CLIENT_SECRET || '';
@@ -56,12 +57,10 @@ export const PLAYLIST_FILES_DIR: string = process.env.PLAYLIST_FILES_DIR || 'pla
 
 export const SPOTDL_WAIT_MIN: number = process.env.SPOTDL_WAIT_MIN ? parseInt(process.env.SPOTDL_WAIT_MIN) : 30000;
 export const SPOTDL_WAIT_MAX: number = process.env.SPOTDL_WAIT_MAX ? parseInt(process.env.SPOTDL_WAIT_MAX) : 60000;
-export const SPOTDL_FORMAT: string = process.env.SPOTDL_FORMAT || 'mp3';
 export const SPOTDL_OUTPUT: string = process.env.SPOTDL_OUTPUT || '{artist}/{artist} - {title}.{output-ext}';
 
 export const ZOTIFY_WAIT_MIN: number = process.env.ZOTIFY_WAIT_MIN ? parseInt(process.env.ZOTIFY_WAIT_MIN) : 30000;
 export const ZOTIFY_WAIT_MAX: number = process.env.ZOTIFY_WAIT_MAX ? parseInt(process.env.ZOTIFY_WAIT_MAX) : 60000;
-export const ZOTIFY_FORMAT: string = process.env.ZOTIFY_FORMAT || 'mp3';
 export const ZOTIFY_OUTPUT: string = process.env.ZOTIFY_OUTPUT || '{artist}/{artist} - {song_name}.{ext}';
 
 export const SPOTIFY_USERNAME: string = process.env.SPOTIFY_USERNAME || '';
@@ -147,7 +146,7 @@ export const SPOTDL_ARGS = (trackUrl: string): SpotdlArgs => {
     SPOTDL,
     [
       `--output=${path.join(ROOT_DIR_PATH, SPOTDL_DIR, SPOTDL_OUTPUT)}`,
-      `--format=${SPOTDL_FORMAT}`,
+      `--format=${TEMP_TRACK_FORMAT}`,
       `--print-errors`,
       trackUrl,
     ],
@@ -174,7 +173,7 @@ export const ZOTIFY_ARGS = (trackUrl: string): ZotifyArgs => {
       `--password=${SPOTIFY_PASSWORD}`,
       `--root-path=${path.join(ROOT_DIR_PATH, ZOTIFY_DIR)}`,
       `--output=${ZOTIFY_OUTPUT}`,
-      `--download-format=${ZOTIFY_FORMAT}`,
+      `--download-format=${TEMP_TRACK_FORMAT}`,
       `--download-quality=high`,
       `--save-credentials=False`,
       trackUrl,

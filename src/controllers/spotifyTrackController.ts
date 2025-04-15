@@ -3,12 +3,24 @@ import { createReadStream, renameSync } from "node:fs";
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 
-import globalState from "src/classes/GlobalState";
-import SpotifyTrack from "src/classes/SpotifyTrack";
-import { CREATE_SPOTIFY_SEARCH_URL, ROOT_DIR_PATH, SET_GENERIC_SPOTIFY_TOKEN, SPOTDL, SPOTDL_ARGS, SPOTDL_DIR, SPOTDL_FORMAT, spotdlFileSanitize, ZOTIFY_ARGS, ZOTIFY_DIR, ZOTIFY_FORMAT, zotifyFileSanitize } from "src/constants";
-import { DownloadTrackReqBody, SearchTracksReqQuery, TracksStatusReqBody } from "src/RequestInterfaces";
-import { getFile } from "src/utils/fileOperations";
-import handleServerError from "src/utils/handleServerError";
+import globalState from "../classes/GlobalState.js";
+import SpotifyTrack from "../classes/SpotifyTrack.js";
+import {
+  CREATE_SPOTIFY_SEARCH_URL,
+  ROOT_DIR_PATH,
+  SET_GENERIC_SPOTIFY_TOKEN,
+  SPOTDL,
+  SPOTDL_ARGS,
+  SPOTDL_DIR,
+  spotdlFileSanitize,
+  ZOTIFY_ARGS,
+  ZOTIFY_DIR,
+  zotifyFileSanitize,
+  TEMP_TRACK_FORMAT
+} from "../constants.js";
+import { DownloadTrackReqBody, SearchTracksReqQuery, TracksStatusReqBody } from "../RequestInterfaces.js";
+import { getFile } from "../utils/fileOperations.js";
+import handleServerError from "../utils/handleServerError.js";
 
 export const searchTracks = async (req: SearchTracksReqQuery, res: Response) => {
   try {
@@ -39,30 +51,29 @@ export const downloadTrack = async (req: DownloadTrackReqBody, res: Response) =>
     const { track_url, downloader } = req.body;
     const sanitizeFunc = downloader === SPOTDL ? spotdlFileSanitize : zotifyFileSanitize;
     const SAVE_DIR = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
-    const FORMAT = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
 
     const artists = sanitizeFunc(req.body['artists']);
     const track_name = sanitizeFunc(req.body['track_name']);
     const mainArtist = artists.split(', ')[0];
 
-    const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${artists} - ${track_name}.${FORMAT}`);
+    const expectedFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${artists} - ${track_name}.${TEMP_TRACK_FORMAT}`);
 
     console.log(`Fetching: ${downloader} | ${track_url} | ${artists} | ${track_name}`);
     let fileInfo = getFile(expectedFilePath);
     if (!fileInfo) {
       console.log(`Downloading: ${downloader} | ${track_url} | ${artists} | ${track_name}`);
       const downloadOutput = await download(track_url, downloader);
-      const downloadFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${mainArtist} - ${track_name}.${FORMAT}`);
+      const downloadFilePath = path.join(ROOT_DIR_PATH, SAVE_DIR, mainArtist, `${mainArtist} - ${track_name}.${TEMP_TRACK_FORMAT}`);
 
       fileInfo = getFile(downloadFilePath);
       if (!fileInfo) {
-        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.${FORMAT}' not found in ${SAVE_DIR}. ${downloadOutput}`);
+        throw new Error(`Newly downloaded track '${mainArtist} - ${track_name}.${TEMP_TRACK_FORMAT}' not found in ${SAVE_DIR}. ${downloadOutput}`);
       }
 
       renameSync(downloadFilePath, expectedFilePath);
     }
 
-    const mostCompatibleFileName = spotdlFileSanitize(`${artists} - ${track_name}.${FORMAT}`);
+    const mostCompatibleFileName = spotdlFileSanitize(`${artists} - ${track_name}.${TEMP_TRACK_FORMAT}`);
     res.type('audio/mpeg').set({
       'Content-Length': fileInfo.size,
       'Content-Disposition': `attachment; filename=${encodeURIComponent(mostCompatibleFileName)}`
@@ -94,12 +105,11 @@ async function _reqSpotifyTracks(query: string): Promise<SpotifyTrack[]> {
 function attachTrackDownloadStatus(tracks: SpotifyTrack[], downloader: Downloader): SpotifyTrack[] {
   const sanitizeFunc = downloader === SPOTDL ? spotdlFileSanitize : zotifyFileSanitize;
   const DIR = downloader === SPOTDL ? SPOTDL_DIR : ZOTIFY_DIR;
-  const FORMAT = downloader === SPOTDL ? SPOTDL_FORMAT : ZOTIFY_FORMAT;
 
   tracks.forEach((track) => {
     const mainArtist = sanitizeFunc(track.artistNames[0]);
     const trackFileName = sanitizeFunc(`${track.artistNames.join(', ')} - ${track.name}`);
-    const trackFilePath = path.join(ROOT_DIR_PATH, DIR, mainArtist, `${trackFileName}.${FORMAT}`);
+    const trackFilePath = path.join(ROOT_DIR_PATH, DIR, mainArtist, `${trackFileName}.${TEMP_TRACK_FORMAT}`);
 
     const isDownloaded = getFile(trackFilePath);
     track.downloadStatus = isDownloaded ? 'Downloaded' : 'Not Downloaded';
